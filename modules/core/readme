@@ -1,0 +1,19 @@
+startup
+~~~~~~~
+
+1. Install python-virtualenv:
+   $ sudo yum install python-virtualenv.noarch
+
+2. Create virtual environment:
+   $ virtualenv venv
+
+3. Activate environment:
+   $ . venv/bin/activate
+
+4. Install Flask:
+   $ pip install Flask
+
+5. Install mysql-python:
+   $ pip install mysql-python
+   You probably need to have the mysql-devel 
+   package installed for this.
