@@ -154,7 +154,7 @@ def list_media(media_id=None, lang=None):
 			editor, timestamp_edit, timestamp_created, published, source, \
 			visible, source_system, source_key, rights, type, coverage, \
 			relation in cur.fetchall():
-		m = dom.createElement("media")
+		m = dom.createElement("lf:media")
 		# Add default elements
 		xml_add_elem( dom, m, "dc:identifier",     id )
 		xml_add_elem( dom, m, "lf:version",        version )
@@ -208,7 +208,7 @@ def list_media(media_id=None, lang=None):
 				source, source_key, source_system from lf_prepared_file
 				where media_id = uuid2bin("%s")''' % id )
 			for id, format, uri, src, src_key, src_sys in cur.fetchall():
-				f = dom.createElement("file")
+				f = dom.createElement("lf:file")
 				xml_add_elem( dom, f, "dc:identifier",    id )
 				xml_add_elem( dom, f, "dc:format",        format )
 				xml_add_elem( dom, f, "lf:uri",           uri )
@@ -279,7 +279,7 @@ def list_series(series_id=None, lang=None):
 	for id, version, parent_version, title, language, description, source, \
 			timestamp_edit, timestamp_created, published, owner, editor, \
 			visible, source_key, source_system in cur.fetchall():
-		s = dom.createElement('series')
+		s = dom.createElement('lf:series')
 		xml_add_elem( dom, s, "dc:identifier",     id )
 		xml_add_elem( dom, s, "lf:version",        version )
 		xml_add_elem( dom, s, "lf:parent_version", parent_version )
@@ -367,7 +367,7 @@ def list_subject(subject_id=None, lang=None):
 
 	# For each media we get
 	for id, name, language in cur.fetchall():
-		s = dom.createElement('subject')
+		s = dom.createElement('lf:subject')
 		xml_add_elem( dom, s, "lf:id",       id )
 		xml_add_elem( dom, s, "lf:name",     name )
 		xml_add_elem( dom, s, "dc:language", language )
@@ -399,7 +399,7 @@ def list_file(file_id=None):
 
 	# For each file we get
 	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
-		f = dom.createElement("file")
+		f = dom.createElement("lf:file")
 		xml_add_elem( dom, f, "dc:identifier",    id )
 		xml_add_elem( dom, f, "dc:format",        format )
 		xml_add_elem( dom, f, "lf:uri",           uri )
@@ -408,6 +408,39 @@ def list_file(file_id=None):
 		xml_add_elem( dom, f, "lf:source_key",    src_key )
 		xml_add_elem( dom, f, "lf:source_system", src_sys )
 		dom.childNodes[0].appendChild(f)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
+@app.route('/view/organization/')
+@app.route('/view/organization/<organization_id>')
+def list_organization(organization_id=None):
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, name, vcard_uri, parent_organization 
+			from lf_organization '''
+	if organization_id:
+		# abort with 400 Bad Request if file_id is not valid
+		try:
+			query += 'where id = %s ' % int(organization_id)
+		except ValueError:
+			abort(400)
+
+	cur.execute( query )
+	dom = parseString('''<result 
+			xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms"></result>''')
+
+	# For each file we get
+	for id, name, vcard_uri, parent_organization in cur.fetchall():
+		o = dom.createElement("lf:organization")
+		xml_add_elem( dom, o, "dc:identifier",             id )
+		xml_add_elem( dom, o, "lf:name",                   name )
+		xml_add_elem( dom, o, "lf:parent_organization_id", parent_organization )
+		xml_add_elem( dom, o, "lf:vcard_uri",              vcard_uri )
+		dom.childNodes[0].appendChild(o)
 
 	response = make_response(dom.toxml())
 	response.mimetype = 'application/xml'
