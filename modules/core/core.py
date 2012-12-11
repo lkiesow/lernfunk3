@@ -101,11 +101,23 @@ def is_uuid(s):
 			s[35] in hexdigits
 
 
+def is_true( val ):
+	return val.lower() in ['1', 'yes', 'true']
+
+
 @app.route('/view/media/')
 @app.route('/view/media/<media_id>')
 @app.route('/view/media/<media_id>/<lang>')
 def list_media(media_id=None, lang=None):
-	print( media_id )
+
+	# Check flags for additional data
+	with_series      = is_true(request.args.get('with_series',      '1'))
+	with_contributor = is_true(request.args.get('with_contributor', '1'))
+	with_creator     = is_true(request.args.get('with_creator',     '1'))
+	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
+	with_files       = is_true(request.args.get('with_files',       '0'))
+
+	# Request data
 	db = get_db()
 	cur = db.cursor()
 	query = '''select bin2uuid(id), version, parent_version, language,
@@ -131,6 +143,104 @@ def list_media(media_id=None, lang=None):
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
+	dom = parseString('''<result 
+			xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms"></result>''')
+
+	cur.execute( query )
+	# For each media we get
+	for id, version, parent_version, language, title, description, owner, \
+			editor, timestamp_edit, timestamp_created, published, source, \
+			visible, source_system, source_key, rights, type, coverage, \
+			relation in cur.fetchall():
+		m = dom.createElement("media")
+		# Add default elements
+		xml_add_elem( dom, m, "dc:identifier",     id )
+		xml_add_elem( dom, m, "lf:version",        version )
+		xml_add_elem( dom, m, "lf:parent_version", parent_version )
+		xml_add_elem( dom, m, "dc:language",       language )
+		xml_add_elem( dom, m, "dc:title",          title )
+		xml_add_elem( dom, m, "dc:description",    description )
+		xml_add_elem( dom, m, "lf:owner",          owner )
+		xml_add_elem( dom, m, "lf:editor",         editor )
+		xml_add_elem( dom, m, "dc:date",           timestamp_created )
+		xml_add_elem( dom, m, "lf:last_edit",      timestamp_edit )
+		xml_add_elem( dom, m, "lf:published",      published )
+		xml_add_elem( dom, m, "dc:source",         source )
+		xml_add_elem( dom, m, "lf:visible",        visible )
+		xml_add_elem( dom, m, "lf:source_system",  source_system )
+		xml_add_elem( dom, m, "lf:source_key",     source_key )
+		xml_add_elem( dom, m, "dc:rights",         rights )
+		xml_add_elem( dom, m, "dc:type",           type )
+
+		# Get series
+		if with_series:
+			cur.execute( '''select bin2uuid(series_id) from lf_media_series 
+				where media_id = uuid2bin("%s")''' % id )
+			for (series_id,) in cur.fetchall():
+				xml_add_elem( dom, m, "lf:series", series_id )
+
+		# Get contributor (user)
+		if with_contributor:
+			cur.execute( '''select user_id from lf_media_contributor
+				where media_id = uuid2bin("%s")''' % id )
+			for (user_id,) in cur.fetchall():
+				xml_add_elem( dom, m, "lf:contributor", user_id )
+
+		# Get creator (user)
+		if with_creator:
+			cur.execute( '''select user_id from lf_media_creator
+				where media_id = uuid2bin("%s")''' % id )
+			for (user_id,) in cur.fetchall():
+				xml_add_elem( dom, m, "lf:creator", user_id )
+
+		# Get publisher (organization)
+		if with_publisher:
+			cur.execute( '''select organization_id from lf_media_publisher
+				where media_id = uuid2bin("%s")''' % id )
+			for (organization_id,) in cur.fetchall():
+				xml_add_elem( dom, m, "lf:publisher", organization_id )
+
+		# Get files
+		if with_files:
+			pass # TODO #########################################################################
+
+		dom.childNodes[0].appendChild(m)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
+@app.route('/view/series/')
+@app.route('/view/series/<series_id>')
+@app.route('/view/series/<series_id>/<lang>')
+def list_series(series_id=None, lang=None):
+	db = get_db()
+	cur = db.cursor()
+	query = '''select bin2uuid(id), version, parent_version, title,
+			language, description, source, timestamp_edit, timestamp_created,
+			published, owner, editor, visible, source_key, source_system 
+			from lf_published_series '''
+	if series_id:
+		# abort with 400 Bad Request if series_id is not a valid uuid or thread it
+		# as language code if language argument does not exist
+		if is_uuid(series_id):
+			query += 'where id = uuid2bin("%s") ' % series_id
+		else:
+			if lang:
+				abort(400)
+			else:
+				lang = series_id
+
+	# Check for language argument
+	if lang:
+		for c in lang:
+			if c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_':
+				abort(400)
+		query += ( 'and language = "%s" ' \
+				if 'where id' in query \
+				else 'where language = "%s" ' ) % lang
 	print(query)
 	cur.execute( query )
 	dom = parseString('''<result 
@@ -138,28 +248,25 @@ def list_media(media_id=None, lang=None):
 			xmlns:lf="http://lernfunk.de/terms"></result>''')
 
 	# For each media we get
-	for id, version, parent_version, language, title, description, owner, \
-			editor, timestamp_edit, timestamp_created, published, source, \
-			visible, source_system, source_key, rights, type, coverage, \
-			relation in cur.fetchall():
-		m = dom.createElement("media")
-		xml_add_elem( dom, m, "dc:identifier", id )
-		xml_add_elem( dom, m, "lf:version",    version )
-		xml_add_elem( dom, m, "lf:parent_version", parent_version )
-		xml_add_elem( dom, m, "dc:language", language )
-		xml_add_elem( dom, m, "dc:title", title )
-		xml_add_elem( dom, m, "dc:description", description )
-		xml_add_elem( dom, m, "lf:owner", owner )
-		xml_add_elem( dom, m, "lf:editor", editor )
-		xml_add_elem( dom, m, "dc:date", timestamp_created )
-		xml_add_elem( dom, m, "lf:last_edit", timestamp_edit )
-		xml_add_elem( dom, m, "lf:published", published )
-		xml_add_elem( dom, m, "dc:source", source )
-		xml_add_elem( dom, m, "lf:visible", visible )
-		xml_add_elem( dom, m, "lf:source_system", source_system )
-		xml_add_elem( dom, m, "lf:source_key", source_key )
-		xml_add_elem( dom, m, "dc:rights", rights )
-		xml_add_elem( dom, m, "dc:type", type )
+	for id, version, parent_version, title, language, description, source, \
+			timestamp_edit, timestamp_created, published, owner, editor, \
+			visible, source_key, source_system in cur.fetchall():
+		s = dom.createElement('series')
+		xml_add_elem( dom, s, "dc:identifier",     id )
+		xml_add_elem( dom, s, "lf:version",        version )
+		xml_add_elem( dom, s, "lf:parent_version", parent_version )
+		xml_add_elem( dom, s, "dc:title",          title )
+		xml_add_elem( dom, s, "dc:language",       language )
+		xml_add_elem( dom, s, "dc:description",    description )
+		xml_add_elem( dom, s, "dc:source",         source )
+		xml_add_elem( dom, s, "lf:last_edit",      timestamp_edit )
+		xml_add_elem( dom, s, "dc:date",           timestamp_created )
+		xml_add_elem( dom, s, "lf:published",      published )
+		xml_add_elem( dom, s, "lf:owner",          owner )
+		xml_add_elem( dom, s, "lf:editor",         editor )
+		xml_add_elem( dom, s, "lf:visible",        visible )
+		xml_add_elem( dom, s, "lf:source_key",     source_key )
+		xml_add_elem( dom, s, "lf:source_system",  source_system )
 		dom.childNodes[0].appendChild(m)
 
 	response = make_response(dom.toxml())
