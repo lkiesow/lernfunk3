@@ -115,7 +115,8 @@ def list_media(media_id=None, lang=None):
 	with_contributor = is_true(request.args.get('with_contributor', '1'))
 	with_creator     = is_true(request.args.get('with_creator',     '1'))
 	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
-	with_files       = is_true(request.args.get('with_files',       '0'))
+	with_file        = is_true(request.args.get('with_file',        '0'))
+	with_subject     = is_true(request.args.get('with_subject',     '1'))
 
 	# Request data
 	db = get_db()
@@ -178,7 +179,7 @@ def list_media(media_id=None, lang=None):
 			cur.execute( '''select bin2uuid(series_id) from lf_media_series 
 				where media_id = uuid2bin("%s")''' % id )
 			for (series_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:series", series_id )
+				xml_add_elem( dom, m, "lf:series_id", series_id )
 
 		# Get contributor (user)
 		if with_contributor:
@@ -202,8 +203,29 @@ def list_media(media_id=None, lang=None):
 				xml_add_elem( dom, m, "lf:publisher", organization_id )
 
 		# Get files
-		if with_files:
-			pass # TODO #########################################################################
+		if with_file:
+			cur.execute( '''select bin2uuid(id), format, uri,
+				source, source_key, source_system from lf_prepared_file
+				where media_id = uuid2bin("%s")''' % id )
+			for id, format, uri, src, src_key, src_sys in cur.fetchall():
+				f = dom.createElement("file")
+				xml_add_elem( dom, f, "dc:identifier",    id )
+				xml_add_elem( dom, f, "dc:format",        format )
+				xml_add_elem( dom, f, "lf:uri",           uri )
+				xml_add_elem( dom, f, "lf:source",        src )
+				xml_add_elem( dom, f, "lf:source_key",    src_key )
+				xml_add_elem( dom, f, "lf:source_system", src_sys )
+				m.appendChild(f)
+
+		# Get subjects
+		if with_subject:
+			cur.execute( '''select s.name from lf_media_subject ms 
+					join lf_subject s on s.id = ms.subject_id 
+					where s.language = "%s" 
+					and ms.media_id = uuid2bin("%s") ''' % (language, id) )
+			for (subject,) in cur.fetchall():
+				xml_add_elem( dom, m, "dc:subject", subject )
+
 
 		dom.childNodes[0].appendChild(m)
 
@@ -216,6 +238,13 @@ def list_media(media_id=None, lang=None):
 @app.route('/view/series/<series_id>')
 @app.route('/view/series/<series_id>/<lang>')
 def list_series(series_id=None, lang=None):
+
+	# Check flags for additional data
+	with_media       = is_true(request.args.get('with_media',       '1'))
+	with_creator     = is_true(request.args.get('with_creator',     '1'))
+	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
+	with_subject     = is_true(request.args.get('with_subject',     '1'))
+
 	db = get_db()
 	cur = db.cursor()
 	query = '''select bin2uuid(id), version, parent_version, title,
@@ -241,7 +270,6 @@ def list_series(series_id=None, lang=None):
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
-	print(query)
 	cur.execute( query )
 	dom = parseString('''<result 
 			xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -267,7 +295,37 @@ def list_series(series_id=None, lang=None):
 		xml_add_elem( dom, s, "lf:visible",        visible )
 		xml_add_elem( dom, s, "lf:source_key",     source_key )
 		xml_add_elem( dom, s, "lf:source_system",  source_system )
-		dom.childNodes[0].appendChild(m)
+		dom.childNodes[0].appendChild(s)
+
+		# Get media
+		if with_media:
+			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
+				where series_id = uuid2bin("%s")''' % id )
+			for (media_id,) in cur.fetchall():
+				xml_add_elem( dom, s, "lf:media_id", media_id )
+
+		# Get creator (user)
+		if with_creator:
+			cur.execute( '''select user_id from lf_series_creator
+				where series_id = uuid2bin("%s")''' % id )
+			for (user_id,) in cur.fetchall():
+				xml_add_elem( dom, s, "lf:creator", user_id )
+
+		# Get publisher (organization)
+		if with_publisher:
+			cur.execute( '''select organization_id from lf_series_publisher
+				where series_id = uuid2bin("%s")''' % id )
+			for (organization_id,) in cur.fetchall():
+				xml_add_elem( dom, s, "lf:publisher", organization_id )
+
+		# Get subjects
+		if with_subject:
+			cur.execute( '''select s.name from lf_series_subject ms 
+					join lf_subject s on s.id = ms.subject_id 
+					where s.language = "%s" 
+					and ms.series_id = uuid2bin("%s") ''' % (language, id) )
+			for (subject,) in cur.fetchall():
+				xml_add_elem( dom, s, "dc:subject", subject )
 
 	response = make_response(dom.toxml())
 	response.mimetype = 'application/xml'
