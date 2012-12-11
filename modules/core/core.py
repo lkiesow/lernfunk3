@@ -447,6 +447,36 @@ def list_organization(organization_id=None):
 	return response
 
 
+@app.route('/view/group/')
+@app.route('/view/group/<group_id>')
+def list_group(group_id=None):
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, name from lf_group '''
+	if group_id:
+		# abort with 400 Bad Request if id is not valid
+		try:
+			query += 'where id = %s ' % int(group_id)
+		except ValueError:
+			abort(400)
+
+	cur.execute( query )
+	dom = parseString('''<result 
+			xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms"></result>''')
+
+	# For each file we get
+	for id, name in cur.fetchall():
+		g = dom.createElement("lf:group")
+		xml_add_elem( dom, g, "dc:identifier", id )
+		xml_add_elem( dom, g, "lf:name",       name )
+		dom.childNodes[0].appendChild(g)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
 @app.route('/add', methods=['POST'])
 def add_entry():
 	if not session.get('logged_in'):
