@@ -332,6 +332,88 @@ def list_series(series_id=None, lang=None):
 	return response
 
 
+@app.route('/view/subject/')
+@app.route('/view/subject/<subject_id>')
+@app.route('/view/subject/<subject_id>/<lang>')
+def list_subject(subject_id=None, lang=None):
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, name, language from lf_subject '''
+	if subject_id:
+		# abort with 400 Bad Request if subject_id is not valid or thread it
+		# as language code if language argument does not exist
+		try:
+			query += 'where id = %s ' % int(subject_id)
+		except ValueError:
+			# subject_id is not valid
+			if lang:
+				abort(400)
+			else:
+				lang = subject_id
+
+	# Check for language argument
+	if lang:
+		for c in lang:
+			if c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_':
+				abort(400)
+		query += ( 'and language = "%s" ' \
+				if 'where id' in query \
+				else 'where language = "%s" ' ) % lang
+	cur.execute( query )
+	dom = parseString('''<result 
+			xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms"></result>''')
+
+	# For each media we get
+	for id, name, language in cur.fetchall():
+		s = dom.createElement('subject')
+		xml_add_elem( dom, s, "lf:id",       id )
+		xml_add_elem( dom, s, "lf:name",     name )
+		xml_add_elem( dom, s, "dc:language", language )
+		dom.childNodes[0].appendChild(s)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
+@app.route('/view/file/')
+@app.route('/view/file/<file_id>')
+def list_file(file_id=None):
+	db = get_db()
+	cur = db.cursor()
+	query = '''select bin2uuid(id), format, uri, bin2uuid(media_id),
+				source, source_key, source_system from lf_prepared_file '''
+	if file_id:
+		# abort with 400 Bad Request if file_id is not valid
+		if is_uuid(file_id):
+			query += 'where id = uuid2bin("%s") ' % file_id
+		else:
+			abort(400)
+
+	cur.execute( query )
+	dom = parseString('''<result 
+			xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms"></result>''')
+
+	# For each file we get
+	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
+		f = dom.createElement("file")
+		xml_add_elem( dom, f, "dc:identifier",    id )
+		xml_add_elem( dom, f, "dc:format",        format )
+		xml_add_elem( dom, f, "lf:uri",           uri )
+		xml_add_elem( dom, f, "lf:media_id",      media_id )
+		xml_add_elem( dom, f, "lf:source",        src )
+		xml_add_elem( dom, f, "lf:source_key",    src_key )
+		xml_add_elem( dom, f, "lf:source_system", src_sys )
+		dom.childNodes[0].appendChild(f)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
 @app.route('/add', methods=['POST'])
 def add_entry():
 	if not session.get('logged_in'):
