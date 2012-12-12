@@ -95,3 +95,17 @@ def is_true( val ):
 	val -- Value to check
 	'''
 	return val.lower() in ['1', 'yes', 'true']
+
+
+def to_int( s, default=0 ):
+	'''Convert string to integer. If the string cannot be converted a default
+	value is used.
+
+	Keyword arguments:
+	s       -- String to convert
+	default -- Value to return if the string cannot be converted
+	'''
+	try:
+		return int(s)
+	except ValueError:
+		return default

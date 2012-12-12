@@ -31,6 +31,8 @@ def list_media(media_id=None, lang=None):
 	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
 	with_file        = is_true(request.args.get('with_file',        '0'))
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
 
 	# Request data
 	db = get_db()
@@ -58,6 +60,10 @@ def list_media(media_id=None, lang=None):
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
 	dom = result_dom()
 	cur.execute( query )
 	# For each media we get
@@ -145,6 +151,7 @@ def list_media(media_id=None, lang=None):
 	return response
 
 
+
 @app.route('/view/series/')
 @app.route('/view/series/<series_id>')
 @app.route('/view/series/<series_id>/<lang>')
@@ -155,6 +162,8 @@ def list_series(series_id=None, lang=None):
 	with_creator     = is_true(request.args.get('with_creator',     '1'))
 	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
 
 	db = get_db()
 	cur = db.cursor()
@@ -181,6 +190,10 @@ def list_series(series_id=None, lang=None):
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
 	cur.execute( query )
 	dom = result_dom()
 
@@ -241,10 +254,14 @@ def list_series(series_id=None, lang=None):
 	return response
 
 
+
 @app.route('/view/subject/')
 @app.route('/view/subject/<subject_id>')
 @app.route('/view/subject/<subject_id>/<lang>')
 def list_subject(subject_id=None, lang=None):
+
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
 
 	db = get_db()
 	cur = db.cursor()
@@ -269,6 +286,10 @@ def list_subject(subject_id=None, lang=None):
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
 	cur.execute( query )
 	dom = result_dom()
 
@@ -285,9 +306,13 @@ def list_subject(subject_id=None, lang=None):
 	return response
 
 
+
 @app.route('/view/file/')
 @app.route('/view/file/<file_id>')
 def list_file(file_id=None):
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
 	db = get_db()
 	cur = db.cursor()
 	query = '''select bin2uuid(id), format, uri, bin2uuid(media_id),
@@ -298,6 +323,9 @@ def list_file(file_id=None):
 			query += 'where id = uuid2bin("%s") ' % file_id
 		else:
 			abort(400)
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
 
 	cur.execute( query )
 	dom = result_dom()
@@ -322,6 +350,9 @@ def list_file(file_id=None):
 @app.route('/view/organization/')
 @app.route('/view/organization/<organization_id>')
 def list_organization(organization_id=None):
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name, vcard_uri, parent_organization 
@@ -332,6 +363,9 @@ def list_organization(organization_id=None):
 			query += 'where id = %s ' % int(organization_id)
 		except ValueError:
 			abort(400)
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
 
 	cur.execute( query )
 	dom = result_dom()
@@ -350,9 +384,13 @@ def list_organization(organization_id=None):
 	return response
 
 
+
 @app.route('/view/group/')
 @app.route('/view/group/<group_id>')
 def list_group(group_id=None):
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name from lf_group '''
@@ -362,6 +400,9 @@ def list_group(group_id=None):
 			query += 'where id = %s ' % int(group_id)
 		except ValueError:
 			abort(400)
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
 
 	cur.execute( query )
 	dom = result_dom()
@@ -381,6 +422,9 @@ def list_group(group_id=None):
 @app.route('/view/user/')
 @app.route('/view/user/<user_id>')
 def list_user(user_id=None):
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name, vcard_uri from lf_user '''
@@ -390,6 +434,9 @@ def list_user(user_id=None):
 			query += 'where id = %s ' % int(user_id)
 		except ValueError:
 			abort(400)
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
 
 	cur.execute( query )
 	dom = result_dom()
