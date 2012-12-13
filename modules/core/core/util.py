@@ -12,9 +12,14 @@
 """
 
 from core import app
-from string import hexdigits
+from string import hexdigits, letters, digits
 from xml.dom.minidom import parseString
 
+'''All characters allowed for language tags.'''
+lang_chars = letters + '-_'
+
+'''All characters allowed for usernames.'''
+username_chars = digits + lang_chars
 
 def result_dom():
 	'''Return an empty DOM tree for results

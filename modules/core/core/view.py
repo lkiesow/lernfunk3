@@ -14,15 +14,24 @@
 from core import app
 from core.util import *
 from core.db import get_db
+from core.authenticate import get_authorization
 
-from flask import Flask, request, session, g, redirect, url_for, abort, \
-		render_template, flash, _app_ctx_stack, make_response
+from flask import request, session, g, redirect, url_for, abort, make_response
 
 
 @app.route('/view/media/')
 @app.route('/view/media/<media_id>')
 @app.route('/view/media/<media_id>/<lang>')
 def list_media(media_id=None, lang=None):
+
+	print( request.authorization )
+	auth = None
+	try:
+		auth = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	print( auth )
+
 
 	# Check flags for additional data
 	with_series      = is_true(request.args.get('with_series',      '1'))
@@ -55,7 +64,7 @@ def list_media(media_id=None, lang=None):
 	# Check for language argument
 	if lang:
 		for c in lang:
-			if c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_':
+			if c not in lang_chars:
 				abort(400)
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
@@ -185,7 +194,7 @@ def list_series(series_id=None, lang=None):
 	# Check for language argument
 	if lang:
 		for c in lang:
-			if c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_':
+			if c not in lang_chars:
 				abort(400)
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
@@ -281,7 +290,7 @@ def list_subject(subject_id=None, lang=None):
 	# Check for language argument
 	if lang:
 		for c in lang:
-			if c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_':
+			if c not in lang_chars:
 				abort(400)
 		query += ( 'and language = "%s" ' \
 				if 'where id' in query \
