@@ -23,23 +23,36 @@ class User:
 	name=None
 	groups={}
 	vcard_uri=None
-	admin=False
-	editor=False
 
-	def __init__(self, id=None, name=None, groups={}, vcard_uri=None, 
-			admin=False, editor=False):
+
+	def is_admin(self):
+		'''Check if user has the status of an administrator.'''
+		return self.name == 'admin' or 'admin' in self.groups.values()
+
+
+	def is_editor(self):
+		'''Check if user has the status of an editor.'''
+		return self.is_admin() or 'editor' in self.groups.values()
+
+
+	def __init__(self, id=None, name=None, groups={}, vcard_uri=None):
+		'''Set initial values of user object.'''
 		self.id        = id
 		self.name      = name
 		self.groups    = groups
 		self.vcard_uri = vcard_uri
-		self.admin     = admin
-		self.editor    = editor
+
 
 	def __str__(self):
-		return '(id=%s, name="%s", groups=%s, vcard_uri="%s")' \
-				% ( self.id, self.name, self.groups, self.vcard_uri )
+		'''Return string, describing the user object (same as __repr__).'''
+		return '(id=%s, name="%s", groups=%s, vcard_uri="%s", '  \
+				'is_admin=%s, is_editor=%s)' \
+				% ( self.id, self.name, self.groups, self.vcard_uri, 
+						self.is_admin(), self.is_editor() )
+
 
 	def __repr__(self):
+		'''Return representation of user object.'''
 		return self.__str__()
 
 
