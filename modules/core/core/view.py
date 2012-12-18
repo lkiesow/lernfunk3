@@ -24,13 +24,34 @@ from flask import request, session, g, redirect, url_for, abort, make_response
 @app.route('/view/media/<media_id>/<lang>')
 def list_media(media_id=None, lang=None):
 
-	print( request.authorization )
-	auth = None
+	user = None
 	try:
-		auth = get_authorization( request.authorization )
+		user = get_authorization( request.authorization )
 	except KeyError as e:
 		abort(401, e)
-	print( auth )
+	if not user:
+		abort(403)
+	
+	if app.debug:
+		print('### User #######################')
+		print(user)
+		print('################################')
+	query_condition = ''
+	# Admins and editors can see everything. So there is no need for conditions.
+	if not ( user.is_admin() or user.is_editor() ):
+		# Add user as conditions
+		query_condition = '''left outer join lf_access a on a.media_id = m.id 
+			where ( a.user_id = %s ''' % user.id
+		# Add groups as condition (if necessary)
+		if not len(user.groups):
+			query_condition += ') '
+		elif len(user.groups) == 1:
+			query_condition += 'or a.group_id = %s ) ' % user.groups.keys()[0]
+		else:
+			grouplist = '(' + ','.join([str(id) for id in user.groups.keys()]) + ')'
+			query_condition += ' a.group_id in %s ) ' % grouplist
+		# Add access condition
+		query_condition += 'and read_access '
 
 
 	# Check flags for additional data
@@ -46,15 +67,17 @@ def list_media(media_id=None, lang=None):
 	# Request data
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(id), version, parent_version, language,
-			title, description, owner, editor, timestamp_edit, timestamp_created,
-			published, source, visible, source_system, source_key, rights, type,
-			coverage, relation from lf_published_media '''
+	query = '''select bin2uuid(m.id), m.version, m.parent_version, m.language,
+			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
+			m.timestamp_created, m.published, m.source, m.visible,
+			m.source_system, m.source_key, m.rights, m.type, m.coverage,
+			m.relation from lf_published_media m '''
 	if media_id:
 		# abort with 400 Bad Request if media_id is not a valid uuid or thread it
 		# as language code if language argument does not exist
 		if is_uuid(media_id):
-			query += 'where id = uuid2bin("%s") ' % media_id
+			query_condition += ( 'and ' if query_condition else 'where ' ) + \
+					'id = uuid2bin("%s") ' % media_id
 		else:
 			if lang:
 				abort(400)
@@ -66,12 +89,17 @@ def list_media(media_id=None, lang=None):
 		for c in lang:
 			if c not in lang_chars:
 				abort(400)
-		query += ( 'and language = "%s" ' \
-				if 'where id' in query \
-				else 'where language = "%s" ' ) % lang
+		query_condition += ( 'and ' if query_condition else 'where ' ) + \
+				'language = "%s" ' % lang
+	query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
 
 	dom = result_dom()
 	cur.execute( query )

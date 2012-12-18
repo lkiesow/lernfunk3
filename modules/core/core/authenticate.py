@@ -102,7 +102,7 @@ def get_authorization( auth ):
 	# At this point we are shure that we got a valid user with a valid password.
 	# So lets get the userdata.
 	# First set, what we already know:
-	user = User( id=id, name=username, vcard_uri=vcard_uri )
+	user = User( id=id, name=username, vcard_uri=vcard_uri, groups={} )
 	
 	# Then get additional data:
 	query = '''select g.id, g.name from lf_user_group ug 
