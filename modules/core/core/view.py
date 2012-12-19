@@ -91,6 +91,7 @@ def list_media(media_id=None, lang=None):
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
 			m.relation from lf_published_media m '''
+	count_query = '''select count(m.id) from lf_published_media m '''
 	if media_id:
 		# abort with 400 Bad Request if media_id is not a valid uuid or thread it
 		# as language code if language argument does not exist
@@ -111,6 +112,7 @@ def list_media(media_id=None, lang=None):
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'm.language = "%s" ' % lang
 	query += query_condition
+	count_query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -120,7 +122,12 @@ def list_media(media_id=None, lang=None):
 		print( query )
 		print('################################')
 
-	dom = result_dom()
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	dom = result_dom( result_count )
 	cur.execute( query )
 	# For each media we get
 	for id, version, parent_version, language, title, description, owner, \

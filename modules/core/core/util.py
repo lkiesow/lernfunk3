@@ -21,12 +21,13 @@ lang_chars = letters + '-_'
 '''All characters allowed for usernames.'''
 username_chars = digits + lang_chars
 
-def result_dom():
+def result_dom( count=0 ):
 	'''Return an empty DOM tree for results
 	'''
 	return parseString('''<result 
 			xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms"></result>''')
+			xmlns:lf="http://lernfunk.de/terms"
+			resultcount="%s"></result>''' % int(count) )
 
 
 def xml_add_elem( dom, parent, name, val ):
