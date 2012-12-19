@@ -23,6 +23,25 @@ from flask import request, session, g, redirect, url_for, abort, make_response
 @app.route('/view/media/<media_id>')
 @app.route('/view/media/<media_id>/<lang>')
 def list_media(media_id=None, lang=None):
+	'''This method provides live access to the last published state of all
+	mediaobjects in the Lernfunk database. Use HTTP Basic authentication to get
+	access. If you don't then you will be ranked as “public” user and will only
+	see what is public available.
+
+	Keyword arguments:
+	media_id -- UUID of a specific media object.
+	lang     -- Language filter for the mediaobjects.
+
+	GET parameter:
+	with_series      -- Also return the series (default: enabled)
+	with_contributor -- Also return the contributors (default: enabled)
+	with_creator     -- Also return the creators (default: enabled)
+	with_publisher   -- Also return the publishers (default: enabled)
+	with_file        -- Also return all files (default: disabled)
+	with_subject     -- Also return all subjects (default: enabled)
+	limit            -- Maximum amount of results to return (default: 10)
+	offset           -- Offset of results to return (default: 0)
+	'''
 
 	user = None
 	try:
@@ -77,7 +96,7 @@ def list_media(media_id=None, lang=None):
 		# as language code if language argument does not exist
 		if is_uuid(media_id):
 			query_condition += ( 'and ' if query_condition else 'where ' ) + \
-					'id = uuid2bin("%s") ' % media_id
+					'm.id = uuid2bin("%s") ' % media_id
 		else:
 			if lang:
 				abort(400)
@@ -90,7 +109,7 @@ def list_media(media_id=None, lang=None):
 			if c not in lang_chars:
 				abort(400)
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
-				'language = "%s" ' % lang
+				'm.language = "%s" ' % lang
 	query += query_condition
 
 	# Add limit and offset
@@ -193,6 +212,53 @@ def list_media(media_id=None, lang=None):
 @app.route('/view/series/<series_id>')
 @app.route('/view/series/<series_id>/<lang>')
 def list_series(series_id=None, lang=None):
+	'''This method provides access to the latest published state of all series
+	in the Lernfunk database. Use HTTP Basic authentication to get access to
+	more series. If you don't do that you will be ranked as “public” user.
+
+	Keyword arguments:
+	series_id -- UUID of a specific series.
+	lang      -- Language filter for the series.
+
+	GET parameter:
+	with_media       -- Also return the media (default: enabled)
+	with_creator     -- Also return the creators (default: enabled)
+	with_publisher   -- Also return the publishers (default: enabled)
+	with_subject     -- Also return all subjects (default: enabled)
+	limit            -- Maximum amount of results to return (default: 10)
+	offset           -- Offset of results to return (default: 0)
+	'''
+
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	if not user:
+		abort(403)
+	
+	if app.debug:
+		print('### User #######################')
+		print(user)
+		print('################################')
+
+	query_condition = ''
+	# Admins and editors can see everything. So there is no need for conditions.
+	if not ( user.is_admin() or user.is_editor() ):
+		# Add user as conditions
+		query_condition = '''left outer join lf_access a on a.series_id = s.id 
+			where ( a.user_id = %s ''' % user.id
+		# Add groups as condition (if necessary)
+		if not len(user.groups):
+			query_condition += ') '
+		elif len(user.groups) == 1:
+			query_condition += 'or a.group_id = %s ) ' % user.groups.keys()[0]
+		else:
+			grouplist = '(' + ','.join([str(id) for id in user.groups.keys()]) + ')'
+			query_condition += ' a.group_id in %s ) ' % grouplist
+		# Add access condition
+		query_condition += 'and read_access '
 
 	# Check flags for additional data
 	with_media       = is_true(request.args.get('with_media',       '1'))
@@ -204,15 +270,17 @@ def list_series(series_id=None, lang=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(id), version, parent_version, title,
-			language, description, source, timestamp_edit, timestamp_created,
-			published, owner, editor, visible, source_key, source_system 
-			from lf_published_series '''
+	query = '''select bin2uuid(s.id), s.version, s.parent_version, s.title,
+			s.language, s.description, s.source, s.timestamp_edit,
+			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
+			s.source_key, s.source_system 
+			from lf_published_series s '''
 	if series_id:
 		# abort with 400 Bad Request if series_id is not a valid uuid or thread it
 		# as language code if language argument does not exist
 		if is_uuid(series_id):
-			query += 'where id = uuid2bin("%s") ' % series_id
+			query_condition += ( 'and ' if query_condition else 'where ' ) + \
+					's.id = uuid2bin("%s") ' % series_id
 		else:
 			if lang:
 				abort(400)
@@ -224,12 +292,17 @@ def list_series(series_id=None, lang=None):
 		for c in lang:
 			if c not in lang_chars:
 				abort(400)
-		query += ( 'and language = "%s" ' \
-				if 'where id' in query \
-				else 'where language = "%s" ' ) % lang
+		query_condition += ( 'and ' if query_condition else 'where ' ) + \
+				's.language = "%s" ' % lang
+	query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
 
 	cur.execute( query )
 	dom = result_dom()
