@@ -23,6 +23,9 @@ class User:
 	name=None
 	groups={}
 	vcard_uri=None
+	realname=None
+	email=None
+	access=4
 
 
 	def is_admin(self):
@@ -35,20 +38,24 @@ class User:
 		return self.is_admin() or 'editor' in self.groups.values()
 
 
-	def __init__(self, id=None, name=None, groups={}, vcard_uri=None):
+	def __init__(self, id=None, name=None, groups={}, vcard_uri=None, 
+			realname=None, email=None, access=4):
 		'''Set initial values of user object.'''
 		self.id        = id
 		self.name      = name
 		self.groups    = groups
 		self.vcard_uri = vcard_uri
+		self.realname  = realname
+		self.email     = email
+		self.access    = access
 
 
 	def __str__(self):
 		'''Return string, describing the user object (same as __repr__).'''
-		return '(id=%s, name="%s", groups=%s, vcard_uri="%s", '  \
-				'is_admin=%s, is_editor=%s)' \
-				% ( self.id, self.name, self.groups, self.vcard_uri, 
-						self.is_admin(), self.is_editor() )
+		return '(id=%s, name="%s", groups=%s, vcard_uri="%s", realname="%s", ' \
+				'email="%s", access="%s", is_admin=%s, is_editor=%s)' \
+				% ( self.id, self.name, self.groups, self.vcard_uri, self.realname,
+						self.email, self.access, self.is_admin(), self.is_editor() )
 
 
 	def __repr__(self):
@@ -78,7 +85,7 @@ def get_authorization( auth ):
 		if not c in username_chars:
 			raise KeyError( 'Bad username in header.' )
 
-	query = '''select id, salt, passwd, vcard_uri 
+	query = '''select id, salt, passwd, vcard_uri, realname, email, access
 			from lf_user where name = "%s"''' % username
 
 	# Get userdata from database
@@ -91,7 +98,7 @@ def get_authorization( auth ):
 		# User does not exist. Return error
 		raise KeyError( 'User does not exist.' )
 
-	id, salt, passwd, vcard_uri = dbdata
+	id, salt, passwd, vcard_uri, realname, email, access = dbdata
 	send_passwdhash = sha512( password + str(salt) ).digest() \
 			if passwd else None
 	
@@ -102,7 +109,8 @@ def get_authorization( auth ):
 	# At this point we are shure that we got a valid user with a valid password.
 	# So lets get the userdata.
 	# First set, what we already know:
-	user = User( id=id, name=username, vcard_uri=vcard_uri, groups={} )
+	user = User( id=id, name=username, vcard_uri=vcard_uri, groups={}, 
+			realname=realname, email=email, access=access )
 	
 	# Then get additional data:
 	query = '''select g.id, g.name from lf_user_group ug 

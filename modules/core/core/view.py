@@ -229,7 +229,6 @@ def list_series(series_id=None, lang=None):
 	offset           -- Offset of results to return (default: 0)
 	'''
 
-
 	user = None
 	try:
 		user = get_authorization( request.authorization )
@@ -517,6 +516,17 @@ def list_file(file_id=None):
 @app.route('/view/organization/')
 @app.route('/view/organization/<organization_id>')
 def list_organization(organization_id=None):
+	'''This method provides access to all orginization datasets in the Lernfunk
+	database.
+
+	Keyword arguments:
+	organization_id -- Id of a specific organization.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 
@@ -555,6 +565,25 @@ def list_organization(organization_id=None):
 @app.route('/view/group/')
 @app.route('/view/group/<group_id>')
 def list_group(group_id=None):
+	'''This method provides access to all group datasets from the Lernfunk
+	database. You have to authenticate yourself as an administrator to access
+	these data.
+
+	Keyword arguments:
+	group_id -- Id of a specific group.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
+	# Check for authentication as admin
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			abort(403)
+	except KeyError as e:
+		abort(401, e)
+
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 
@@ -589,27 +618,67 @@ def list_group(group_id=None):
 @app.route('/view/user/')
 @app.route('/view/user/<user_id>')
 def list_user(user_id=None):
+	'''This method provides access to the user data from the lernfunk database.
+	Use HTTP Basic authentication to get access to more data.
+
+	Keyword arguments:
+	user_id -- Id of a specific user.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	
+	if app.debug:
+		print('### User #######################')
+		print(user)
+		print('################################')
+	
+	query_condition = ''
+	if user.is_admin(): # No restriction for admin
+		pass
+	elif user.is_editor(): # Editor
+		query_condition = 'where ( access <= 3 or id = %s ) ' % user.id
+	elif user.name != 'public': # User with proper authentication
+		query_condition = 'where ( access <= 2 or id = %s ) ' % user.id
+	else:
+		query_condition = 'where ( access = 1 or id = %s ) ' % user.id
+
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select id, name, vcard_uri from lf_user '''
+	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access 
+			from lf_user u '''
 	if user_id:
 		# abort with 400 Bad Request if id is not valid
 		try:
-			query += 'where id = %s ' % int(user_id)
+			query_condition += ('and ' if query_condition else 'where ' ) + \
+					'id = %s ' % int(user_id)
 		except ValueError:
 			abort(400)
+	query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
 
 	cur.execute( query )
 	dom = result_dom()
 
 	# For each file we get
-	for id, name, vcard_uri in cur.fetchall():
+	for id, name, vcard_uri, realname, email, access in cur.fetchall():
 		u = dom.createElement("lf:user")
 		xml_add_elem( dom, u, "dc:identifier", id )
 		xml_add_elem( dom, u, "lf:name",       name )
