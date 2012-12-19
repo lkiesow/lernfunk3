@@ -677,12 +677,23 @@ def list_user(user_id=None):
 	cur.execute( query )
 	dom = result_dom()
 
+	# Human readable mapping for user access rights
+	accessmap = {
+			1 : 'public',
+			2 : 'login required',
+			3 : 'editors only',
+			4 : 'administrators only'
+			}
+
 	# For each file we get
 	for id, name, vcard_uri, realname, email, access in cur.fetchall():
 		u = dom.createElement("lf:user")
 		xml_add_elem( dom, u, "dc:identifier", id )
 		xml_add_elem( dom, u, "lf:name",       name )
 		xml_add_elem( dom, u, "lf:vcard_uri",  vcard_uri )
+		xml_add_elem( dom, u, "lf:realname",   realname )
+		xml_add_elem( dom, u, "lf:email",      email )
+		xml_add_elem( dom, u, "lf:access",     accessmap[access] )
 		dom.childNodes[0].appendChild(u)
 
 	response = make_response(dom.toxml())
