@@ -369,7 +369,16 @@ def list_series(series_id=None, lang=None):
 @app.route('/view/subject/<subject_id>')
 @app.route('/view/subject/<subject_id>/<lang>')
 def list_subject(subject_id=None, lang=None):
+	'''This method provides access to all subject in the Lernfunk database.
+	
+	KeyError argument:
+	subject_id -- Id of a specific subject.
+	lang       -- Language filter for the subjects.
 
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset for results to return (default: 0)
+	'''
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 
@@ -420,22 +429,70 @@ def list_subject(subject_id=None, lang=None):
 @app.route('/view/file/')
 @app.route('/view/file/<file_id>')
 def list_file(file_id=None):
+	'''This method provides access to the files datasets in the Lernfunk
+	database. Access rights for this are taken from the media object the files
+	belong to.
+
+	Keyword arguments:
+	file_id -- UUID of a specific file.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	if not user:
+		abort(403)
+	
+	if app.debug:
+		print('### User #######################')
+		print(user)
+		print('################################')
+
+	query_condition = ''
+	# Admins and editors can see everything. So there is no need for conditions.
+	if not ( user.is_admin() or user.is_editor() ):
+		# Add user as conditions
+		query_condition = '''inner join lf_access a on a.media_id = f.media_id 
+			where ( a.user_id = %s ''' % user.id
+		# Add groups as condition (if necessary)
+		if not len(user.groups):
+			query_condition += ') '
+		elif len(user.groups) == 1:
+			query_condition += 'or a.group_id = %s ) ' % user.groups.keys()[0]
+		else:
+			grouplist = '(' + ','.join([str(id) for id in user.groups.keys()]) + ')'
+			query_condition += ' a.group_id in %s ) ' % grouplist
+		# Add access condition
+		query_condition += 'and read_access '
+
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(id), format, uri, bin2uuid(media_id),
-				source, source_key, source_system from lf_prepared_file '''
+	query = '''select bin2uuid(f.id), f.format, f.uri, bin2uuid(f.media_id),
+				f.source, f.source_key, f.source_system from lf_prepared_file f '''
 	if file_id:
 		# abort with 400 Bad Request if file_id is not valid
 		if is_uuid(file_id):
-			query += 'where id = uuid2bin("%s") ' % file_id
+			query += 'where f.id = uuid2bin("%s") ' % file_id
 		else:
 			abort(400)
+	query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
 
 	cur.execute( query )
 	dom = result_dom()
