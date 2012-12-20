@@ -281,6 +281,7 @@ def list_series(series_id=None, lang=None):
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
 			s.source_key, s.source_system 
 			from lf_published_series s '''
+	count_query = '''select count(s.id) from lf_published_series s '''
 	if series_id:
 		# abort with 400 Bad Request if series_id is not a valid uuid or thread it
 		# as language code if language argument does not exist
@@ -301,6 +302,7 @@ def list_series(series_id=None, lang=None):
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				's.language = "%s" ' % lang
 	query += query_condition
+	count_query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -310,8 +312,13 @@ def list_series(series_id=None, lang=None):
 		print( query )
 		print('################################')
 
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
 	cur.execute( query )
-	dom = result_dom()
+	dom = result_dom( result_count )
 
 	# For each media we get
 	for id, version, parent_version, title, language, description, source, \
@@ -391,11 +398,13 @@ def list_subject(subject_id=None, lang=None):
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name, language from lf_subject '''
+	count_query = '''select count(id) from lf_subject '''
+	query_condition = ''
 	if subject_id:
 		# abort with 400 Bad Request if subject_id is not valid or thread it
 		# as language code if language argument does not exist
 		try:
-			query += 'where id = %s ' % int(subject_id)
+			query_condition += 'where id = %s ' % int(subject_id)
 		except ValueError:
 			# subject_id is not valid
 			if lang:
@@ -408,15 +417,23 @@ def list_subject(subject_id=None, lang=None):
 		for c in lang:
 			if c not in lang_chars:
 				abort(400)
-		query += ( 'and language = "%s" ' \
+		query_condition += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
+	query += query_condition
+	count_query += query_condition
+	
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
 
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
 	cur.execute( query )
-	dom = result_dom()
+	dom = result_dom( result_count )
 
 	# For each media we get
 	for id, name, language in cur.fetchall():
@@ -484,6 +501,7 @@ def list_file(file_id=None):
 	cur = db.cursor()
 	query = '''select bin2uuid(f.id), f.format, f.uri, bin2uuid(f.media_id),
 				f.source, f.source_key, f.source_system from lf_prepared_file f '''
+	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
 		# abort with 400 Bad Request if file_id is not valid
 		if is_uuid(file_id):
@@ -491,6 +509,7 @@ def list_file(file_id=None):
 		else:
 			abort(400)
 	query += query_condition
+	count_query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -500,8 +519,13 @@ def list_file(file_id=None):
 		print( query )
 		print('################################')
 
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
 	cur.execute( query )
-	dom = result_dom()
+	dom = result_dom( result_count )
 
 	# For each file we get
 	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
@@ -541,18 +565,25 @@ def list_organization(organization_id=None):
 	cur = db.cursor()
 	query = '''select id, name, vcard_uri, parent_organization 
 			from lf_organization '''
+	count_query = '''select count(id) from lf_organization '''
 	if organization_id:
 		# abort with 400 Bad Request if file_id is not valid
 		try:
 			query += 'where id = %s ' % int(organization_id)
+			count_query += 'where id = %s ' % int(organization_id)
 		except ValueError:
 			abort(400)
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
 
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
 	cur.execute( query )
-	dom = result_dom()
+	dom = result_dom( result_count )
 
 	# For each file we get
 	for id, name, vcard_uri, parent_organization in cur.fetchall():
@@ -597,18 +628,25 @@ def list_group(group_id=None):
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name from lf_group '''
+	count_query = 'select count(id) from lf_group '
 	if group_id:
 		# abort with 400 Bad Request if id is not valid
 		try:
 			query += 'where id = %s ' % int(group_id)
+			count_query += 'where id = %s ' % int(group_id)
 		except ValueError:
 			abort(400)
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
 
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
 	cur.execute( query )
-	dom = result_dom()
+	dom = result_dom( result_count )
 
 	# For each file we get
 	for id, name in cur.fetchall():
@@ -664,6 +702,7 @@ def list_user(user_id=None):
 	cur = db.cursor()
 	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access 
 			from lf_user u '''
+	count_query = 'select count(u.id) from lf_user u '
 	if user_id:
 		# abort with 400 Bad Request if id is not valid
 		try:
@@ -672,6 +711,7 @@ def list_user(user_id=None):
 		except ValueError:
 			abort(400)
 	query += query_condition
+	count_query += query_condition
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -681,8 +721,13 @@ def list_user(user_id=None):
 		print( query )
 		print('################################')
 
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
 	cur.execute( query )
-	dom = result_dom()
+	dom = result_dom( result_count )
 
 	# Human readable mapping for user access rights
 	accessmap = {
