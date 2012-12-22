@@ -21,6 +21,10 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
+# set the secret key.  keep this really secret:
+app.secret_key = '\xbe\xfd\xef\x99\x9bl.:4\xb1\xc0!\xe7:D \x9en\x88tu\xd0\xde\xaa'
+
 # import submodules
 import core.view
 import core.db
+import core.login
