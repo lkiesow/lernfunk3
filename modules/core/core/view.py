@@ -380,7 +380,7 @@ def list_series(series_id=None, lang=None):
 
 @app.route('/view/subject/')
 @app.route('/view/subject/<subject_id>')
-@app.route('/view/subject/<subject_id>/<lang>')
+@app.route('/view/subject/<int:subject_id>/<lang>')
 def list_subject(subject_id=None, lang=None):
 	'''This method provides access to all subject in the Lernfunk database.
 	
@@ -545,7 +545,7 @@ def list_file(file_id=None):
 
 
 @app.route('/view/organization/')
-@app.route('/view/organization/<organization_id>')
+@app.route('/view/organization/<int:organization_id>')
 def list_organization(organization_id=None):
 	'''This method provides access to all orginization datasets in the Lernfunk
 	database.
@@ -601,7 +601,7 @@ def list_organization(organization_id=None):
 
 
 @app.route('/view/group/')
-@app.route('/view/group/<group_id>')
+@app.route('/view/group/<int:group_id>')
 def list_group(group_id=None):
 	'''This method provides access to all group datasets from the Lernfunk
 	database. You have to authenticate yourself as an administrator to access
@@ -661,7 +661,7 @@ def list_group(group_id=None):
 
 
 @app.route('/view/user/')
-@app.route('/view/user/<user_id>')
+@app.route('/view/user/<int:user_id>')
 def list_user(user_id=None):
 	'''This method provides access to the user data from the lernfunk database.
 	Use HTTP Basic authentication to get access to more data.
