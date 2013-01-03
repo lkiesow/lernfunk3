@@ -90,8 +90,8 @@ def list_media(media_id=None, lang=None):
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
-			m.relation from lf_published_media m '''
-	count_query = '''select count(m.id) from lf_published_media m '''
+			m.relation from lf_latest_published_media m '''
+	count_query = '''select count(m.id) from lf_latest_published_media m '''
 	if media_id:
 		# abort with 400 Bad Request if media_id is not a valid uuid or thread it
 		# as language code if language argument does not exist

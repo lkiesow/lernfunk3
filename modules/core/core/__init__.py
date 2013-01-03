@@ -28,3 +28,4 @@ app.secret_key = '\xbe\xfd\xef\x99\x9bl.:4\xb1\xc0!\xe7:D \x9en\x88tu\xd0\xde\xa
 import core.view
 import core.db
 import core.login
+import core.admin.get
