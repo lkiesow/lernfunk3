@@ -726,94 +726,90 @@ def admin_group(group_id=None):
 	return response
 
 
-#@app.route('/view/user/')
-#@app.route('/view/user/<user_id>')
-#def list_user(user_id=None):
-#	'''This method provides access to the user data from the lernfunk database.
-#	Use HTTP Basic authentication to get access to more data.
-#
-#	Keyword arguments:
-#	user_id -- Id of a specific user.
-#
-#	GET parameter:
-#	limit  -- Maximum amount of results to return (default: 10)
-#	offset -- Offset of results to return (default: 0)
-#	'''
-#
-#	user = None
-#	try:
-#		user = get_authorization( request.authorization )
-#	except KeyError as e:
-#		abort(401, e)
-#	
-#	if app.debug:
-#		print('### User #######################')
-#		print(user)
-#		print('################################')
-#	
-#	query_condition = ''
-#	if user.is_admin(): # No restriction for admin
-#		pass
-#	elif user.is_editor(): # Editor
-#		query_condition = 'where ( access <= 3 or id = %s ) ' % user.id
-#	elif user.name != 'public': # User with proper authentication
-#		query_condition = 'where ( access <= 2 or id = %s ) ' % user.id
-#	else:
-#		query_condition = 'where ( access = 1 or id = %s ) ' % user.id
-#
-#	limit            = to_int(request.args.get('limit',  '10'), 10)
-#	offset           = to_int(request.args.get('offset',  '0'),  0)
-#
-#	db = get_db()
-#	cur = db.cursor()
-#	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access 
-#			from lf_user u '''
-#	count_query = 'select count(u.id) from lf_user u '
-#	if user_id:
-#		# abort with 400 Bad Request if id is not valid
-#		try:
-#			query_condition += ('and ' if query_condition else 'where ' ) + \
-#					'id = %s ' % int(user_id)
-#		except ValueError:
-#			abort(400)
-#	query += query_condition
-#	count_query += query_condition
-#
-#	# Add limit and offset
-#	query += 'limit %s, %s ' % ( offset, limit )
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get amount of results
-#	cur.execute( count_query )
-#	result_count = cur.fetchone()[0]
-#
-#	# Get data
-#	cur.execute( query )
-#	dom = result_dom( result_count )
-#
-#	# Human readable mapping for user access rights
-#	accessmap = {
-#			1 : 'public',
-#			2 : 'login required',
-#			3 : 'editors only',
-#			4 : 'administrators only'
-#			}
-#
-#	# For each file we get
-#	for id, name, vcard_uri, realname, email, access in cur.fetchall():
-#		u = dom.createElement("lf:user")
-#		xml_add_elem( dom, u, "dc:identifier", id )
-#		xml_add_elem( dom, u, "lf:name",       name )
-#		xml_add_elem( dom, u, "lf:vcard_uri",  vcard_uri )
-#		xml_add_elem( dom, u, "lf:realname",   realname )
-#		xml_add_elem( dom, u, "lf:email",      email )
-#		xml_add_elem( dom, u, "lf:access",     accessmap[access] )
-#		dom.childNodes[0].appendChild(u)
-#
-#	response = make_response(dom.toxml())
-#	response.mimetype = 'application/xml'
-#	return response
+@app.route('/admin/user/')
+@app.route('/admin/user/<int:user_id>')
+def admin_user(user_id=None):
+	'''This method provides access to the user data from the lernfunk database.
+	Use HTTP Basic authentication to get access to more data.
+
+	Keyword arguments:
+	user_id -- Id of a specific user.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	
+	if app.debug:
+		print('### User #######################')
+		print(user)
+		print('################################')
+	
+	query_condition = ''
+	if user.is_admin(): # No restriction for admin
+		pass
+	elif user.is_editor(): # Editor
+		query_condition = 'where ( access <= 3 or id = %s ) ' % user.id
+	elif user.name != 'public': # User with proper authentication
+		query_condition = 'where ( access <= 2 or id = %s ) ' % user.id
+	else:
+		query_condition = 'where ( access = 1 or id = %s ) ' % user.id
+
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access 
+			from lf_user u '''
+	count_query = 'select count(u.id) from lf_user u '
+	if user_id:
+		query_condition += ('and ' if query_condition else 'where ' ) + \
+				'id = %s ' % int(user_id)
+	query += query_condition
+	count_query += query_condition
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	dom = result_dom( result_count )
+
+	# Human readable mapping for user access rights
+	accessmap = {
+			1 : 'public',
+			2 : 'login required',
+			3 : 'editors only',
+			4 : 'administrators only'
+			}
+
+	# For each file we get
+	for id, name, vcard_uri, realname, email, access in cur.fetchall():
+		u = dom.createElement("lf:user")
+		xml_add_elem( dom, u, "dc:identifier", id )
+		xml_add_elem( dom, u, "lf:name",       name )
+		xml_add_elem( dom, u, "lf:vcard_uri",  vcard_uri )
+		xml_add_elem( dom, u, "lf:realname",   realname )
+		xml_add_elem( dom, u, "lf:email",      email )
+		xml_add_elem( dom, u, "lf:access",     accessmap[access] )
+		dom.childNodes[0].appendChild(u)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
