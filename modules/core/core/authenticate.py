@@ -60,7 +60,9 @@ class User:
 	
 	def password_hash_b64(self):
 		'''Return the hased password (+salt) as base64 encoded string.'''
-		return b64encode( self.password_hash )
+		return b64encode( self.password_hash ) \
+				if self.password_hash \
+				else None
 
 	def __str__(self):
 		'''Return string, describing the user object (same as __repr__).'''
