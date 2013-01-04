@@ -601,122 +601,131 @@ def admin_file(file_id=None):
 	return response
 
 
-#@app.route('/view/organization/')
-#@app.route('/view/organization/<organization_id>')
-#def list_organization(organization_id=None):
-#	'''This method provides access to all orginization datasets in the Lernfunk
-#	database.
-#
-#	Keyword arguments:
-#	organization_id -- Id of a specific organization.
-#
-#	GET parameter:
-#	limit  -- Maximum amount of results to return (default: 10)
-#	offset -- Offset of results to return (default: 0)
-#	'''
-#
-#	limit            = to_int(request.args.get('limit',  '10'), 10)
-#	offset           = to_int(request.args.get('offset',  '0'),  0)
-#
-#	db = get_db()
-#	cur = db.cursor()
-#	query = '''select id, name, vcard_uri, parent_organization 
-#			from lf_organization '''
-#	count_query = '''select count(id) from lf_organization '''
-#	if organization_id:
-#		# abort with 400 Bad Request if file_id is not valid
-#		try:
-#			query += 'where id = %s ' % int(organization_id)
-#			count_query += 'where id = %s ' % int(organization_id)
-#		except ValueError:
-#			abort(400)
-#
-#	# Add limit and offset
-#	query += 'limit %s, %s ' % ( offset, limit )
-#
-#	# Get amount of results
-#	cur.execute( count_query )
-#	result_count = cur.fetchone()[0]
-#
-#	# Get data
-#	cur.execute( query )
-#	dom = result_dom( result_count )
-#
-#	# For each file we get
-#	for id, name, vcard_uri, parent_organization in cur.fetchall():
-#		o = dom.createElement("lf:organization")
-#		xml_add_elem( dom, o, "dc:identifier",             id )
-#		xml_add_elem( dom, o, "lf:name",                   name )
-#		xml_add_elem( dom, o, "lf:parent_organization_id", parent_organization )
-#		xml_add_elem( dom, o, "lf:vcard_uri",              vcard_uri )
-#		dom.childNodes[0].appendChild(o)
-#
-#	response = make_response(dom.toxml())
-#	response.mimetype = 'application/xml'
-#	return response
-#
-#
-#
-#@app.route('/view/group/')
-#@app.route('/view/group/<group_id>')
-#def list_group(group_id=None):
-#	'''This method provides access to all group datasets from the Lernfunk
-#	database. You have to authenticate yourself as an administrator to access
-#	these data.
-#
-#	Keyword arguments:
-#	group_id -- Id of a specific group.
-#
-#	GET parameter:
-#	limit  -- Maximum amount of results to return (default: 10)
-#	offset -- Offset of results to return (default: 0)
-#	'''
-#
-#	# Check for authentication as admin
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			abort(403)
-#	except KeyError as e:
-#		abort(401, e)
-#
-#	limit            = to_int(request.args.get('limit',  '10'), 10)
-#	offset           = to_int(request.args.get('offset',  '0'),  0)
-#
-#	db = get_db()
-#	cur = db.cursor()
-#	query = '''select id, name from lf_group '''
-#	count_query = 'select count(id) from lf_group '
-#	if group_id:
-#		# abort with 400 Bad Request if id is not valid
-#		try:
-#			query += 'where id = %s ' % int(group_id)
-#			count_query += 'where id = %s ' % int(group_id)
-#		except ValueError:
-#			abort(400)
-#
-#	# Add limit and offset
-#	query += 'limit %s, %s ' % ( offset, limit )
-#
-#	# Get amount of results
-#	cur.execute( count_query )
-#	result_count = cur.fetchone()[0]
-#
-#	# Get data
-#	cur.execute( query )
-#	dom = result_dom( result_count )
-#
-#	# For each file we get
-#	for id, name in cur.fetchall():
-#		g = dom.createElement("lf:group")
-#		xml_add_elem( dom, g, "dc:identifier", id )
-#		xml_add_elem( dom, g, "lf:name",       name )
-#		dom.childNodes[0].appendChild(g)
-#
-#	response = make_response(dom.toxml())
-#	response.mimetype = 'application/xml'
-#	return response
-#
-#
+
+@app.route('/admin/organization/')
+@app.route('/admin/organization/<int:organization_id>')
+def admin_organization(organization_id=None):
+	'''This method provides access to all orginization datasets in the Lernfunk
+	database.
+
+	Keyword arguments:
+	organization_id -- Id of a specific organization.
+
+	GET parameter:
+	with_read_access -- Also return series without write access (default: disabled)
+	limit            -- Maximum amount of results to return (default: 10)
+	offset           -- Offset of results to return (default: 0)
+	'''
+
+	with_read_access = is_true(request.args.get('with_read_access', '0'))
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	# Only user with write access are permittet.
+	# But only editors have write access.
+	if not user.is_editor() and not with_read_access:
+		# Return empty result.
+		response = make_response(result_dom().toxml())
+		response.mimetype = 'application/xml'
+		return response
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, name, vcard_uri, parent_organization 
+			from lf_organization '''
+	count_query = '''select count(id) from lf_organization '''
+	if organization_id:
+		query += 'where id = %s ' % int(organization_id)
+		count_query += 'where id = %s ' % int(organization_id)
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	dom = result_dom( result_count )
+
+	# For each file we get
+	for id, name, vcard_uri, parent_organization in cur.fetchall():
+		o = dom.createElement("lf:organization")
+		xml_add_elem( dom, o, "dc:identifier",             id )
+		xml_add_elem( dom, o, "lf:name",                   name )
+		xml_add_elem( dom, o, "lf:parent_organization_id", parent_organization )
+		xml_add_elem( dom, o, "lf:vcard_uri",              vcard_uri )
+		dom.childNodes[0].appendChild(o)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
+
+@app.route('/admin/group/')
+@app.route('/admin/group/<int:group_id>')
+def admin_group(group_id=None):
+	'''This method provides access to all group datasets from the Lernfunk
+	database. You have to authenticate yourself as an administrator to access
+	these data.
+
+	Keyword arguments:
+	group_id -- Id of a specific group.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
+	# Check for authentication as admin.
+	# Neither normal user nor editors have access to groups.
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			abort(403)
+	except KeyError as e:
+		abort(401, e)
+
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, name from lf_group '''
+	count_query = 'select count(id) from lf_group '
+	if group_id:
+		query += 'where id = %s ' % int(group_id)
+		count_query += 'where id = %s ' % int(group_id)
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	dom = result_dom( result_count )
+
+	# For each file we get
+	for id, name in cur.fetchall():
+		g = dom.createElement("lf:group")
+		xml_add_elem( dom, g, "dc:identifier", id )
+		xml_add_elem( dom, g, "lf:name",       name )
+		dom.childNodes[0].appendChild(g)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
 #@app.route('/view/user/')
 #@app.route('/view/user/<user_id>')
 #def list_user(user_id=None):
