@@ -443,7 +443,7 @@ def admin_subject(subject_id=None, lang=None):
 	# But only editors have write access.
 	if not user.is_editor() and not with_read_access:
 		# Return empty result.
-		response = make_response(result_dom.toxml())
+		response = make_response(result_dom().toxml())
 		response.mimetype = 'application/xml'
 		return response
 
@@ -501,101 +501,106 @@ def admin_subject(subject_id=None, lang=None):
 
 
 
-#@app.route('/view/file/')
-#@app.route('/view/file/<file_id>')
-#def list_file(file_id=None):
-#	'''This method provides access to the files datasets in the Lernfunk
-#	database. Access rights for this are taken from the media object the files
-#	belong to.
-#
-#	Keyword arguments:
-#	file_id -- UUID of a specific file.
-#
-#	GET parameter:
-#	limit  -- Maximum amount of results to return (default: 10)
-#	offset -- Offset of results to return (default: 0)
-#	'''
-#
-#	user = None
-#	try:
-#		user = get_authorization( request.authorization )
-#	except KeyError as e:
-#		abort(401, e)
-#	if not user:
-#		abort(403)
-#	
-#	if app.debug:
-#		print('### User #######################')
-#		print(user)
-#		print('################################')
-#
-#	query_condition = ''
-#	# Admins and editors can see everything. So there is no need for conditions.
-#	if not ( user.is_admin() or user.is_editor() ):
-#		# Add user as conditions
-#		query_condition = '''inner join lf_access a on a.media_id = f.media_id 
-#			where ( a.user_id = %s ''' % user.id
-#		# Add groups as condition (if necessary)
-#		if not len(user.groups):
-#			query_condition += ') '
-#		elif len(user.groups) == 1:
-#			query_condition += 'or a.group_id = %s ) ' % user.groups.keys()[0]
-#		else:
-#			grouplist = '(' + ','.join([str(id) for id in user.groups.keys()]) + ')'
-#			query_condition += ' a.group_id in %s ) ' % grouplist
-#		# Add access condition
-#		query_condition += 'and read_access '
-#
-#	limit            = to_int(request.args.get('limit',  '10'), 10)
-#	offset           = to_int(request.args.get('offset',  '0'),  0)
-#
-#	db = get_db()
-#	cur = db.cursor()
-#	query = '''select bin2uuid(f.id), f.format, f.uri, bin2uuid(f.media_id),
-#				f.source, f.source_key, f.source_system from lf_prepared_file f '''
-#	count_query = '''select count(f.id) from lf_prepared_file f '''
-#	if file_id:
-#		# abort with 400 Bad Request if file_id is not valid
-#		if is_uuid(file_id):
-#			query += 'where f.id = uuid2bin("%s") ' % file_id
-#		else:
-#			abort(400)
-#	query += query_condition
-#	count_query += query_condition
-#
-#	# Add limit and offset
-#	query += 'limit %s, %s ' % ( offset, limit )
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get amount of results
-#	cur.execute( count_query )
-#	result_count = cur.fetchone()[0]
-#
-#	# Get data
-#	cur.execute( query )
-#	dom = result_dom( result_count )
-#
-#	# For each file we get
-#	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
-#		f = dom.createElement("lf:file")
-#		xml_add_elem( dom, f, "dc:identifier",    id )
-#		xml_add_elem( dom, f, "dc:format",        format )
-#		xml_add_elem( dom, f, "lf:uri",           uri )
-#		xml_add_elem( dom, f, "lf:media_id",      media_id )
-#		xml_add_elem( dom, f, "lf:source",        src )
-#		xml_add_elem( dom, f, "lf:source_key",    src_key )
-#		xml_add_elem( dom, f, "lf:source_system", src_sys )
-#		dom.childNodes[0].appendChild(f)
-#
-#	response = make_response(dom.toxml())
-#	response.mimetype = 'application/xml'
-#	return response
-#
-#
+@app.route('/admin/file/')
+@app.route('/admin/file/<file_id>')
+def admin_file(file_id=None):
+	'''This method provides access to the files datasets in the Lernfunk
+	database. Access rights for this are taken from the media object the files
+	belong to.
+
+	Keyword arguments:
+	file_id -- UUID of a specific file.
+
+	GET parameter:
+	wsith_read_access -- Also return series without write access (default: disabled)
+	limit            -- Maximum amount of results to return (default: 10)
+	offset           -- Offset of results to return (default: 0)
+	'''
+
+	with_read_access = is_true(request.args.get('with_read_access', '0'))
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	
+	if app.debug:
+		print('### User #######################')
+		print(user)
+		print('################################')
+
+	query_condition = ''
+	# Admins and editors can see everything. So there is no need for conditions.
+	if not ( user.is_admin() or user.is_editor() ):
+		# Add user as conditions
+		query_condition = '''inner join lf_access a on a.media_id = f.media_id 
+			where ( a.user_id = %s ''' % user.id
+		# Add groups as condition (if necessary)
+		if not len(user.groups):
+			query_condition += ') '
+		elif len(user.groups) == 1:
+			query_condition += 'or a.group_id = %s ) ' % user.groups.keys()[0]
+		else:
+			grouplist = '(' + ','.join([str(id) for id in user.groups.keys()]) + ')'
+			query_condition += ' a.group_id in %s ) ' % grouplist
+		# Add access condition
+		if with_read_access:
+			query_condition += 'and read_access '
+		else:
+			query_condition += 'and write_access '
+
+
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+	query = '''select bin2uuid(f.id), f.format, f.uri, bin2uuid(f.media_id),
+				f.source, f.source_key, f.source_system from lf_prepared_file f '''
+	count_query = '''select count(f.id) from lf_prepared_file f '''
+	if file_id:
+		# abort with 400 Bad Request if file_id is not valid
+		if is_uuid(file_id):
+			query += 'where f.id = uuid2bin("%s") ' % file_id
+		else:
+			abort(400)
+	query += query_condition
+	count_query += query_condition
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	dom = result_dom( result_count )
+
+	# For each file we get
+	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
+		f = dom.createElement("lf:file")
+		xml_add_elem( dom, f, "dc:identifier",    id )
+		xml_add_elem( dom, f, "dc:format",        format )
+		xml_add_elem( dom, f, "lf:uri",           uri )
+		xml_add_elem( dom, f, "lf:media_id",      media_id )
+		xml_add_elem( dom, f, "lf:source",        src )
+		xml_add_elem( dom, f, "lf:source_key",    src_key )
+		xml_add_elem( dom, f, "lf:source_system", src_sys )
+		dom.childNodes[0].appendChild(f)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
 #@app.route('/view/organization/')
 #@app.route('/view/organization/<organization_id>')
 #def list_organization(organization_id=None):
