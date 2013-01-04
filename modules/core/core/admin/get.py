@@ -233,10 +233,10 @@ def admin_media(media_id=None, version=None, lang=None):
 
 
 
-@app.route('/admin/series/')
-@app.route('/admin/series/<series_id>')
-@app.route('/admin/series/<series_id>/<lang>')
-def list_series(series_id=None, lang=None):
+@app.route('/admin/series/',                   methods=['GET'])
+@app.route('/admin/series/<series_id>',        methods=['GET'])
+@app.route('/admin/series/<series_id>/<lang>', methods=['GET'])
+def admin_series(series_id=None, lang=None):
 	'''This method provides access to the latest published state of all series
 	in the Lernfunk database. Use HTTP Basic authentication to get access to
 	more series. If you don't do that you will be ranked as “public” user.
@@ -250,6 +250,9 @@ def list_series(series_id=None, lang=None):
 	with_creator     -- Also return the creators (default: enabled)
 	with_publisher   -- Also return the publishers (default: enabled)
 	with_subject     -- Also return all subjects (default: enabled)
+	with_read_access -- Also return series without write access (default: disabled)
+	only_latest      -- Return only latest version (default: disabled)
+	only_published   -- Return only published version (default: disabled)
 	limit            -- Maximum amount of results to return (default: 10)
 	offset           -- Offset of results to return (default: 0)
 	'''
@@ -267,6 +270,19 @@ def list_series(series_id=None, lang=None):
 		print(user)
 		print('################################')
 
+
+	# Check flags for additional data
+	with_media       = is_true(request.args.get('with_media',       '1'))
+	with_creator     = is_true(request.args.get('with_creator',     '1'))
+	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
+	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	with_read_access = is_true(request.args.get('with_read_access', '0'))
+	only_latest      = is_true(request.args.get('only_latest',      '0'))
+	only_published   = is_true(request.args.get('only_published',   '0'))
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+
 	query_condition = ''
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
@@ -282,26 +298,27 @@ def list_series(series_id=None, lang=None):
 			grouplist = '(' + ','.join([str(id) for id in user.groups.keys()]) + ')'
 			query_condition += ' a.group_id in %s ) ' % grouplist
 		# Add access condition
-		query_condition += 'and read_access '
+		if with_read_access:
+			query_condition += 'and read_access '
+		else:
+			query_condition += 'and write_access '
 
-	# Check flags for additional data
-	with_media       = is_true(request.args.get('with_media',       '1'))
-	with_creator     = is_true(request.args.get('with_creator',     '1'))
-	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
-	with_subject     = is_true(request.args.get('with_subject',     '1'))
-	only_latest      = is_true(request.args.get('only_latest',      '0'))
-	only_published   = is_true(request.args.get('only_published',   '0'))
-	limit            = to_int(request.args.get('limit',  '10'), 10)
-	offset           = to_int(request.args.get('offset',  '0'),  0)
-
+	# Request data
 	db = get_db()
 	cur = db.cursor()
+	table = 'lf_series'
+	if only_latest and only_published:
+		table = 'lf_latest_published_series'
+	elif only_latest:
+		table = 'lf_latest_series'
+	elif only_published:
+		table = 'lf_published_series'
 	query = '''select bin2uuid(s.id), s.version, s.parent_version, s.title,
 			s.language, s.description, s.source, s.timestamp_edit,
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
 			s.source_key, s.source_system 
-			from lf_published_series s '''
-	count_query = '''select count(s.id) from lf_published_series s '''
+			from %s s ''' % table
+	count_query = '''select count(s.id) from %s s ''' % table
 	if series_id:
 		# abort with 400 Bad Request if series_id is not a valid uuid or thread it
 		# as language code if language argument does not exist
@@ -398,77 +415,92 @@ def list_series(series_id=None, lang=None):
 
 
 
-#@app.route('/view/subject/')
-#@app.route('/view/subject/<subject_id>')
-#@app.route('/view/subject/<subject_id>/<lang>')
-#def list_subject(subject_id=None, lang=None):
-#	'''This method provides access to all subject in the Lernfunk database.
-#	
-#	KeyError argument:
-#	subject_id -- Id of a specific subject.
-#	lang       -- Language filter for the subjects.
-#
-#	GET parameter:
-#	limit  -- Maximum amount of results to return (default: 10)
-#	offset -- Offset for results to return (default: 0)
-#	'''
-#	limit            = to_int(request.args.get('limit',  '10'), 10)
-#	offset           = to_int(request.args.get('offset',  '0'),  0)
-#
-#	db = get_db()
-#	cur = db.cursor()
-#	query = '''select id, name, language from lf_subject '''
-#	count_query = '''select count(id) from lf_subject '''
-#	query_condition = ''
-#	if subject_id:
-#		# abort with 400 Bad Request if subject_id is not valid or thread it
-#		# as language code if language argument does not exist
-#		try:
-#			query_condition += 'where id = %s ' % int(subject_id)
-#		except ValueError:
-#			# subject_id is not valid
-#			if lang:
-#				abort(400)
-#			else:
-#				lang = subject_id
-#
-#	# Check for language argument
-#	if lang:
-#		for c in lang:
-#			if c not in lang_chars:
-#				abort(400)
-#		query_condition += ( 'and language = "%s" ' \
-#				if 'where id' in query \
-#				else 'where language = "%s" ' ) % lang
-#	query += query_condition
-#	count_query += query_condition
-#	
-#
-#	# Add limit and offset
-#	query += 'limit %s, %s ' % ( offset, limit )
-#
-#	# Get amount of results
-#	cur.execute( count_query )
-#	result_count = cur.fetchone()[0]
-#
-#	# Get data
-#	cur.execute( query )
-#	dom = result_dom( result_count )
-#
-#	# For each media we get
-#	for id, name, language in cur.fetchall():
-#		s = dom.createElement('lf:subject')
-#		xml_add_elem( dom, s, "lf:id",       id )
-#		xml_add_elem( dom, s, "lf:name",     name )
-#		xml_add_elem( dom, s, "dc:language", language )
-#		dom.childNodes[0].appendChild(s)
-#
-#	response = make_response(dom.toxml())
-#	response.mimetype = 'application/xml'
-#	return response
-#
-#
-#
+@app.route('/admin/subject/')
+@app.route('/admin/subject/<subject_id>')
+@app.route('/admin/subject/<subject_id>/<lang>')
+def admin_subject(subject_id=None, lang=None):
+	'''This method provides access to all subject in the Lernfunk database.
+	
+	KeyError argument:
+	subject_id -- Id of a specific subject.
+	lang       -- Language filter for the subjects.
+
+	GET parameter:
+	with_read_access -- Also return series without write access (default: disabled)
+	limit            -- Maximum amount of results to return (default: 10)
+	offset           -- Offset for results to return (default: 0)
+	'''
+	with_read_access = is_true(request.args.get('with_read_access', '0'))
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		abort(401, e)
+	# Only user with write access are permittet.
+	# But only editors have write access.
+	if not user.is_editor() and not with_read_access:
+		# Return empty result.
+		response = make_response(result_dom.toxml())
+		response.mimetype = 'application/xml'
+		return response
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, name, language from lf_subject '''
+	count_query = '''select count(id) from lf_subject '''
+	query_condition = ''
+	if subject_id:
+		# abort with 400 Bad Request if subject_id is not valid or thread it
+		# as language code if language argument does not exist
+		try:
+			query_condition += 'where id = %s ' % int(subject_id)
+		except ValueError:
+			# subject_id is not valid
+			if lang:
+				abort(400)
+			else:
+				lang = subject_id
+
+	# Check for language argument
+	if lang:
+		for c in lang:
+			if c not in lang_chars:
+				abort(400)
+		query_condition += ( 'and language = "%s" ' \
+				if 'where id' in query \
+				else 'where language = "%s" ' ) % lang
+	query += query_condition
+	count_query += query_condition
+	
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	dom = result_dom( result_count )
+
+	# For each media we get
+	for id, name, language in cur.fetchall():
+		s = dom.createElement('lf:subject')
+		xml_add_elem( dom, s, "lf:id",       id )
+		xml_add_elem( dom, s, "lf:name",     name )
+		xml_add_elem( dom, s, "dc:language", language )
+		dom.childNodes[0].appendChild(s)
+
+	response = make_response(dom.toxml())
+	response.mimetype = 'application/xml'
+	return response
+
+
+
 #@app.route('/view/file/')
 #@app.route('/view/file/<file_id>')
 #def list_file(file_id=None):
