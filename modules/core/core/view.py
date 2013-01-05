@@ -400,7 +400,7 @@ def list_subject(subject_id=None, lang=None):
 	query = '''select id, name, language from lf_subject '''
 	count_query = '''select count(id) from lf_subject '''
 	query_condition = ''
-	if subject_id:
+	if subject_id != None:
 		# abort with 400 Bad Request if subject_id is not valid or thread it
 		# as language code if language argument does not exist
 		try:
@@ -566,7 +566,7 @@ def list_organization(organization_id=None):
 	query = '''select id, name, vcard_uri, parent_organization 
 			from lf_organization '''
 	count_query = '''select count(id) from lf_organization '''
-	if organization_id:
+	if organization_id != None:
 		# abort with 400 Bad Request if file_id is not valid
 		try:
 			query += 'where id = %s ' % int(organization_id)
@@ -629,7 +629,7 @@ def list_group(group_id=None):
 	cur = db.cursor()
 	query = '''select id, name from lf_group '''
 	count_query = 'select count(id) from lf_group '
-	if group_id:
+	if group_id != None:
 		# abort with 400 Bad Request if id is not valid
 		try:
 			query += 'where id = %s ' % int(group_id)
@@ -703,7 +703,7 @@ def list_user(user_id=None):
 	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access 
 			from lf_user u '''
 	count_query = 'select count(u.id) from lf_user u '
-	if user_id:
+	if user_id != None:
 		# abort with 400 Bad Request if id is not valid
 		try:
 			query_condition += ('and ' if query_condition else 'where ' ) + \
