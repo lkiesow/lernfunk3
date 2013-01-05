@@ -22,7 +22,7 @@ from flask import request, session, g, redirect, url_for, abort, make_response
 @app.route('/view/media/')
 @app.route('/view/media/<media_id>')
 @app.route('/view/media/<media_id>/<lang>')
-def list_media(media_id=None, lang=None):
+def view_media(media_id=None, lang=None):
 	'''This method provides live access to the last published state of all
 	mediaobjects in the Lernfunk database. Use HTTP Basic authentication to get
 	access. If you don't then you will be ranked as “public” user and will only
@@ -218,7 +218,7 @@ def list_media(media_id=None, lang=None):
 @app.route('/view/series/')
 @app.route('/view/series/<series_id>')
 @app.route('/view/series/<series_id>/<lang>')
-def list_series(series_id=None, lang=None):
+def view_series(series_id=None, lang=None):
 	'''This method provides access to the latest published state of all series
 	in the Lernfunk database. Use HTTP Basic authentication to get access to
 	more series. If you don't do that you will be ranked as “public” user.
@@ -381,7 +381,7 @@ def list_series(series_id=None, lang=None):
 @app.route('/view/subject/')
 @app.route('/view/subject/<subject_id>')
 @app.route('/view/subject/<int:subject_id>/<lang>')
-def list_subject(subject_id=None, lang=None):
+def view_subject(subject_id=None, lang=None):
 	'''This method provides access to all subject in the Lernfunk database.
 	
 	KeyError argument:
@@ -451,7 +451,7 @@ def list_subject(subject_id=None, lang=None):
 
 @app.route('/view/file/')
 @app.route('/view/file/<file_id>')
-def list_file(file_id=None):
+def view_file(file_id=None):
 	'''This method provides access to the files datasets in the Lernfunk
 	database. Access rights for this are taken from the media object the files
 	belong to.
@@ -546,7 +546,7 @@ def list_file(file_id=None):
 
 @app.route('/view/organization/')
 @app.route('/view/organization/<int:organization_id>')
-def list_organization(organization_id=None):
+def view_organization(organization_id=None):
 	'''This method provides access to all orginization datasets in the Lernfunk
 	database.
 
@@ -602,7 +602,7 @@ def list_organization(organization_id=None):
 
 @app.route('/view/group/')
 @app.route('/view/group/<int:group_id>')
-def list_group(group_id=None):
+def view_group(group_id=None):
 	'''This method provides access to all group datasets from the Lernfunk
 	database. You have to authenticate yourself as an administrator to access
 	these data.
@@ -662,7 +662,7 @@ def list_group(group_id=None):
 
 @app.route('/view/user/')
 @app.route('/view/user/<int:user_id>')
-def list_user(user_id=None):
+def view_user(user_id=None):
 	'''This method provides access to the user data from the lernfunk database.
 	Use HTTP Basic authentication to get access to more data.
 
