@@ -39,7 +39,7 @@ def xml_add_elem( dom, parent, name, val ):
 	name   -- Name of the element
 	val    -- Text value of the element
 	'''
-	if val:
+	if val != None:
 		elem = dom.createElement(name)
 		elem.appendChild( dom.createTextNode(str(val)) )
 		parent.appendChild( elem )
