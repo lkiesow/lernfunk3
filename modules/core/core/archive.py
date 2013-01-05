@@ -102,13 +102,13 @@ def archive_media(media_id=None, version=None, lang=None):
 			query_condition += ( 'and ' if query_condition else 'where ' ) + \
 					'm.id = uuid2bin("%s") ' % media_id
 		else:
-			if lang or version:
+			if lang or (version != None):
 				abort(400)
 			else:
 				lang = media_id
 
 	# Check for specific version
-	if version:
+	if version != None:
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'm.version = "%s" ' % version
 
@@ -299,13 +299,18 @@ def archive_series(series_id=None, version=None, lang=None):
 			query_condition += ( 'and ' if query_condition else 'where ' ) + \
 					's.id = uuid2bin("%s") ' % series_id
 		else:
-			if lang:
+			if lang or (version != None):
 				abort(400)
 			else:
 				lang = series_id
 
+	# Check for specific version
+	if version != None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) + \
+				's.version = "%s" ' % version
+
 	# Check for language argument
-	if lang:
+	elif lang:
 		for c in lang:
 			if c not in lang_chars:
 				abort(400)
