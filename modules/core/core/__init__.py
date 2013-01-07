@@ -29,4 +29,5 @@ import core.view
 import core.db
 import core.login
 import core.admin.get
+import core.admin.delete
 import core.archive
