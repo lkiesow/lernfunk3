@@ -156,8 +156,10 @@ def view_media(media_id=None, lang=None):
 
 		# Get series
 		if with_series:
-			cur.execute( '''select bin2uuid(series_id) from lf_media_series 
-				where media_id = uuid2bin("%s")''' % id )
+			cur.execute( '''select bin2uuid(ms.series_id) from lf_media_series ms
+				inner join lf_latest_published_series s
+				on ms.series_id = s.id and ms.series_version = s.version
+				where ms.media_id = uuid2bin("%s") and visible''' % id )
 			for (series_id,) in cur.fetchall():
 				xml_add_elem( dom, m, "lf:series_id", series_id )
 
@@ -345,7 +347,8 @@ def view_series(series_id=None, lang=None):
 		# Get media
 		if with_media:
 			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
-				where series_id = uuid2bin("%s")''' % id )
+				where series_id = uuid2bin("%s")
+				and series_version = %s''' % ( id, version ) )
 			for (media_id,) in cur.fetchall():
 				xml_add_elem( dom, s, "lf:media_id", media_id )
 
