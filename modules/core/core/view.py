@@ -382,7 +382,8 @@ def view_series(series_id=None, lang=None):
 
 
 @app.route('/view/subject/')
-@app.route('/view/subject/<subject_id>')
+@app.route('/view/subject/<int:subject_id>')
+@app.route('/view/subject/<lang>')
 @app.route('/view/subject/<int:subject_id>/<lang>')
 def view_subject(subject_id=None, lang=None):
 	'''This method provides access to all subject in the Lernfunk database.
@@ -409,11 +410,7 @@ def view_subject(subject_id=None, lang=None):
 		try:
 			query_condition += 'where id = %s ' % int(subject_id)
 		except ValueError:
-			# subject_id is not valid
-			if lang:
-				abort(400)
-			else:
-				lang = subject_id
+			return 'Invalid subject_id', 400
 
 	# Check for language argument
 	if lang:
