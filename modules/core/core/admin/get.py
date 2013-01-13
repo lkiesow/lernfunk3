@@ -17,7 +17,7 @@ from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
 
-from flask import request, session, g, redirect, url_for, abort, make_response
+from flask import request, session, g, redirect, url_for, make_response
 
 
 @app.route('/admin/media/',                         methods=['GET'])
@@ -51,7 +51,7 @@ def admin_media(media_id=None, version=None, lang=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	
 	if app.debug:
 		print('### User #######################')
@@ -118,7 +118,7 @@ def admin_media(media_id=None, version=None, lang=None):
 					'm.id = uuid2bin("%s") ' % media_id
 		else:
 			if lang:
-				abort(400)
+				return 'Invalid media_id', 400
 			else:
 				lang = media_id
 
@@ -126,7 +126,7 @@ def admin_media(media_id=None, version=None, lang=None):
 	if lang:
 		for c in lang:
 			if c not in lang_chars:
-				abort(400)
+				return 'Invalid language argument', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'm.language = "%s" ' % lang
 	query += query_condition
@@ -263,9 +263,9 @@ def admin_series(series_id=None, lang=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	if not user:
-		abort(403)
+		return '', 403
 	
 	if app.debug:
 		print('### User #######################')
@@ -329,7 +329,7 @@ def admin_series(series_id=None, lang=None):
 					's.id = uuid2bin("%s") ' % series_id
 		else:
 			if lang:
-				abort(400)
+				return 'Invalid series_id', 400
 			else:
 				lang = series_id
 
@@ -337,7 +337,7 @@ def admin_series(series_id=None, lang=None):
 	if lang:
 		for c in lang:
 			if c not in lang_chars:
-				abort(400)
+				return 'Invalid language argument', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				's.language = "%s" ' % lang
 	query += query_condition
@@ -441,7 +441,7 @@ def admin_subject(subject_id=None, lang=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	# Only user with write access are permittet.
 	# But only editors have write access.
 	if not user.is_editor() and not with_read_access:
@@ -463,7 +463,7 @@ def admin_subject(subject_id=None, lang=None):
 		except ValueError:
 			# subject_id is not valid
 			if lang:
-				abort(400)
+				return 'Invalid subject_id', 400
 			else:
 				lang = subject_id
 
@@ -471,7 +471,7 @@ def admin_subject(subject_id=None, lang=None):
 	if lang:
 		for c in lang:
 			if c not in lang_chars:
-				abort(400)
+				return 'Invalid language argument', 400
 		query_condition += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
@@ -528,7 +528,7 @@ def admin_file(file_id=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	
 	if app.debug:
 		print('### User #######################')
@@ -567,7 +567,7 @@ def admin_file(file_id=None):
 		if is_uuid(file_id):
 			query += 'where f.id = uuid2bin("%s") ' % file_id
 		else:
-			abort(400)
+			return 'Invalid file_id', 400
 	query += query_condition
 	count_query += query_condition
 
@@ -628,7 +628,7 @@ def admin_organization(organization_id=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	# Only user with write access are permittet.
 	# But only editors have write access.
 	if not user.is_editor() and not with_read_access:
@@ -691,9 +691,9 @@ def admin_group(group_id=None):
 	# Neither normal user nor editors have access to groups.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
-			abort(403)
+			return 'Authentication as admin failed', 403
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
@@ -747,7 +747,7 @@ def admin_user(user_id=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	
 	if app.debug:
 		print('### User #######################')
