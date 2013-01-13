@@ -16,7 +16,7 @@ from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
 
-from flask import request, session, g, redirect, url_for, abort, make_response
+from flask import request, session, g, redirect, url_for, make_response
 
 
 @app.route('/view/media/')
@@ -47,9 +47,9 @@ def view_media(media_id=None, lang=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	if not user:
-		abort(403)
+		return '', 403
 	
 	if app.debug:
 		print('### User #######################')
@@ -100,7 +100,7 @@ def view_media(media_id=None, lang=None):
 					'm.id = uuid2bin("%s") ' % media_id
 		else:
 			if lang:
-				abort(400)
+				return 'Invalid media_id', 400
 			else:
 				lang = media_id
 
@@ -108,7 +108,7 @@ def view_media(media_id=None, lang=None):
 	if lang:
 		for c in lang:
 			if c not in lang_chars:
-				abort(400)
+				return 'Invalid language argument', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'm.language = "%s" ' % lang
 	query += query_condition
@@ -242,9 +242,9 @@ def view_series(series_id=None, lang=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	if not user:
-		abort(403)
+		return '', 403
 	
 	if app.debug:
 		print('### User #######################')
@@ -292,7 +292,7 @@ def view_series(series_id=None, lang=None):
 					's.id = uuid2bin("%s") ' % series_id
 		else:
 			if lang:
-				abort(400)
+				return 'Invalid series_id', 400
 			else:
 				lang = series_id
 
@@ -300,7 +300,7 @@ def view_series(series_id=None, lang=None):
 	if lang:
 		for c in lang:
 			if c not in lang_chars:
-				abort(400)
+				return 'Invalid language argument', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				's.language = "%s" ' % lang
 	query += query_condition
@@ -416,7 +416,7 @@ def view_subject(subject_id=None, lang=None):
 	if lang:
 		for c in lang:
 			if c not in lang_chars:
-				abort(400)
+				return 'Invalid language argument', 400
 		query_condition += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
@@ -468,9 +468,9 @@ def view_file(file_id=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	if not user:
-		abort(403)
+		return '', 403
 	
 	if app.debug:
 		print('### User #######################')
@@ -507,7 +507,7 @@ def view_file(file_id=None):
 		if is_uuid(file_id):
 			query += 'where f.id = uuid2bin("%s") ' % file_id
 		else:
-			abort(400)
+			return 'Invalid file_id', 400
 	query += query_condition
 	count_query += query_condition
 
@@ -567,12 +567,12 @@ def view_organization(organization_id=None):
 			from lf_organization '''
 	count_query = '''select count(id) from lf_organization '''
 	if organization_id != None:
-		# abort with 400 Bad Request if file_id is not valid
+		# abort with 400 Bad Request if organization_id is not valid
 		try:
 			query += 'where id = %s ' % int(organization_id)
 			count_query += 'where id = %s ' % int(organization_id)
 		except ValueError:
-			abort(400)
+			return 'Invalid organization_id', 400
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -618,9 +618,9 @@ def view_group(group_id=None):
 	# Check for authentication as admin
 	try:
 		if not get_authorization( request.authorization ).is_admin():
-			abort(403)
+			return 'Authentication as admin required', 403
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
@@ -635,7 +635,7 @@ def view_group(group_id=None):
 			query += 'where id = %s ' % int(group_id)
 			count_query += 'where id = %s ' % int(group_id)
 		except ValueError:
-			abort(400)
+			return 'Invalid group_id', 400
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -678,7 +678,7 @@ def view_user(user_id=None):
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
-		abort(401, e)
+		return str(e), 401
 	
 	if app.debug:
 		print('### User #######################')
@@ -709,7 +709,7 @@ def view_user(user_id=None):
 			query_condition += ('and ' if query_condition else 'where ' ) + \
 					'id = %s ' % int(user_id)
 		except ValueError:
-			abort(400)
+			return 'Invalid user_id', 400
 	query += query_condition
 	count_query += query_condition
 
