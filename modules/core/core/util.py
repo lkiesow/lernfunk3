@@ -21,6 +21,9 @@ lang_chars = letters + '-_'
 '''All characters allowed for usernames.'''
 username_chars = digits + lang_chars
 
+'''All characters allowed for server names.'''
+servername_chars = username_chars + '.'
+
 def result_dom( count=0 ):
 	'''Return an empty DOM tree for results
 	'''
