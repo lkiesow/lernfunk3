@@ -517,3 +517,79 @@ def admin_user_delete(user_id=None, name=None):
 
 
 
+@app.route('/admin/access/media/<uuid:media_id>/',                       methods=['DELETE'])
+@app.route('/admin/access/media/<uuid:media_id>/user/',                  methods=['DELETE'])
+@app.route('/admin/access/media/<uuid:media_id>/user/<int:user_id>',     methods=['DELETE'])
+@app.route('/admin/access/media/<uuid:media_id>/group/',                 methods=['DELETE'])
+@app.route('/admin/access/media/<uuid:media_id>/group/<int:group_id>',   methods=['DELETE'])
+@app.route('/admin/access/series/<uuid:series_id>/',                     methods=['DELETE'])
+@app.route('/admin/access/series/<uuid:series_id>/user/',                methods=['DELETE'])
+@app.route('/admin/access/series/<uuid:series_id>/user/<int:user_id>',   methods=['DELETE'])
+@app.route('/admin/access/series/<uuid:series_id>/group/',               methods=['DELETE'])
+@app.route('/admin/access/series/<uuid:series_id>/group/<int:group_id>', methods=['DELETE'])
+@app.route('/admin/access/user/<int:user_id>/',                          methods=['DELETE'])
+@app.route('/admin/access/user/<int:user_id>/media/',                    methods=['DELETE'])
+@app.route('/admin/access/user/<int:user_id>/media/<uuid:media_id>',     methods=['DELETE'])
+@app.route('/admin/access/user/<int:user_id>/series/',                   methods=['DELETE'])
+@app.route('/admin/access/user/<int:user_id>/series/<uuid:series_id>',   methods=['DELETE'])
+@app.route('/admin/access/group/<int:group_id>/',                        methods=['DELETE'])
+@app.route('/admin/access/group/<int:group_id>/media/',                  methods=['DELETE'])
+@app.route('/admin/access/group/<int:group_id>/media/<uuid:media_id>',   methods=['DELETE'])
+@app.route('/admin/access/group/<int:group_id>/series/',                 methods=['DELETE'])
+@app.route('/admin/access/group/<int:group_id>/series/<uuid:series_id>', methods=['DELETE'])
+def admin_access_delete(user_id=None, name=None):
+	pass
+#	'''This method provides you with the functionality to delete user.
+#	Only administrators are allowed to delete data.
+#
+#	Keyword arguments:
+#	user_id -- Identifier of a specific user.
+#	name    -- Name of a specific user.
+#	'''
+#
+#	# Check authentication. 
+#	# _Only_ admins are allowed to delete data. Other users may be able 
+#	# to hide data but they can never delete data.
+#	try:
+#		if not get_authorization( request.authorization ).is_admin():
+#			return 'Only admins are allowed to delete data', 401
+#	except KeyError as e:
+#		return e, 401
+#	
+#	# Request data
+#	db = get_db()
+#	cur = db.cursor()
+#
+#	# admin and public are special. You cannot delete them.
+#	query = '''delete from lf_user
+#		where name != 'admin' and name != 'public' '''
+#	if user_id != None:
+#		try:
+#			# abort with 400 Bad Request if id is not valid:
+#			query += 'and id = %s ' % int(user_id)
+#		except ValueError:
+#			return 'Invalid user_id', 400 # 400 BAD REQUEST
+#	elif name:
+#		for c in name:
+#			if c not in username_chars:
+#				return 'Invalid username', 400
+#		query += 'and name = %s ' % name
+#
+#
+#	if app.debug:
+#		print('### Query ######################')
+#		print( query )
+#		print('################################')
+#
+#	# Get data
+#	affected_rows = 0
+#	try:
+#		affected_rows = cur.execute( query )
+#	except IntegrityError as e:
+#		return str(e), 409 # Constraint failure -> 409 CONFLICT
+#	db.commit()
+#
+#	if not affected_rows:
+#		return '', 410 # No data was deleted -> 410 GONE
+#
+#	return '', 204 # Data deleted -> 204 NO CONTENT
