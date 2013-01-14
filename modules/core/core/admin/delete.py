@@ -537,59 +537,75 @@ def admin_user_delete(user_id=None, name=None):
 @app.route('/admin/access/group/<int:group_id>/media/<uuid:media_id>',   methods=['DELETE'])
 @app.route('/admin/access/group/<int:group_id>/series/',                 methods=['DELETE'])
 @app.route('/admin/access/group/<int:group_id>/series/<uuid:series_id>', methods=['DELETE'])
-def admin_access_delete(user_id=None, name=None):
-	pass
-#	'''This method provides you with the functionality to delete user.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	user_id -- Identifier of a specific user.
-#	name    -- Name of a specific user.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	# admin and public are special. You cannot delete them.
-#	query = '''delete from lf_user
-#		where name != 'admin' and name != 'public' '''
-#	if user_id != None:
-#		try:
-#			# abort with 400 Bad Request if id is not valid:
-#			query += 'and id = %s ' % int(user_id)
-#		except ValueError:
-#			return 'Invalid user_id', 400 # 400 BAD REQUEST
-#	elif name:
-#		for c in name:
-#			if c not in username_chars:
-#				return 'Invalid username', 400
-#		query += 'and name = %s ' % name
-#
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409 # Constraint failure -> 409 CONFLICT
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410 # No data was deleted -> 410 GONE
-#
-#	return '', 204 # Data deleted -> 204 NO CONTENT
+def admin_access_delete(media_id=None, series_id=None, user_id=None, group_id=None):
+	'''This method provides the functionality to delete access rights.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	user_id -- Identifier of a specific user.
+	name    -- Name of a specific user.
+	'''
+
+	user_access   = '/user/'   in request.path
+	group_access  = '/group/'  in request.path
+	media_access  = '/media/'  in request.path
+	series_access = '/series/' in request.path
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+	
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	query = '''delete from lf_access '''
+
+	query_condition = ''
+
+	if user_access:
+		if user_id != None:
+			query_condition += 'where user_id = %i ' % int(user_id)
+		else:
+			query_condition += 'where not isnull(user_id) '
+	if group_access:
+		query_condition += 'and ' if query_condition else 'where '
+		if group_id != None:
+			query_condition += 'group_id = %i ' % int(group_id)
+		else:
+			query_condition += 'not isnull(group_id) '
+	if media_access:
+		query_condition += 'and ' if query_condition else 'where '
+		if is_uuid(media_id):
+			query_condition += 'media_id = "%s" ' % media_id
+		else:
+			query_condition += 'not isnull(media_id) '
+	if series_access:
+		query_condition += 'and ' if query_condition else 'where '
+		if is_uuid(series_id):
+			query_condition += 'series_id = "%s" ' % series_id
+		else:
+			query_condition += 'not isnull(series_id) '
+	
+	query += query_condition
+			
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT

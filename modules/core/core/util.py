@@ -60,7 +60,7 @@ def is_uuid(s):
 	Keyword arguments:
 	s -- UUIS as string to check
 	'''
-	if len(s) != 36:
+	if not s or len(s) != 36:
 		return False
 	return \
 			s[ 0] in hexdigits and \
