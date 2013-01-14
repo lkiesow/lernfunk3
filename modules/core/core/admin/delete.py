@@ -21,10 +21,11 @@ from MySQLdb import IntegrityError
 from flask import request, session, g, redirect, url_for
 
 
-@app.route('/admin/media/',                         methods=['DELETE'])
-@app.route('/admin/media/<media_id>',               methods=['DELETE'])
-@app.route('/admin/media/<media_id>/<int:version>', methods=['DELETE'])
-@app.route('/admin/media/<media_id>/<lang>',        methods=['DELETE'])
+@app.route('/admin/media/',                              methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>',               methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/<int:version>', methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/<lang>',        methods=['DELETE'])
+@app.route('/admin/media/<lang>',                        methods=['DELETE'])
 def admin_media_delete(media_id=None, version=None, lang=None):
 	'''This method provides you with the functionality to delete media objects.
 	Only administrators are allowed to delete data.
@@ -57,14 +58,11 @@ def admin_media_delete(media_id=None, version=None, lang=None):
 		if is_uuid(media_id):
 			query_condition += 'where id = uuid2bin("%s") ' % media_id
 		else:
-			if lang or (version != None):
-				return 'Invalid media_id', 400
-			else:
-				lang = media_id
+			return 'Invalid media_id', 400
 
-	# Check for version
-	if version != None:
-		query_condition += 'and version = %s ' % int(version)
+		# Check for version
+		if version != None:
+			query_condition += 'and version = %s ' % int(version)
 		
 	# Check for language argument
 	elif lang:
@@ -95,10 +93,11 @@ def admin_media_delete(media_id=None, version=None, lang=None):
 
 
 
-@app.route('/admin/series/',                          methods=['DELETE'])
-@app.route('/admin/series/<series_id>',               methods=['DELETE'])
-@app.route('/admin/series/<series_id>/<int:version>', methods=['DELETE'])
-@app.route('/admin/series/<series_id>/<lang>',        methods=['DELETE'])
+@app.route('/admin/series/',                               methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>',               methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/<int:version>', methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/<lang>',        methods=['DELETE'])
+@app.route('/admin/series/<lang>',                         methods=['DELETE'])
 def admin_series_delete(series_id=None, version=None, lang=None):
 	'''This method provides you with the functionality to delete series.
 	Only administrators are allowed to delete data.
@@ -131,20 +130,16 @@ def admin_series_delete(series_id=None, version=None, lang=None):
 		if is_uuid(series_id):
 			query_condition += 'where id = uuid2bin("%s") ' % series_id
 		else:
-			if lang or (version != None):
-				return 'Invalid series_id', 400
-			else:
-				lang = series_id
+			return 'Invalid series_id', 400
 
-	# Check for version
-	if version != None:
-		query_condition += 'and version = %s ' % int(version)
+		# Check for version
+		if version != None:
+			query_condition += 'and version = %s ' % int(version)
 		
 	# Check for language argument
-	elif lang:
-		for c in lang:
-			if c not in lang_chars:
-				return 'Invalid language', 400
+	if lang:
+		if not lang_regex.match(lang):
+			return 'Invalid language', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'language = "%s" ' % lang
 	query += query_condition

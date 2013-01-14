@@ -14,9 +14,13 @@
 from core import app
 from string import hexdigits, letters, digits
 from xml.dom.minidom import parseString
+import re
 
 '''All characters allowed for language tags.'''
 lang_chars = letters + '-_'
+
+'''Simple regular expression to match IETF language tags.'''
+lang_regex = re.compile('(?:[a-z]{2,3}($|[-_][a-zA-Z-_]+))')
 
 '''All characters allowed for usernames.'''
 username_chars = digits + lang_chars
