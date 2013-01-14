@@ -17,13 +17,18 @@ from xml.dom.minidom import parseString
 import re
 
 '''All characters allowed for language tags.'''
-lang_chars = letters + '-_'
+lang_chars = letters + digits + '-_'
 
 '''Simple regular expression to match IETF language tags.'''
-lang_regex = re.compile('(?:[a-z]{2,3}($|[-_][a-zA-Z-_]+))')
+lang_regex_str = '(?:[a-zA-Z]{2,3}([-_][a-zA-Z\d]{1,8})+)'
+lang_regex     = re.compile(lang_regex_str)
 
 '''All characters allowed for usernames.'''
-username_chars = digits + lang_chars
+username_chars = lang_chars
+
+'''Simple regular expression to match usernames.'''
+username_regex_str = '(?:[\w-]+)'
+username_regex     = re.compile(username_regex_str)
 
 '''All characters allowed for server names.'''
 servername_chars = username_chars + '.'

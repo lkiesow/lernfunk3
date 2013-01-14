@@ -22,10 +22,13 @@ app.config.from_pyfile('config.py')
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
 # Import custom converter
-from core.converter import UUIDConverter
-app.url_map.converters['uuid'] = UUIDConverter
+import core.converter
+app.url_map.converters['uuid'] = core.converter.UUIDConverter
+app.url_map.converters['lang'] = core.converter.LanguageConverter
+app.url_map.converters['uname'] = core.converter.UsernameConverter
 
-# set the secret key.  keep this really secret:
+# set the secret key.
+# You should really keep this secret:
 app.secret_key = '\xbe\xfd\xef\x99\x9bl.:4\xb1\xc0!\xe7:D \x9en\x88tu\xd0\xde\xaa'
 
 # import submodules
