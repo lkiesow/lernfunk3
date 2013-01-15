@@ -934,3 +934,127 @@ def admin_media_series_delete(media_id=None, series_id=None, media_version=None,
 		return '', 410 # No data was deleted -> 410 GONE
 
 	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/series/<uuid:series_id>/creator/',                            methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/<int:version>/creator/',              methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/creator/<int:user_id>',               methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/<int:version>/creator/<int:user_id>', methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/creator/',                               methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/creator/<uuid:series_id>',                methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/creator/<uuid:series_id>/<int:version>',  methods=['DELETE'])
+def admin_series_creator_delete(series_id=None, user_id=None, version=None):
+	'''This method provides the functionality to delete creators from series.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	series_id -- Identifies a specific series.
+	version   -- Identifies a specific version of a series.
+	user_id   -- Identifies a specific user.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_series_creator '''
+
+	query_condition = ''
+	if is_uuid(series_id):
+		query_condition += 'where series_id = uuid2bin("%s") ' % series_id
+		if version is not None:
+			query_condition += 'and series_version = %i ' % version
+	
+	if user_id is not None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) \
+				+ 'user_id = %i ' % int(user_id)
+	
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/series/<uuid:series_id>/publisher/',                                 methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/<int:version>/publisher/',                   methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/publisher/<int:org_id>',                     methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/<int:version>/publisher/<int:org_id>',       methods=['DELETE'])
+@app.route('/admin/organization/<int:org_id>/publisher/',                               methods=['DELETE'])
+@app.route('/admin/organization/<int:org_id>/publisher/<uuid:series_id>/',              methods=['DELETE'])
+@app.route('/admin/organization/<int:org_id>/publisher/<uuid:series_id>/<int:version>', methods=['DELETE'])
+def admin_series_publisher_delete(series_id=None, org_id=None, version=None):
+	'''This method provides the functionality to delete contributor.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	series_id -- Identifies a specific seriesobject.
+	version   -- Identifies a specific version of a seriesobject.
+	org_id    -- Identifies a specific organization.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_series_publisher '''
+
+	query_condition = ''
+	if is_uuid(series_id):
+		query_condition += 'where series_id = uuid2bin("%s") ' % series_id
+		if version is not None:
+			query_condition += 'and series_version = %i ' % int(version)
+	
+	if org_id is not None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) \
+				+ 'organization_id = %i ' % int(org_id)
+	
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
