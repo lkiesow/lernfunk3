@@ -667,3 +667,171 @@ def admin_media_contributor_delete(media_id=None, user_id=None):
 		return '', 410 # No data was deleted -> 410 GONE
 
 	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/media/<uuid:media_id>/creator/',              methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/creator/<int:user_id>', methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/creator/',                 methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/creator/<uuid:media_id>',  methods=['DELETE'])
+def admin_media_creator_delete(media_id=None, user_id=None):
+	'''This method provides the functionality to delete creators.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	media_id -- Identifies a specific mediaobject.
+	user_id  -- Identifies a specific user.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_media_creator '''
+
+	query_condition = ''
+	if is_uuid(media_id):
+		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	
+	if org_id is not None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) \
+				+ 'user_id = %i ' % int(user_id)
+	
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/media/<uuid:media_id>/publisher/',                     methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/publisher/<int:org_id>',         methods=['DELETE'])
+@app.route('/admin/organization/<int:org_id>/publisher/',                 methods=['DELETE'])
+@app.route('/admin/organization/<int:org_id>/publisher/<uuid:media_id>',  methods=['DELETE'])
+def admin_media_contributor_delete(media_id=None, org_id=None):
+	'''This method provides the functionality to delete contributor.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	media_id -- Identifies a specific mediaobject.
+	org_id   -- Identifies a specific organization.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_media_publisher '''
+
+	query_condition = ''
+	if is_uuid(media_id):
+		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	
+	if org_id is not None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) \
+				+ 'organization_id = %i ' % int(org_id)
+	
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/media/<uuid:media_id>/subject/',                         methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/subject/<int:subject_id>',         methods=['DELETE'])
+@app.route('/admin/organization/<int:subject_id>/subject/',                 methods=['DELETE'])
+@app.route('/admin/organization/<int:subject_id>/subject/<uuid:media_id>',  methods=['DELETE'])
+def admin_media_contributor_delete(media_id=None, subject_id=None):
+	'''This method provides the functionality to delete subjects.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	media_id   -- Identifies a specific mediaobject.
+	subject_id -- Identifies a specific subject.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_media_subject '''
+
+	query_condition = ''
+	if is_uuid(media_id):
+		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	
+	if subject_id is not None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) \
+				+ 'subject_id = %i ' % int(subject_id)
+	
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
