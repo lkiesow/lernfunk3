@@ -24,8 +24,8 @@ from flask import request, session, g, redirect, url_for
 @app.route('/admin/media/',                              methods=['DELETE'])
 @app.route('/admin/media/<uuid:media_id>',               methods=['DELETE'])
 @app.route('/admin/media/<uuid:media_id>/<int:version>', methods=['DELETE'])
-@app.route('/admin/media/<uuid:media_id>/<lang>',        methods=['DELETE'])
-@app.route('/admin/media/<lang>',                        methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/<lang:lang>',   methods=['DELETE'])
+@app.route('/admin/media/<lang:lang>',                   methods=['DELETE'])
 def admin_media_delete(media_id=None, version=None, lang=None):
 	'''This method provides you with the functionality to delete media objects.
 	Only administrators are allowed to delete data.
