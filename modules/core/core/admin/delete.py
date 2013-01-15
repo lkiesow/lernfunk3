@@ -1058,3 +1058,182 @@ def admin_series_publisher_delete(series_id=None, org_id=None, version=None):
 		return '', 410 # No data was deleted -> 410 GONE
 
 	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/series/<uuid:series_id>/subject/',                 methods=['DELETE'])
+@app.route('/admin/series/<uuid:series_id>/subject/<int:subject_id>', methods=['DELETE'])
+@app.route('/admin/subject/<int:subject_id>/series/',                 methods=['DELETE'])
+@app.route('/admin/subject/<int:subject_id>/series/<uuid:series_id>', methods=['DELETE'])
+def admin_series_subject_delete(series_id=None, subject_id=None):
+	'''This method provides the functionality to delete subjects.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	series_id   -- Identifies a specific seriesobject.
+	subject_id -- Identifies a specific subject.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_series_subject '''
+
+	query_condition = ''
+	if is_uuid(series_id):
+		query_condition += 'where series_id = uuid2bin("%s") ' % series_id
+	
+	if subject_id is not None:
+		query_condition += ( 'and ' if query_condition else 'where ' ) \
+				+ 'subject_id = %i ' % int(subject_id)
+	
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/user/<int:user_id>/group/',               methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/group/<int:group_id>', methods=['DELETE'])
+@app.route('/admin/group/<int:group_id>/user/',              methods=['DELETE'])
+@app.route('/admin/group/<int:group_id>/user/<int:user_id>', methods=['DELETE'])
+def admin_user_group_delete(user_id=None, group_id=None):
+	'''This method provides the functionality to delete user from groups.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	user_id  -- Identifies a specific user.
+	group_id -- Identifies a specific group.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_user_group '''
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# We do not want to delete the connection between u:admin and g:admin as
+	# well as u:public and g:public. So we have to know their ids:
+	cur.execute( 'select id from lf_user where name = "admin" ' )
+	user_id_a = cur.fetchone()[0]
+	cur.execute( 'select id from lf_user where name = "public" ' )
+	user_id_p = cur.fetchone()[0]
+	cur.execute( 'select id from lf_group where name = "admin" ' )
+	group_id_a = cur.fetchone()[0]
+	cur.execute( 'select id from lf_group where name = "public" ' )
+	group_id_p = cur.fetchone()[0]
+
+	query += 'where (user_id != %i or group_id != %i) ' \
+			'and (user_id != %i or group_id != %i) ' % \
+			(user_id_a, group_id_a, user_id_p, group_id_p)
+
+	if user_id is not None:
+		query += 'and user_id = %i ' % int(user_id)
+	
+	if group_id is not None:
+		query += 'and group_id = %i ' % int(group_id)
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
+
+
+
+@app.route('/admin/user/<int:user_id>/organization/',                      methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>/organization/<int:organization_id>', methods=['DELETE'])
+@app.route('/admin/organization/<int:organization_id>/user/',              methods=['DELETE'])
+@app.route('/admin/organization/<int:organization_id>/user/<int:user_id>', methods=['DELETE'])
+def admin_series_subject_delete(user_id=None, organization_id=None):
+	'''This method provides the functionality to delete user from organizations.
+	Only administrators are allowed to delete data.
+
+	Keyword arguments:
+	user_id         -- Identifies a specific user.
+	organization_id -- Identifies a specific organization.
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to delete data', 401
+	except KeyError as e:
+		return str(e), 401
+
+	query = '''delete from lf_user_organization '''
+	
+	query_condition = '';
+	if user_id is not None:
+		query_condition += 'where user_id = %i ' % int(user_id)
+	
+	if organization_id is not None:
+		query_condition += ('and ' if query_condition else 'where ') \
+				+ 'organization_id = %i ' % int(organization_id)
+
+	query += query_condition
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
+
+	# DB connection
+	db = get_db()
+	cur = db.cursor()
+
+	# Get data
+	affected_rows = 0
+	try:
+		affected_rows = cur.execute( query )
+	except IntegrityError as e:
+		return str(e), 409 # Constraint failure -> 409 CONFLICT
+	db.commit()
+
+	if not affected_rows:
+		return '', 410 # No data was deleted -> 410 GONE
+
+	return '', 204 # Data deleted -> 204 NO CONTENT
