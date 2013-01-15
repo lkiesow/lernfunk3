@@ -20,7 +20,7 @@ import re
 lang_chars = letters + digits + '-_'
 
 '''Simple regular expression to match IETF language tags.'''
-lang_regex_str = '(?:[a-zA-Z]{2,3}([-_][a-zA-Z\d]{1,8})+)'
+lang_regex_str = '(?:[a-zA-Z]{2,3}([-_][a-zA-Z\d]{1,8})*)'
 lang_regex     = re.compile(lang_regex_str)
 
 '''All characters allowed for usernames.'''
