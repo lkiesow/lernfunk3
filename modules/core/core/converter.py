@@ -26,7 +26,7 @@ class UUIDConverter(BaseConverter):
 class UsernameConverter(BaseConverter):
 
 	def __init__(self, url_map):
-		super(UIntConverter, self).__init__(url_map)
+		super(UsernameConverter, self).__init__(url_map)
 		self.regex = username_regex_str
 
 
@@ -34,5 +34,5 @@ class UsernameConverter(BaseConverter):
 class LanguageConverter(BaseConverter):
 
 	def __init__(self, url_map):
-		super(UIntConverter, self).__init__(url_map)
+		super(LanguageConverter, self).__init__(url_map)
 		self.regex = lang_regex_str
