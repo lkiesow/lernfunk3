@@ -799,10 +799,10 @@ def admin_media_publisher_delete(media_id=None, org_id=None, version=None):
 
 
 
-@app.route('/admin/media/<uuid:media_id>/subject/',                         methods=['DELETE'])
-@app.route('/admin/media/<uuid:media_id>/subject/<int:subject_id>',         methods=['DELETE'])
-@app.route('/admin/organization/<int:subject_id>/subject/',                 methods=['DELETE'])
-@app.route('/admin/organization/<int:subject_id>/subject/<uuid:media_id>',  methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/subject/',                 methods=['DELETE'])
+@app.route('/admin/media/<uuid:media_id>/subject/<int:subject_id>', methods=['DELETE'])
+@app.route('/admin/subject/<int:subject_id>/media/',                methods=['DELETE'])
+@app.route('/admin/subject/<int:subject_id>/media/<uuid:media_id>', methods=['DELETE'])
 def admin_media_subject_delete(media_id=None, subject_id=None):
 	'''This method provides the functionality to delete subjects.
 	Only administrators are allowed to delete data.
