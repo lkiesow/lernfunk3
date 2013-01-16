@@ -72,6 +72,10 @@ def view_media(media_id=None, lang=None):
 		# Add access condition
 		query_condition += 'and read_access '
 
+	# Hide invisible ones
+	query_condition += 'and visible ' if query_condition else 'where visible '
+	
+
 
 	# Check flags for additional data
 	with_series      = is_true(request.args.get('with_series',      '1'))
@@ -267,6 +271,9 @@ def view_series(series_id=None, lang=None):
 			query_condition += ' a.group_id in %s ) ' % grouplist
 		# Add access condition
 		query_condition += 'and read_access '
+
+	# Hide invisible ones
+	query_condition += 'and visible ' if query_condition else 'where visible '
 
 	# Check flags for additional data
 	with_media       = is_true(request.args.get('with_media',       '1'))
