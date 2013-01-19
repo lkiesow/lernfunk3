@@ -15,7 +15,7 @@
 from core import app
 from core.authenticate import get_authorization
 from werkzeug.datastructures import Authorization
-from flask import session, redirect, url_for, request, abort
+from flask import session, redirect, url_for, request
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -27,10 +27,13 @@ def login():
 			'password' : request.form['password'] } )
 	else:
 		auth = request.authorization
-	user = get_authorization( auth )
+	try:
+		user = get_authorization( auth )
+	except KeyError as e:
+		return e.message, 401
 		
 	if user.name == 'public':
-		abort(404, 'Incorrect user or password.')
+		return 'Incorrect user or password.', 401
 
 	session['username']   = user.name
 	session['password'] = user.password_hash_b64()
