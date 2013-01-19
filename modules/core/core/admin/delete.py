@@ -53,22 +53,14 @@ def admin_media_delete(media_id=None, version=None, lang=None):
 
 	query = '''delete from lf_media '''
 	if media_id:
-		# abort with 400 Bad Request if media_id is not a valid uuid or thread it
-		# as language code if language argument does not exist
-		if is_uuid(media_id):
-			query_condition += 'where id = uuid2bin("%s") ' % media_id
-		else:
-			return 'Invalid media_id', 400
+		query_condition += "where id = x'%s' " % media_id.hex
 
 		# Check for version
-		if version != None:
-			query_condition += 'and version = %s ' % int(version)
+		if version is not None:
+			query_condition += 'and version = %i ' % int(version)
 		
 	# Check for language argument
 	elif lang:
-		for c in lang:
-			if c not in lang_chars:
-				return 'Invalid language', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'language = "%s" ' % lang
 	query += query_condition
@@ -125,21 +117,13 @@ def admin_series_delete(series_id=None, version=None, lang=None):
 
 	query = '''delete from lf_series '''
 	if series_id:
-		# abort with 400 Bad Request if series_id is not a valid uuid or thread it
-		# as language code if language argument does not exist
-		if is_uuid(series_id):
-			query_condition += 'where id = uuid2bin("%s") ' % series_id
-		else:
-			return 'Invalid series_id', 400
-
+		query_condition += "where id = x'%s' " % series_id.hex
 		# Check for version
 		if version != None:
-			query_condition += 'and version = %s ' % int(version)
+			query_condition += 'and version = %i ' % int(version)
 		
 	# Check for language argument
 	if lang:
-		if not lang_regex.match(lang):
-			return 'Invalid language', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'language = "%s" ' % lang
 	query += query_condition
@@ -202,7 +186,6 @@ def admin_server_delete(server_id=None, format=None):
 			# Check for harmful (SQL injection) characters in 
 			# format (delimeter, quotation marks
 			for c in ';"\'`':
-				print(c)
 				if c in format:
 					return 'Invalid format', 400
 			query += 'and format = "%s" ' % format
@@ -227,10 +210,10 @@ def admin_server_delete(server_id=None, format=None):
 
 
 
-@app.route('/admin/subject/',                        methods=['DELETE'])
-@app.route('/admin/subject/<int:subject_id>',        methods=['DELETE'])
-@app.route('/admin/subject/<lang>',                  methods=['DELETE'])
-@app.route('/admin/subject/<int:subject_id>/<lang>', methods=['DELETE'])
+@app.route('/admin/subject/',                             methods=['DELETE'])
+@app.route('/admin/subject/<int:subject_id>',             methods=['DELETE'])
+@app.route('/admin/subject/<lang:lang>',                  methods=['DELETE'])
+@app.route('/admin/subject/<int:subject_id>/<lang:lang>', methods=['DELETE'])
 def admin_subject_delete(subject_id=None, lang=None):
 	'''This method provides you with the functionality to delete subjects.
 	Only administrators are allowed to delete data.
@@ -260,15 +243,12 @@ def admin_subject_delete(subject_id=None, lang=None):
 		# abort with 400 Bad Request if subject_id is not a valid uuid or thread it
 		# as language code if language argument does not exist
 		try:
-			query_condition += 'where id = %s ' % int(subject_id)
+			query_condition += 'where id = %i ' % int(subject_id)
 		except ValueError:
 			return 'Invalid subject_id', 400
 
 	# Check for language argument
 	if lang:
-		for c in lang:
-			if c not in lang_chars:
-				return 'Invalid language', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'language = "%s" ' % lang
 	query += query_condition
@@ -293,8 +273,8 @@ def admin_subject_delete(subject_id=None, lang=None):
 
 
 
-@app.route('/admin/file/',          methods=['DELETE'])
-@app.route('/admin/file/<file_id>', methods=['DELETE'])
+@app.route('/admin/file/',               methods=['DELETE'])
+@app.route('/admin/file/<uuid:file_id>', methods=['DELETE'])
 def admin_file_delete(file_id=None):
 	'''This method provides you with the functionality to delete file objects.
 	Only administrators are allowed to delete data.
@@ -318,11 +298,7 @@ def admin_file_delete(file_id=None):
 
 	query = '''delete from lf_file '''
 	if file_id:
-		if is_uuid(file_id):
-			# abort with 400 Bad Request if file_id is not a valid uuid:
-			query += 'where id = uuid2bin("%s") ' % file_id
-		else:
-			return 'Invalid file_id', 400
+		query += "where id = x'%s' " % file_id.hex
 
 	if app.debug:
 		print('### Query ######################')
@@ -450,7 +426,7 @@ def admin_group_delete(group_id=None):
 
 @app.route('/admin/user/',              methods=['DELETE'])
 @app.route('/admin/user/<int:user_id>', methods=['DELETE'])
-@app.route('/admin/user/<name>',        methods=['DELETE'])
+@app.route('/admin/user/<user:name>',   methods=['DELETE'])
 def admin_user_delete(user_id=None, name=None):
 	'''This method provides you with the functionality to delete user.
 	Only administrators are allowed to delete data.
@@ -479,13 +455,10 @@ def admin_user_delete(user_id=None, name=None):
 	if user_id != None:
 		try:
 			# abort with 400 Bad Request if id is not valid:
-			query += 'and id = %s ' % int(user_id)
+			query += 'and id = %i ' % int(user_id)
 		except ValueError:
 			return 'Invalid user_id', 400 # 400 BAD REQUEST
 	elif name:
-		for c in name:
-			if c not in username_chars:
-				return 'Invalid username', 400
 		query += 'and name = %s ' % name
 
 
@@ -581,14 +554,14 @@ def admin_access_delete(media_id=None, series_id=None, user_id=None, group_id=No
 			query_condition += 'not isnull(group_id) '
 	if media_access:
 		query_condition += 'and ' if query_condition else 'where '
-		if is_uuid(media_id):
-			query_condition += 'media_id = uuid2bin("%s") ' % media_id
+		if media_id:
+			query_condition += "media_id = x'%s' " % media_id.hex
 		else:
 			query_condition += 'not isnull(media_id) '
 	if series_access:
 		query_condition += 'and ' if query_condition else 'where '
-		if is_uuid(series_id):
-			query_condition += 'series_id = uuid2bin("%s") ' % series_id
+		if series_id:
+			query_condition += "series_id = x'%s' " % series_id.hex
 		else:
 			query_condition += 'not isnull(series_id) '
 	
@@ -641,8 +614,8 @@ def admin_media_contributor_delete(media_id=None, user_id=None, version=None):
 	query = '''delete from lf_media_contributor '''
 
 	query_condition = ''
-	if is_uuid(media_id):
-		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	if media_id:
+		query_condition += "where media_id = x'%s' " % media_id.hex
 		if version is not None:
 			query_condition += 'and media_version = %i ' % int(version)
 	
@@ -702,8 +675,8 @@ def admin_media_creator_delete(media_id=None, user_id=None, version=None):
 	query = '''delete from lf_media_creator '''
 
 	query_condition = ''
-	if is_uuid(media_id):
-		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	if media_id:
+		query_condition += "where media_id = x'%s' " % media_id.hex
 		if version is not None:
 			query_condition += 'and media_version = %i ' % version
 	
@@ -764,8 +737,8 @@ def admin_media_publisher_delete(media_id=None, org_id=None, version=None):
 	query = '''delete from lf_media_publisher '''
 
 	query_condition = ''
-	if is_uuid(media_id):
-		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	if media_id:
+		query_condition += "where media_id = x'%s' " % media_id.hex
 		if version is not None:
 			query_condition += 'and media_version = %i ' % int(version)
 	
@@ -822,8 +795,8 @@ def admin_media_subject_delete(media_id=None, subject_id=None):
 	query = '''delete from lf_media_subject '''
 
 	query_condition = ''
-	if is_uuid(media_id):
-		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	if media_id:
+		query_condition += "where media_id = x'%s' " % media_id.hex
 	
 	if subject_id is not None:
 		query_condition += ( 'and ' if query_condition else 'where ' ) \
@@ -900,14 +873,14 @@ def admin_media_series_delete(media_id=None, series_id=None, media_version=None,
 	query = '''delete from lf_media_series '''
 
 	query_condition = ''
-	if is_uuid(media_id):
-		query_condition += 'where media_id = uuid2bin("%s") ' % media_id
+	if media_id:
+		query_condition += "where media_id = x'%s' " % media_id.hex
 		if media_version is not None:
 			query_condition += 'and media_version = %i ' % int(media_version)
 	
-	if is_uuid(series_id):
+	if series_id:
 		query_condition += ( 'and ' if query_condition else 'where ' ) \
-				+ 'series_id = uuid2bin("%s") ' % series_id
+				+ "series_id = x'%s' " % series_id.hex
 		if series_version is not None:
 			query_condition += 'and series_version = %i ' % int(series_version)
 	
@@ -964,8 +937,8 @@ def admin_series_creator_delete(series_id=None, user_id=None, version=None):
 	query = '''delete from lf_series_creator '''
 
 	query_condition = ''
-	if is_uuid(series_id):
-		query_condition += 'where series_id = uuid2bin("%s") ' % series_id
+	if series_id:
+		query_condition += "where series_id = x'%s' " % series_id.hex
 		if version is not None:
 			query_condition += 'and series_version = %i ' % version
 	
@@ -1026,8 +999,8 @@ def admin_series_publisher_delete(series_id=None, org_id=None, version=None):
 	query = '''delete from lf_series_publisher '''
 
 	query_condition = ''
-	if is_uuid(series_id):
-		query_condition += 'where series_id = uuid2bin("%s") ' % series_id
+	if series_id:
+		query_condition += "where series_id = x'%s' " % series_id.hex
 		if version is not None:
 			query_condition += 'and series_version = %i ' % int(version)
 	
@@ -1084,8 +1057,8 @@ def admin_series_subject_delete(series_id=None, subject_id=None):
 	query = '''delete from lf_series_subject '''
 
 	query_condition = ''
-	if is_uuid(series_id):
-		query_condition += 'where series_id = uuid2bin("%s") ' % series_id
+	if series_id:
+		query_condition += "where series_id = x'%s' " % series_id.hex
 	
 	if subject_id is not None:
 		query_condition += ( 'and ' if query_condition else 'where ' ) \

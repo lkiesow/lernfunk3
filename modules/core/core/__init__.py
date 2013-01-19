@@ -25,7 +25,7 @@ app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 import core.converter
 app.url_map.converters['uuid'] = core.converter.UUIDConverter
 app.url_map.converters['lang'] = core.converter.LanguageConverter
-app.url_map.converters['uname'] = core.converter.UsernameConverter
+app.url_map.converters['user'] = core.converter.UsernameConverter
 
 # set the secret key.
 # You should really keep this secret:
