@@ -43,6 +43,8 @@ def view_media(media_id=None, lang=None, series_id=None):
 	with_subject     -- Also return all subjects (default: enabled)
 	limit            -- Maximum amount of results to return (default: 10)
 	offset           -- Offset of results to return (default: 0)
+	order            -- Order results by field (ascending)
+	rorder           -- Order results by field (descending)
 	'''
 
 	user = None
@@ -88,6 +90,8 @@ def view_media(media_id=None, lang=None, series_id=None):
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	# Request data
 	db = get_db()
@@ -104,13 +108,23 @@ def view_media(media_id=None, lang=None, series_id=None):
 
 	# Check for language argument
 	if lang:
-		for c in lang:
-			if c not in lang_chars:
-				return 'Invalid language argument', 400
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'm.language = "%s" ' % lang
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
+
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -135,6 +149,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 		media_uuid = uuid.UUID(bytes=id)
 		m = dom.createElement("lf:media")
 		# Add default elements
+		print(timestamp_created)
 		xml_add_elem( dom, m, "dc:identifier",     str(media_uuid) )
 		xml_add_elem( dom, m, "lf:version",        version )
 		xml_add_elem( dom, m, "lf:parent_version", parent_version )
@@ -240,6 +255,8 @@ def view_series_media(series_id, media_id=None, lang=None):
 	with_subject     -- Also return all subjects (default: enabled)
 	limit            -- Maximum amount of results to return (default: 10)
 	offset           -- Offset of results to return (default: 0)
+	order            -- Order results by field (ascending)
+	rorder           -- Order results by field (descending)
 	'''
 
 	user = None
@@ -283,6 +300,8 @@ def view_series_media(series_id, media_id=None, lang=None):
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	# Request data
 	db = get_db()
@@ -307,6 +326,18 @@ def view_series_media(series_id, media_id=None, lang=None):
 				'm.language = "%s" ' % lang
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -432,6 +463,8 @@ def view_series(series_id=None, lang=None):
 	with_subject     -- Also return all subjects (default: enabled)
 	limit            -- Maximum amount of results to return (default: 10)
 	offset           -- Offset of results to return (default: 0)
+	order            -- Order results by field (ascending)
+	rorder           -- Order results by field (descending)
 	'''
 
 	user = None
@@ -474,6 +507,8 @@ def view_series(series_id=None, lang=None):
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -493,6 +528,18 @@ def view_series(series_id=None, lang=None):
 				's.language = "%s" ' % lang
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -584,9 +631,13 @@ def view_subject(subject_id=None, lang=None):
 	GET parameter:
 	limit  -- Maximum amount of results to return (default: 10)
 	offset -- Offset for results to return (default: 0)
+	order            -- Order results by field (ascending)
+	rorder           -- Order results by field (descending)
 	'''
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -611,10 +662,25 @@ def view_subject(subject_id=None, lang=None):
 				else 'where language = "%s" ' ) % lang
 	query += query_condition
 	count_query += query_condition
-	
+
+	# Sort by column
+	order_opts = ['id', 'language', 'name']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
+
+	if app.debug:
+		print('### Query ######################')
+		print( query )
+		print('################################')
 
 	# Get amount of results
 	cur.execute( count_query )
@@ -649,8 +715,10 @@ def view_file(file_id=None):
 	file_id -- UUID of a specific file.
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
+	limit   -- Maximum amount of results to return (default: 10)
+	offset  -- Offset of results to return (default: 0)
+	order   -- Order results by field (ascending)
+	rorder  -- Order results by field (descending)
 	'''
 
 	user = None
@@ -685,6 +753,8 @@ def view_file(file_id=None):
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -695,6 +765,17 @@ def view_file(file_id=None):
 		query_condition += "where f.id = x'%s' " % file_id.hex
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'format', 'uri', 'media_id', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -742,10 +823,14 @@ def view_organization(organization_id=None):
 	GET parameter:
 	limit  -- Maximum amount of results to return (default: 10)
 	offset -- Offset of results to return (default: 0)
+	order  -- Order results by field (ascending)
+	rorder -- Order results by field (descending)
 	'''
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -759,6 +844,17 @@ def view_organization(organization_id=None):
 			count_query += 'where id = %s ' % int(organization_id)
 		except ValueError:
 			return 'Invalid organization_id', 400
+
+	# Sort by column
+	order_opts = ['id', 'name']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -799,6 +895,8 @@ def view_group(group_id=None):
 	GET parameter:
 	limit  -- Maximum amount of results to return (default: 10)
 	offset -- Offset of results to return (default: 0)
+	order  -- Order results by field (ascending)
+	rorder -- Order results by field (descending)
 	'''
 
 	# Check for authentication as admin
@@ -810,6 +908,8 @@ def view_group(group_id=None):
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -822,6 +922,17 @@ def view_group(group_id=None):
 			count_query += 'where id = %s ' % int(group_id)
 		except ValueError:
 			return 'Invalid group_id', 400
+
+	# Sort by column
+	order_opts = ['id', 'name']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -846,6 +957,7 @@ def view_group(group_id=None):
 	return response
 
 
+
 @app.route('/view/user/')
 @app.route('/view/user/<int:user_id>')
 def view_user(user_id=None):
@@ -858,6 +970,8 @@ def view_user(user_id=None):
 	GET parameter:
 	limit  -- Maximum amount of results to return (default: 10)
 	offset -- Offset of results to return (default: 0)
+	order  -- Order results by field (ascending)
+	rorder -- Order results by field (descending)
 	'''
 
 	user = None
@@ -883,6 +997,8 @@ def view_user(user_id=None):
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -898,6 +1014,17 @@ def view_user(user_id=None):
 			return 'Invalid user_id', 400
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'name', 'realname', 'access']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
