@@ -157,7 +157,8 @@ def new_series( service, result, user ):
 				where id = unhex("%s") ''', series_id.hex )
 		if cur.fetchone()[0]:
 			raise ValueError('Id already exists for a different series')
-	except ValueError:
+	except ValueError as e:
+		print( 'series: %s' % e )
 		series_id = uuid.uuid4()
 
 	query = '''insert into lf_series 
@@ -216,8 +217,9 @@ def new_media( service, result, user, series_id ):
 		cur.execute('''select count(id) from lf_series
 				where id = unhex("%s") ''', media_id.hex )
 		if cur.fetchone()[0]:
-			raise ValueError('Id already exists for a different media')
-	except ValueError:
+			raise ValueError('Id already exists for a different media (%s)' % identifier)
+	except ValueError as e:
+		print( 'media: %s (%s)' % (e, identifier) )
 		media_id = uuid.uuid4()
 
 	if creator_realname:
@@ -232,7 +234,6 @@ def new_media( service, result, user, series_id ):
 						mysql_quote(description), 1, mysql_quote(created),
 						user, user, '"matterhorn13@video2.virtuos.uos.de"', 
 						mysql_quote(identifier), '"MovingImage"' )
-	print( created )
 	cur.execute( query )
 
 	query = '''insert into lf_media_series 
@@ -283,7 +284,7 @@ def new_file( trackxml, media_id ):
 		type = None
 
 	url = getTextByTagName( trackxml, 'url' )
-	if url.startswith('rtpm://'):
+	if url.startswith('rtmp://'):
 		# We don't want RTMP streams
 		return
 
@@ -294,8 +295,9 @@ def new_file( trackxml, media_id ):
 		cur.execute('''select count(id) from lf_file
 				where id = x'%s' ''' % track_id.hex )
 		if cur.fetchone()[0]:
-			raise ValueError('Id already exists for a different series')
-	except ValueError:
+			raise ValueError('Id already exists for a different file')
+	except ValueError as e:
+		print( 'file: %s' % e )
 		track_id = uuid.uuid4()
 
 	query = '''insert into lf_file
@@ -326,13 +328,16 @@ cur.execute('''select id from lf_group
 group = cur.fetchone()[0]
 
 
-for url in services:
-	f = urllib2.urlopen( url + endpoints['series'] )
-	seriesxml = parse(f)
-	f.close()
+try:
+	for url in services:
+		f = urllib2.urlopen( url + endpoints['series'] )
+		seriesxml = parse(f)
+		f.close()
 
-	# Get series:
-	for result in seriesxml.getElementsByTagName('result'):
-		# Check if result is a series
-		if getTextByTagName(result, 'mediaType') == 'Series':
-			new_series( url, result, user )
+		# Get series:
+		for result in seriesxml.getElementsByTagName('result'):
+			# Check if result is a series
+			if getTextByTagName(result, 'mediaType') == 'Series':
+				new_series( url, result, user )
+except KeyboardInterrupt as e:
+	pass
