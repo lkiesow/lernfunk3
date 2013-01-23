@@ -92,7 +92,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 	# Request data
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(m.id), m.version, m.parent_version, m.language,
+	query = '''select m.id, m.version, m.parent_version, m.language,
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
@@ -132,9 +132,10 @@ def view_media(media_id=None, lang=None, series_id=None):
 			editor, timestamp_edit, timestamp_created, published, source, \
 			visible, source_system, source_key, rights, type, coverage, \
 			relation in cur.fetchall():
+		media_uuid = uuid.UUID(bytes=id)
 		m = dom.createElement("lf:media")
 		# Add default elements
-		xml_add_elem( dom, m, "dc:identifier",     id )
+		xml_add_elem( dom, m, "dc:identifier",     str(media_uuid) )
 		xml_add_elem( dom, m, "lf:version",        version )
 		xml_add_elem( dom, m, "lf:parent_version", parent_version )
 		xml_add_elem( dom, m, "dc:language",       language )
@@ -152,7 +153,6 @@ def view_media(media_id=None, lang=None, series_id=None):
 		xml_add_elem( dom, m, "dc:rights",         rights )
 		xml_add_elem( dom, m, "dc:type",           type )
 
-		media_uuid = uuid.UUID(id)
 		# Get series
 		if with_series:
 			cur.execute( '''select bin2uuid(ms.series_id) from lf_media_series ms
@@ -287,7 +287,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 	# Request data
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(m.id), m.version, m.parent_version, m.language,
+	query = '''select m.id, m.version, m.parent_version, m.language,
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
@@ -329,8 +329,9 @@ def view_series_media(series_id, media_id=None, lang=None):
 			visible, source_system, source_key, rights, type, coverage, \
 			relation in cur.fetchall():
 		m = dom.createElement("lf:media")
+		media_uuid = uuid.UUID(bytes=id)
 		# Add default elements
-		xml_add_elem( dom, m, "dc:identifier",     id )
+		xml_add_elem( dom, m, "dc:identifier",     str(media_uuid) )
 		xml_add_elem( dom, m, "lf:version",        version )
 		xml_add_elem( dom, m, "lf:parent_version", parent_version )
 		xml_add_elem( dom, m, "dc:language",       language )
@@ -348,7 +349,6 @@ def view_series_media(series_id, media_id=None, lang=None):
 		xml_add_elem( dom, m, "dc:rights",         rights )
 		xml_add_elem( dom, m, "dc:type",           type )
 
-		media_uuid = uuid.UUID(id)
 		# Get series
 		if with_series:
 			cur.execute( '''select bin2uuid(ms.series_id) from lf_media_series ms
@@ -477,7 +477,7 @@ def view_series(series_id=None, lang=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(s.id), s.version, s.parent_version, s.title,
+	query = '''select s.id, s.version, s.parent_version, s.title,
 			s.language, s.description, s.source, s.timestamp_edit,
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
 			s.source_key, s.source_system 
@@ -514,8 +514,9 @@ def view_series(series_id=None, lang=None):
 	for id, version, parent_version, title, language, description, source, \
 			timestamp_edit, timestamp_created, published, owner, editor, \
 			visible, source_key, source_system in cur.fetchall():
+		series_uuid = uuid.UUID(bytes=id)
 		s = dom.createElement('lf:series')
-		xml_add_elem( dom, s, "dc:identifier",     id )
+		xml_add_elem( dom, s, "dc:identifier",     str(series_uuid) )
 		xml_add_elem( dom, s, "lf:version",        version )
 		xml_add_elem( dom, s, "lf:parent_version", parent_version )
 		xml_add_elem( dom, s, "dc:title",          title )
@@ -532,7 +533,6 @@ def view_series(series_id=None, lang=None):
 		xml_add_elem( dom, s, "lf:source_system",  source_system )
 		dom.childNodes[0].appendChild(s)
 
-		series_uuid = uuid.UUID(id)
 		# Get media
 		if with_media:
 			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
@@ -639,7 +639,7 @@ def view_subject(subject_id=None, lang=None):
 
 
 @app.route('/view/file/')
-@app.route('/view/file/<file_id>')
+@app.route('/view/file/<uuid:file_id>')
 def view_file(file_id=None):
 	'''This method provides access to the files datasets in the Lernfunk
 	database. Access rights for this are taken from the media object the files
@@ -688,15 +688,11 @@ def view_file(file_id=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(f.id), f.format, f.uri, bin2uuid(f.media_id),
+	query = '''select f.id, f.format, f.uri, bin2uuid(f.media_id),
 				f.source, f.source_key, f.source_system from lf_prepared_file f '''
 	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
-		# abort with 400 Bad Request if file_id is not valid
-		if is_uuid(file_id):
-			query += 'where f.id = uuid2bin("%s") ' % file_id
-		else:
-			return 'Invalid file_id', 400
+		query_condition += "where f.id = x'%s' " % file_id.hex
 	query += query_condition
 	count_query += query_condition
 
@@ -718,8 +714,9 @@ def view_file(file_id=None):
 
 	# For each file we get
 	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
+		file_uuid = uuid.UUID(bytes=id)
 		f = dom.createElement("lf:file")
-		xml_add_elem( dom, f, "dc:identifier",    id )
+		xml_add_elem( dom, f, "dc:identifier",    str(file_uuid) )
 		xml_add_elem( dom, f, "dc:format",        format )
 		xml_add_elem( dom, f, "lf:uri",           uri )
 		xml_add_elem( dom, f, "lf:media_id",      media_id )
