@@ -16,14 +16,16 @@ from core import app
 from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
+import uuid
 
 from flask import request, session, g, redirect, url_for, abort, make_response
 
 
 @app.route('/archive/media/')
-@app.route('/archive/media/<media_id>')
-@app.route('/archive/media/<media_id>/<int:version>')
-@app.route('/archive/media/<media_id>/<lang>')
+@app.route('/archive/media/<uuid:media_id>')
+@app.route('/archive/media/<uuid:media_id>/<int:version>')
+@app.route('/archive/media/<lang:lang>')
+@app.route('/archive/media/<uuid:media_id>/<lang:lang>')
 def archive_media(media_id=None, version=None, lang=None):
 	'''This method provides access to old  published states of all
 	mediaobjects in the Lernfunk database. Use HTTP Basic authentication to get
@@ -92,23 +94,15 @@ def archive_media(media_id=None, version=None, lang=None):
 	# Request data
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(m.id), m.version, m.parent_version, m.language,
+	query = '''select m.id, m.version, m.parent_version, m.language,
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
 			m.relation from lf_published_media m '''
 	count_query = '''select count(m.id) from lf_published_media m '''
 	if media_id:
-		# abort with 400 Bad Request if media_id is not a valid uuid or thread it
-		# as language code if language argument does not exist
-		if is_uuid(media_id):
-			query_condition += ( 'and ' if query_condition else 'where ' ) + \
-					'm.id = uuid2bin("%s") ' % media_id
-		else:
-			if lang or (version != None):
-				abort(400)
-			else:
-				lang = media_id
+		query_condition += ( 'and ' if query_condition else 'where ' ) + \
+				"m.id = x'%s' " % media_id.hex
 
 	# Check for specific version
 	if version != None:
@@ -145,9 +139,10 @@ def archive_media(media_id=None, version=None, lang=None):
 			editor, timestamp_edit, timestamp_created, published, source, \
 			visible, source_system, source_key, rights, type, coverage, \
 			relation in cur.fetchall():
+		media_uuid = uuid.UUID(bytes=id)
 		m = dom.createElement("lf:media")
 		# Add default elements
-		xml_add_elem( dom, m, "dc:identifier",     id )
+		xml_add_elem( dom, m, "dc:identifier",     str(media_uuid) )
 		xml_add_elem( dom, m, "lf:version",        version )
 		xml_add_elem( dom, m, "lf:parent_version", parent_version )
 		xml_add_elem( dom, m, "dc:language",       language )
@@ -170,28 +165,28 @@ def archive_media(media_id=None, version=None, lang=None):
 			cur.execute( '''select bin2uuid(ms.series_id) from lf_media_series ms
 				inner join lf_latest_published_series s
 				on ms.series_id = s.id and ms.series_version = s.version
-				where ms.media_id = uuid2bin("%s") and visible''' % id )
+				where ms.media_id = x'%s' and visible''' % media_uuid.hex )
 			for (series_id,) in cur.fetchall():
 				xml_add_elem( dom, m, "lf:series_id", series_id )
 
 		# Get contributor (user)
 		if with_contributor:
 			cur.execute( '''select user_id from lf_media_contributor
-				where media_id = uuid2bin("%s")''' % id )
+				where media_id = x'%s' ''' % media_uuid.hex )
 			for (user_id,) in cur.fetchall():
 				xml_add_elem( dom, m, "lf:contributor", user_id )
 
 		# Get creator (user)
 		if with_creator:
 			cur.execute( '''select user_id from lf_media_creator
-				where media_id = uuid2bin("%s")''' % id )
+				where media_id = x'%s' ''' % media_uuid.hex )
 			for (user_id,) in cur.fetchall():
 				xml_add_elem( dom, m, "lf:creator", user_id )
 
 		# Get publisher (organization)
 		if with_publisher:
 			cur.execute( '''select organization_id from lf_media_publisher
-				where media_id = uuid2bin("%s")''' % id )
+				where media_id = x'%s' ''' % media_uuid.hex )
 			for (organization_id,) in cur.fetchall():
 				xml_add_elem( dom, m, "lf:publisher", organization_id )
 
@@ -199,7 +194,7 @@ def archive_media(media_id=None, version=None, lang=None):
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
 				source, source_key, source_system from lf_prepared_file
-				where media_id = uuid2bin("%s")''' % id )
+				where media_id = x'%s' ''' % media_uuid.hex )
 			for id, format, uri, src, src_key, src_sys in cur.fetchall():
 				f = dom.createElement("lf:file")
 				xml_add_elem( dom, f, "dc:identifier",    id )
@@ -215,7 +210,7 @@ def archive_media(media_id=None, version=None, lang=None):
 			cur.execute( '''select s.name from lf_media_subject ms 
 					join lf_subject s on s.id = ms.subject_id 
 					where s.language = "%s" 
-					and ms.media_id = uuid2bin("%s") ''' % (language, id) )
+					and ms.media_id = x'%s' ''' % (language, media_uuid.hex) )
 			for (subject,) in cur.fetchall():
 				xml_add_elem( dom, m, "dc:subject", subject )
 
@@ -229,9 +224,10 @@ def archive_media(media_id=None, version=None, lang=None):
 
 
 @app.route('/archive/series/')
-@app.route('/archive/series/<series_id>')
-@app.route('/archive/series/<series_id>/<int:version>')
-@app.route('/archive/series/<series_id>/<lang>')
+@app.route('/archive/series/<uuid:series_id>')
+@app.route('/archive/series/<uuid:series_id>/<int:version>')
+@app.route('/archive/series/<lang:lang>')
+@app.route('/archive/series/<uuid:series_id>/<lang:lang>')
 def archive_series(series_id=None, version=None, lang=None):
 	'''This method provides access to the latest published state of all series
 	in the Lernfunk database. Use HTTP Basic authentication to get access to
@@ -294,23 +290,15 @@ def archive_series(series_id=None, version=None, lang=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(s.id), s.version, s.parent_version, s.title,
+	query = '''select s.id, s.version, s.parent_version, s.title,
 			s.language, s.description, s.source, s.timestamp_edit,
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
 			s.source_key, s.source_system 
 			from lf_published_series s '''
 	count_query = '''select count(s.id) from lf_published_series s '''
 	if series_id:
-		# abort with 400 Bad Request if series_id is not a valid uuid or thread it
-		# as language code if language argument does not exist
-		if is_uuid(series_id):
-			query_condition += ( 'and ' if query_condition else 'where ' ) + \
-					's.id = uuid2bin("%s") ' % series_id
-		else:
-			if lang or (version != None):
-				abort(400)
-			else:
-				lang = series_id
+		query_condition += ( 'and ' if query_condition else 'where ' ) + \
+				"s.id = x'%s' " % series_id.hex
 
 	# Check for specific version
 	if version != None:
@@ -319,9 +307,6 @@ def archive_series(series_id=None, version=None, lang=None):
 
 	# Check for language argument
 	elif lang:
-		for c in lang:
-			if c not in lang_chars:
-				abort(400)
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				's.language = "%s" ' % lang
 	query += query_condition
@@ -347,8 +332,9 @@ def archive_series(series_id=None, version=None, lang=None):
 	for id, version, parent_version, title, language, description, source, \
 			timestamp_edit, timestamp_created, published, owner, editor, \
 			visible, source_key, source_system in cur.fetchall():
+		series_uuid = uuid.UUID(bytes=id)
 		s = dom.createElement('lf:series')
-		xml_add_elem( dom, s, "dc:identifier",     id )
+		xml_add_elem( dom, s, "dc:identifier",     str(series_uuid) )
 		xml_add_elem( dom, s, "lf:version",        version )
 		xml_add_elem( dom, s, "lf:parent_version", parent_version )
 		xml_add_elem( dom, s, "dc:title",          title )
@@ -368,22 +354,22 @@ def archive_series(series_id=None, version=None, lang=None):
 		# Get media
 		if with_media:
 			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
-				where series_id = uuid2bin("%s")
-				and series_version = %s''' % ( id, version ) )
+				where series_id = x'%s'
+				and series_version = %s''' % ( series_uuid.hex, version ) )
 			for (media_id,) in cur.fetchall():
 				xml_add_elem( dom, s, "lf:media_id", media_id )
 
 		# Get creator (user)
 		if with_creator:
 			cur.execute( '''select user_id from lf_series_creator
-				where series_id = uuid2bin("%s")''' % id )
+				where series_id = x'%s' ''' % series_uuid.hex )
 			for (user_id,) in cur.fetchall():
 				xml_add_elem( dom, s, "lf:creator", user_id )
 
 		# Get publisher (organization)
 		if with_publisher:
 			cur.execute( '''select organization_id from lf_series_publisher
-				where series_id = uuid2bin("%s")''' % id )
+				where series_id = x'%s' ''' % series_uuid.hex )
 			for (organization_id,) in cur.fetchall():
 				xml_add_elem( dom, s, "lf:publisher", organization_id )
 
@@ -392,7 +378,7 @@ def archive_series(series_id=None, version=None, lang=None):
 			cur.execute( '''select s.name from lf_series_subject ms 
 					join lf_subject s on s.id = ms.subject_id 
 					where s.language = "%s" 
-					and ms.series_id = uuid2bin("%s") ''' % (language, id) )
+					and ms.series_id = x'%s' ''' % (language, series_uuid.hex) )
 			for (subject,) in cur.fetchall():
 				xml_add_elem( dom, s, "dc:subject", subject )
 
