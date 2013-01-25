@@ -17,7 +17,7 @@ from core.db import get_db
 from core.authenticate import get_authorization
 import uuid
 
-from flask import request, session, g, redirect, url_for, make_response
+from flask import request, session, g, redirect, url_for, make_response, jsonify
 
 
 @app.route('/view/media/')
@@ -1040,7 +1040,6 @@ def view_user(user_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
 
 	# Human readable mapping for user access rights
 	accessmap = {
@@ -1050,17 +1049,22 @@ def view_user(user_id=None):
 			4 : 'administrators only'
 			}
 
+	result = []
+
 	# For each file we get
 	for id, name, vcard_uri, realname, email, access in cur.fetchall():
-		u = dom.createElement("lf:user")
-		xml_add_elem( dom, u, "dc:identifier", id )
-		xml_add_elem( dom, u, "lf:name",       name )
-		xml_add_elem( dom, u, "lf:vcard_uri",  vcard_uri )
-		xml_add_elem( dom, u, "lf:realname",   realname )
-		xml_add_elem( dom, u, "lf:email",      email )
-		xml_add_elem( dom, u, "lf:access",     accessmap[access] )
-		dom.childNodes[0].appendChild(u)
+		user = {}
+		user['dc:identifier'] = id
+		user['lf:name']       = name
+		user['lf:vcard_uri']  = vcard_uri
+		user['lf:realname']   = realname
+		user['lf:email']      = email
+		user['lf:access']     = accessmap[access]
+		result.append( user )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:user' : result }
+
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result)
+	return xmlify(result=result)

@@ -15,6 +15,7 @@ from core import app
 from string import hexdigits, letters, digits
 from xml.dom.minidom import parseString
 import re
+from flask import make_response
 
 '''All characters allowed for language tags.'''
 lang_chars = letters + digits + '-_'
@@ -127,3 +128,48 @@ def to_int( s, default=0 ):
 		return int(s)
 	except ValueError:
 		return default
+
+
+
+def __xmlify( result, dom, parent ):
+	if result is None:
+		raise ValueError()
+	elif isinstance(result, dict):
+		for k,v in result.iteritems():
+			if isinstance(v, list):
+				for e in v:
+					print( 'new elem (%s)' % k )
+					elem = dom.createElement(k)
+					try:
+						__xmlify( e, dom=dom, parent=elem )
+						parent.appendChild( elem )
+					except ValueError:
+						pass
+			else:
+				elem = dom.createElement(k)
+				try:
+					__xmlify( v, dom=dom, parent=elem )
+					parent.appendChild( elem )
+				except ValueError:
+					pass
+	else:
+		parent.appendChild( dom.createTextNode(str(result)) )
+
+
+
+
+def xmlify( result ):
+	try:
+		resultcount = len(result.values()[0])
+	except TypeError:
+		resultcount = 1
+
+	dom = result_dom( resultcount )
+	parent = dom.firstChild
+
+	__xmlify( result, dom, parent )
+
+	# Return string representation
+	response = make_response( dom.toxml() )
+	response.mimetype = 'application/xml'
+	return response
