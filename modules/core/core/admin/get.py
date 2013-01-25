@@ -16,8 +16,9 @@ from core import app
 from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
+import uuid
 
-from flask import request, session, g, redirect, url_for, make_response
+from flask import request, session, g, redirect, url_for, make_response, jsonify
 
 
 @app.route('/admin/media/',                         methods=['GET'])
@@ -419,8 +420,9 @@ def admin_series(series_id=None, lang=None):
 
 
 @app.route('/admin/subject/')
-@app.route('/admin/subject/<subject_id>')
-@app.route('/admin/subject/<subject_id>/<lang>')
+@app.route('/admin/subject/<int:subject_id>')
+@app.route('/admin/subject/<lang:lang>')
+@app.route('/admin/subject/<int:subject_id>/<lang:lang>')
 def admin_subject(subject_id=None, lang=None):
 	'''This method provides access to all subject in the Lernfunk database.
 	
@@ -455,25 +457,13 @@ def admin_subject(subject_id=None, lang=None):
 	query = '''select id, name, language from lf_subject '''
 	count_query = '''select count(id) from lf_subject '''
 	query_condition = ''
-	if subject_id:
-		# abort with 400 Bad Request if subject_id is not valid or thread it
-		# as language code if language argument does not exist
-		try:
-			query_condition += 'where id = %s ' % int(subject_id)
-		except ValueError:
-			# subject_id is not valid
-			if lang:
-				return 'Invalid subject_id', 400
-			else:
-				lang = subject_id
+	if subject_id is not None:
+		query_condition += 'where id = %s ' % int(subject_id)
 
 	# Check for language argument
 	if lang:
-		for c in lang:
-			if c not in lang_chars:
-				return 'Invalid language argument', 400
 		query_condition += ( 'and language = "%s" ' \
-				if 'where id' in query \
+				if query_condition \
 				else 'where language = "%s" ' ) % lang
 	query += query_condition
 	count_query += query_condition
@@ -488,24 +478,26 @@ def admin_subject(subject_id=None, lang=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each media we get
 	for id, name, language in cur.fetchall():
-		s = dom.createElement('lf:subject')
-		xml_add_elem( dom, s, "lf:id",       id )
-		xml_add_elem( dom, s, "lf:name",     name )
-		xml_add_elem( dom, s, "dc:language", language )
-		dom.childNodes[0].appendChild(s)
+		subject = {}
+		subject["lf:id"]       = id
+		subject["lf:name"]     = name
+		subject["dc:language"] = language
+		result.append( subject )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:subject' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
 @app.route('/admin/file/')
-@app.route('/admin/file/<file_id>')
+@app.route('/admin/file/<uuid:file_id>')
 def admin_file(file_id=None):
 	'''This method provides access to the files datasets in the Lernfunk
 	database. Access rights for this are taken from the media object the files
@@ -559,15 +551,11 @@ def admin_file(file_id=None):
 	# Request data
 	db = get_db()
 	cur = db.cursor()
-	query = '''select bin2uuid(f.id), f.format, f.uri, bin2uuid(f.media_id),
+	query = '''select f.id, f.format, f.uri, bin2uuid(f.media_id),
 				f.source, f.source_key, f.source_system from lf_prepared_file f '''
 	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
-		# abort with 400 Bad Request if file_id is not valid
-		if is_uuid(file_id):
-			query += 'where f.id = uuid2bin("%s") ' % file_id
-		else:
-			return 'Invalid file_id', 400
+		query += "where f.id = x'%s' " % file_id.hex
 	query += query_condition
 	count_query += query_condition
 
@@ -585,23 +573,26 @@ def admin_file(file_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each file we get
 	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
-		f = dom.createElement("lf:file")
-		xml_add_elem( dom, f, "dc:identifier",    id )
-		xml_add_elem( dom, f, "dc:format",        format )
-		xml_add_elem( dom, f, "lf:uri",           uri )
-		xml_add_elem( dom, f, "lf:media_id",      media_id )
-		xml_add_elem( dom, f, "lf:source",        src )
-		xml_add_elem( dom, f, "lf:source_key",    src_key )
-		xml_add_elem( dom, f, "lf:source_system", src_sys )
-		dom.childNodes[0].appendChild(f)
+		file_uuid = uuid.UUID(bytes=id)
+		file = {}
+		file["dc:identifier"]    = str(file_uuid)
+		file["dc:format"]        = format
+		file["lf:uri"]           = uri
+		file["lf:media_id"]      = media_id
+		file["lf:source"]        = src
+		file["lf:source_key"]    = src_key
+		file["lf:source_system"] = src_sys
+		result.append( file )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:file' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -655,20 +646,23 @@ def admin_organization(organization_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each file we get
 	for id, name, vcard_uri, parent_organization in cur.fetchall():
-		o = dom.createElement("lf:organization")
-		xml_add_elem( dom, o, "dc:identifier",             id )
-		xml_add_elem( dom, o, "lf:name",                   name )
-		xml_add_elem( dom, o, "lf:parent_organization_id", parent_organization )
-		xml_add_elem( dom, o, "lf:vcard_uri",              vcard_uri )
-		dom.childNodes[0].appendChild(o)
+		org = {}
+		org['dc:identifier']             = id
+		org['lf:name']                   = name
+		org['lf:parent_organization_id'] = parent_organization
+		org['vcard_uri']                 = vcard_uri
+		result.append( org )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:organization' : result }
+
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -715,18 +709,21 @@ def admin_group(group_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each file we get
 	for id, name in cur.fetchall():
-		g = dom.createElement("lf:group")
-		xml_add_elem( dom, g, "dc:identifier", id )
-		xml_add_elem( dom, g, "lf:name",       name )
-		dom.childNodes[0].appendChild(g)
+		group = {}
+		group['dc:identifier'] = id
+		group['lf:name']       = name
+		result.append( group )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:group' : result }
+
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 @app.route('/admin/user/')
@@ -792,7 +789,7 @@ def admin_user(user_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# Human readable mapping for user access rights
 	accessmap = {
@@ -804,15 +801,17 @@ def admin_user(user_id=None):
 
 	# For each file we get
 	for id, name, vcard_uri, realname, email, access in cur.fetchall():
-		u = dom.createElement("lf:user")
-		xml_add_elem( dom, u, "dc:identifier", id )
-		xml_add_elem( dom, u, "lf:name",       name )
-		xml_add_elem( dom, u, "lf:vcard_uri",  vcard_uri )
-		xml_add_elem( dom, u, "lf:realname",   realname )
-		xml_add_elem( dom, u, "lf:email",      email )
-		xml_add_elem( dom, u, "lf:access",     accessmap[access] )
-		dom.childNodes[0].appendChild(u)
+		user = {}
+		user['dc:identifier'] = id
+		user['lf:name']       = name
+		user['lf:vcard_uri']  = vcard_uri
+		user['lf:realname']   = realname
+		user['lf:email']      = email
+		user['lf:access']     = accessmap[access]
+		result.append( user )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:user' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
