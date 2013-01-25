@@ -139,34 +139,34 @@ def view_media(media_id=None, lang=None, series_id=None):
 	result_count = cur.fetchone()[0]
 
 	# Get data
-	dom = result_dom( result_count )
 	cur.execute( query )
+	result = []
+
 	# For each media we get
 	for id, version, parent_version, language, title, description, owner, \
 			editor, timestamp_edit, timestamp_created, published, source, \
 			visible, source_system, source_key, rights, type, coverage, \
 			relation in cur.fetchall():
 		media_uuid = uuid.UUID(bytes=id)
-		m = dom.createElement("lf:media")
+		media = {}
 		# Add default elements
-		print(timestamp_created)
-		xml_add_elem( dom, m, "dc:identifier",     str(media_uuid) )
-		xml_add_elem( dom, m, "lf:version",        version )
-		xml_add_elem( dom, m, "lf:parent_version", parent_version )
-		xml_add_elem( dom, m, "dc:language",       language )
-		xml_add_elem( dom, m, "dc:title",          title )
-		xml_add_elem( dom, m, "dc:description",    description )
-		xml_add_elem( dom, m, "lf:owner",          owner )
-		xml_add_elem( dom, m, "lf:editor",         editor )
-		xml_add_elem( dom, m, "dc:date",           timestamp_created )
-		xml_add_elem( dom, m, "lf:last_edit",      timestamp_edit )
-		xml_add_elem( dom, m, "lf:published",      published )
-		xml_add_elem( dom, m, "dc:source",         source )
-		xml_add_elem( dom, m, "lf:visible",        visible )
-		xml_add_elem( dom, m, "lf:source_system",  source_system )
-		xml_add_elem( dom, m, "lf:source_key",     source_key )
-		xml_add_elem( dom, m, "dc:rights",         rights )
-		xml_add_elem( dom, m, "dc:type",           type )
+		media["dc:identifier"]     = str(media_uuid)
+		media["lf:version"]        = version
+		media["lf:parent_version"] = parent_version
+		media["dc:language"]       = language
+		media["dc:title"]          = title
+		media["dc:description"]    = description
+		media["lf:owner"]          = owner
+		media["lf:editor"]         = editor
+		media["dc:date"]           = str(timestamp_created)
+		media["lf:last_edit"]      = str(timestamp_edit)
+		media["lf:published"]      = published
+		media["dc:source"]         = source
+		media["lf:visible"]        = visible
+		media["lf:source_system"]  = source_system
+		media["lf:source_key"]     = source_key
+		media["dc:rights"]         = rights
+		media["dc:type"]           = type
 
 		# Get series
 		if with_series:
@@ -174,44 +174,54 @@ def view_media(media_id=None, lang=None, series_id=None):
 				inner join lf_latest_published_series s
 				on ms.series_id = s.id and ms.series_version = s.version
 				where ms.media_id = x'%s' and visible ''' % media_uuid.hex )
+			series = []
 			for (series_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:series_id", series_id )
+				series.append( series_id )
+			media["lf:series_id"] = series
 
 		# Get contributor (user)
 		if with_contributor:
 			cur.execute( '''select user_id from lf_media_contributor
 				where media_id = x'%s' ''' % media_uuid.hex )
+			contributor = []
 			for (user_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:contributor", user_id )
+				contributor.append( user_id )
+			media["lf:contributor"] = contributor
 
 		# Get creator (user)
 		if with_creator:
 			cur.execute( '''select user_id from lf_media_creator
 				where media_id = x'%s' ''' % media_uuid.hex )
+			creator = []
 			for (user_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:creator", user_id )
+				creator.append( user_id )
+			media["lf:creator"] = creator
 
 		# Get publisher (organization)
 		if with_publisher:
 			cur.execute( '''select organization_id from lf_media_publisher
 				where media_id = x'%s' ''' % media_uuid.hex )
+			organization = []
 			for (organization_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:publisher", organization_id )
+				organization.append( organization_id )
+			media["lf:publisher"] = organization
 
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
 				source, source_key, source_system from lf_prepared_file
 				where media_id = x'%s' ''' % media_uuid.hex )
+			files = []
 			for id, format, uri, src, src_key, src_sys in cur.fetchall():
-				f = dom.createElement("lf:file")
-				xml_add_elem( dom, f, "dc:identifier",    id )
-				xml_add_elem( dom, f, "dc:format",        format )
-				xml_add_elem( dom, f, "lf:uri",           uri )
-				xml_add_elem( dom, f, "lf:source",        src )
-				xml_add_elem( dom, f, "lf:source_key",    src_key )
-				xml_add_elem( dom, f, "lf:source_system", src_sys )
-				m.appendChild(f)
+				f = {}
+				f["dc:identifier"]    = id
+				f["dc:format"]        = format
+				f["lf:uri"]           = uri
+				f["lf:source"]        = src
+				f["lf:source_key"]    = src_key
+				f["lf:source_system"] = src_sys
+				files.append( f )
+			media["lf:file"] = files
 
 		# Get subjects
 		if with_subject:
@@ -219,15 +229,18 @@ def view_media(media_id=None, lang=None, series_id=None):
 					join lf_subject s on s.id = ms.subject_id 
 					where s.language = "%s" 
 					and ms.media_id = x'%s' ''' % (language, media_uuid.hex) )
-			for (subject,) in cur.fetchall():
-				xml_add_elem( dom, m, "dc:subject", subject )
+			subject = []
+			for (subject_name,) in cur.fetchall():
+				subject.append( subject_name )
+			media["dc:subject"] = subject
 
+		result.append( media )
 
-		dom.childNodes[0].appendChild(m)
-
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = {'lf:media' : result}
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -352,33 +365,34 @@ def view_series_media(series_id, media_id=None, lang=None):
 	result_count = cur.fetchone()[0]
 
 	# Get data
-	dom = result_dom( result_count )
 	cur.execute( query )
+	result = []
+
 	# For each media we get
 	for id, version, parent_version, language, title, description, owner, \
 			editor, timestamp_edit, timestamp_created, published, source, \
 			visible, source_system, source_key, rights, type, coverage, \
 			relation in cur.fetchall():
-		m = dom.createElement("lf:media")
 		media_uuid = uuid.UUID(bytes=id)
+		media = {}
 		# Add default elements
-		xml_add_elem( dom, m, "dc:identifier",     str(media_uuid) )
-		xml_add_elem( dom, m, "lf:version",        version )
-		xml_add_elem( dom, m, "lf:parent_version", parent_version )
-		xml_add_elem( dom, m, "dc:language",       language )
-		xml_add_elem( dom, m, "dc:title",          title )
-		xml_add_elem( dom, m, "dc:description",    description )
-		xml_add_elem( dom, m, "lf:owner",          owner )
-		xml_add_elem( dom, m, "lf:editor",         editor )
-		xml_add_elem( dom, m, "dc:date",           timestamp_created )
-		xml_add_elem( dom, m, "lf:last_edit",      timestamp_edit )
-		xml_add_elem( dom, m, "lf:published",      published )
-		xml_add_elem( dom, m, "dc:source",         source )
-		xml_add_elem( dom, m, "lf:visible",        visible )
-		xml_add_elem( dom, m, "lf:source_system",  source_system )
-		xml_add_elem( dom, m, "lf:source_key",     source_key )
-		xml_add_elem( dom, m, "dc:rights",         rights )
-		xml_add_elem( dom, m, "dc:type",           type )
+		media["dc:identifier"]     = str(media_uuid)
+		media["lf:version"]        = version
+		media["lf:parent_version"] = parent_version
+		media["dc:language"]       = language
+		media["dc:title"]          = title
+		media["dc:description"]    = description
+		media["lf:owner"]          = owner
+		media["lf:editor"]         = editor
+		media["dc:date"]           = str(timestamp_created)
+		media["lf:last_edit"]      = str(timestamp_edit)
+		media["lf:published"]      = published
+		media["dc:source"]         = source
+		media["lf:visible"]        = visible
+		media["lf:source_system"]  = source_system
+		media["lf:source_key"]     = source_key
+		media["dc:rights"]         = rights
+		media["dc:type"]           = type
 
 		# Get series
 		if with_series:
@@ -386,44 +400,54 @@ def view_series_media(series_id, media_id=None, lang=None):
 				inner join lf_latest_published_series s
 				on ms.series_id = s.id and ms.series_version = s.version
 				where ms.media_id = x'%s' and visible ''' % media_uuid.hex )
+			series = []
 			for (series_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:series_id", series_id )
+				series.append( series_id )
+			media["lf:series_id"] = series
 
 		# Get contributor (user)
 		if with_contributor:
 			cur.execute( '''select user_id from lf_media_contributor
 				where media_id = x'%s' ''' % media_uuid.hex )
+			contributor = []
 			for (user_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:contributor", user_id )
+				contributor.append( user_id )
+			media["lf:contributor"] = contributor
 
 		# Get creator (user)
 		if with_creator:
 			cur.execute( '''select user_id from lf_media_creator
 				where media_id = x'%s' ''' % media_uuid.hex )
+			creator = []
 			for (user_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:creator", user_id )
+				creator.append( user_id )
+			media["lf:creator"] = creator
 
 		# Get publisher (organization)
 		if with_publisher:
 			cur.execute( '''select organization_id from lf_media_publisher
 				where media_id = x'%s' ''' % media_uuid.hex )
+			organization = []
 			for (organization_id,) in cur.fetchall():
-				xml_add_elem( dom, m, "lf:publisher", organization_id )
+				organization.append( organization_id )
+			media["lf:publisher"] = organization
 
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
 				source, source_key, source_system from lf_prepared_file
 				where media_id = x'%s' ''' % media_uuid.hex )
+			files = []
 			for id, format, uri, src, src_key, src_sys in cur.fetchall():
-				f = dom.createElement("lf:file")
-				xml_add_elem( dom, f, "dc:identifier",    id )
-				xml_add_elem( dom, f, "dc:format",        format )
-				xml_add_elem( dom, f, "lf:uri",           uri )
-				xml_add_elem( dom, f, "lf:source",        src )
-				xml_add_elem( dom, f, "lf:source_key",    src_key )
-				xml_add_elem( dom, f, "lf:source_system", src_sys )
-				m.appendChild(f)
+				f = {}
+				f["dc:identifier"]    = id
+				f["dc:format"]        = format
+				f["lf:uri"]           = uri
+				f["lf:source"]        = src
+				f["lf:source_key"]    = src_key
+				f["lf:source_system"] = src_sys
+				files.append( f )
+			media["lf:file"] = files
 
 		# Get subjects
 		if with_subject:
@@ -431,15 +455,18 @@ def view_series_media(series_id, media_id=None, lang=None):
 					join lf_subject s on s.id = ms.subject_id 
 					where s.language = "%s" 
 					and ms.media_id = x'%s' ''' % (language, media_uuid.hex) )
-			for (subject,) in cur.fetchall():
-				xml_add_elem( dom, m, "dc:subject", subject )
+			subject = []
+			for (subject_name,) in cur.fetchall():
+				subject.append( subject_name )
+			media["dc:subject"] = subject
 
+		result.append( media )
 
-		dom.childNodes[0].appendChild(m)
-
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = {'lf:media' : result}
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -555,52 +582,57 @@ def view_series(series_id=None, lang=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each media we get
 	for id, version, parent_version, title, language, description, source, \
 			timestamp_edit, timestamp_created, published, owner, editor, \
 			visible, source_key, source_system in cur.fetchall():
 		series_uuid = uuid.UUID(bytes=id)
-		s = dom.createElement('lf:series')
-		xml_add_elem( dom, s, "dc:identifier",     str(series_uuid) )
-		xml_add_elem( dom, s, "lf:version",        version )
-		xml_add_elem( dom, s, "lf:parent_version", parent_version )
-		xml_add_elem( dom, s, "dc:title",          title )
-		xml_add_elem( dom, s, "dc:language",       language )
-		xml_add_elem( dom, s, "dc:description",    description )
-		xml_add_elem( dom, s, "dc:source",         source )
-		xml_add_elem( dom, s, "lf:last_edit",      timestamp_edit )
-		xml_add_elem( dom, s, "dc:date",           timestamp_created )
-		xml_add_elem( dom, s, "lf:published",      published )
-		xml_add_elem( dom, s, "lf:owner",          owner )
-		xml_add_elem( dom, s, "lf:editor",         editor )
-		xml_add_elem( dom, s, "lf:visible",        visible )
-		xml_add_elem( dom, s, "lf:source_key",     source_key )
-		xml_add_elem( dom, s, "lf:source_system",  source_system )
-		dom.childNodes[0].appendChild(s)
+		series = {}
+		series["dc:identifier"]     = str(series_uuid)
+		series["lf:version"]        = version
+		series["lf:parent_version"] = parent_version
+		series["dc:title"]          = title
+		series["dc:language"]       = language
+		series["dc:description"]    = description
+		series["dc:source"]         = source
+		series["lf:last_edit"]      = str(timestamp_edit)
+		series["dc:date"]           = str(timestamp_created)
+		series["lf:published"]      = published
+		series["lf:owner"]          = owner
+		series["lf:editor"]         = editor
+		series["lf:visible"]        = visible
+		series["lf:source_key"]     = source_key
+		series["lf:source_system"]  = source_system
 
 		# Get media
 		if with_media:
 			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
 				where series_id = x'%s'
 				and series_version = %s''' % ( series_uuid.hex, version ) )
+			media = []
 			for (media_id,) in cur.fetchall():
-				xml_add_elem( dom, s, "lf:media_id", media_id )
+				media.append( media_id )
+			series['lf:media_id'] = media
 
 		# Get creator (user)
 		if with_creator:
+			creator = []
 			cur.execute( '''select user_id from lf_series_creator
 				where series_id = x'%s' ''' % series_uuid.hex )
 			for (user_id,) in cur.fetchall():
-				xml_add_elem( dom, s, "lf:creator", user_id )
+				creator.append( user_id )
+			series['lf:creator'] = creator
 
 		# Get publisher (organization)
 		if with_publisher:
 			cur.execute( '''select organization_id from lf_series_publisher
 				where series_id = x'%s' ''' % series_uuid.hex )
+			publisher = []
 			for (organization_id,) in cur.fetchall():
-				xml_add_elem( dom, s, "lf:publisher", organization_id )
+				publisher.append( organization_id )
+			series["lf:publisher"] = publisher
 
 		# Get subjects
 		if with_subject:
@@ -608,12 +640,18 @@ def view_series(series_id=None, lang=None):
 					join lf_subject s on s.id = ms.subject_id 
 					where s.language = "%s" 
 					and ms.series_id = x'%s' ''' % (language, series_uuid.hex) )
-			for (subject,) in cur.fetchall():
-				xml_add_elem( dom, s, "dc:subject", subject )
+			subject = []
+			for (subject_name,) in cur.fetchall():
+				subject.append( subject_name )
+			series["dc:subject"] = subject
+		result.append( series )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:series' : result }
+	print( result )
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -688,19 +726,21 @@ def view_subject(subject_id=None, lang=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each media we get
 	for id, name, language in cur.fetchall():
-		s = dom.createElement('lf:subject')
-		xml_add_elem( dom, s, "lf:id",       id )
-		xml_add_elem( dom, s, "lf:name",     name )
-		xml_add_elem( dom, s, "dc:language", language )
-		dom.childNodes[0].appendChild(s)
+		subject = {}
+		subject["lf:id"]       = id
+		subject["lf:name"]     = name
+		subject["dc:language"] = language
+		result.append( subject )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:subject' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -791,24 +831,26 @@ def view_file(file_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each file we get
 	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
 		file_uuid = uuid.UUID(bytes=id)
-		f = dom.createElement("lf:file")
-		xml_add_elem( dom, f, "dc:identifier",    str(file_uuid) )
-		xml_add_elem( dom, f, "dc:format",        format )
-		xml_add_elem( dom, f, "lf:uri",           uri )
-		xml_add_elem( dom, f, "lf:media_id",      media_id )
-		xml_add_elem( dom, f, "lf:source",        src )
-		xml_add_elem( dom, f, "lf:source_key",    src_key )
-		xml_add_elem( dom, f, "lf:source_system", src_sys )
-		dom.childNodes[0].appendChild(f)
+		file = {}
+		file["dc:identifier"]    = str(file_uuid)
+		file["dc:format"]        = format
+		file["lf:uri"]           = uri
+		file["lf:media_id"]      = media_id
+		file["lf:source"]        = src
+		file["lf:source_key"]    = src_key
+		file["lf:source_system"] = src_sys
+		result.append( file )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:file' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 @app.route('/view/organization/')
@@ -865,20 +907,23 @@ def view_organization(organization_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
+	result = []
 
 	# For each file we get
 	for id, name, vcard_uri, parent_organization in cur.fetchall():
-		o = dom.createElement("lf:organization")
-		xml_add_elem( dom, o, "dc:identifier",             id )
-		xml_add_elem( dom, o, "lf:name",                   name )
-		xml_add_elem( dom, o, "lf:parent_organization_id", parent_organization )
-		xml_add_elem( dom, o, "lf:vcard_uri",              vcard_uri )
-		dom.childNodes[0].appendChild(o)
+		org = {}
+		org['dc:identifier']             = id
+		org['lf:name']                   = name
+		org['lf:parent_organization_id'] = parent_organization
+		org['vcard_uri']                 = vcard_uri
+		result.append( org )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:organization' : result }
+
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -943,18 +988,21 @@ def view_group(group_id=None):
 
 	# Get data
 	cur.execute( query )
-	dom = result_dom( result_count )
 
+	result = []
 	# For each file we get
 	for id, name in cur.fetchall():
-		g = dom.createElement("lf:group")
-		xml_add_elem( dom, g, "dc:identifier", id )
-		xml_add_elem( dom, g, "lf:name",       name )
-		dom.childNodes[0].appendChild(g)
+		group = {}
+		group['dc:identifier'] = id
+		group['lf:name']       = name
+		result.append( group )
 
-	response = make_response(dom.toxml())
-	response.mimetype = 'application/xml'
-	return response
+	result = { 'lf:group' : result }
+
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
 
 
 
@@ -1063,8 +1111,7 @@ def view_user(user_id=None):
 		result.append( user )
 
 	result = { 'lf:user' : result }
-
 	if request.accept_mimetypes.best_match(
 			['application/xml', 'application/json']) == 'application/json':
-		return jsonify(result=result)
-	return xmlify(result=result)
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
