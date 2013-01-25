@@ -647,7 +647,6 @@ def view_series(series_id=None, lang=None):
 		result.append( series )
 
 	result = { 'lf:series' : result }
-	print( result )
 	if request.accept_mimetypes.best_match(
 			['application/xml', 'application/json']) == 'application/json':
 		return jsonify(result=result, resultcount=result_count)
