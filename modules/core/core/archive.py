@@ -46,6 +46,8 @@ def archive_media(media_id=None, version=None, lang=None):
 	with_subject     -- Also return all subjects (default: enabled)
 	limit            -- Maximum amount of results to return (default: 10)
 	offset           -- Offset of results to return (default: 0)
+	order            -- Order results by field (ascending)
+	rorder           -- Order results by field (descending)
 	'''
 
 	user = None
@@ -90,6 +92,8 @@ def archive_media(media_id=None, version=None, lang=None):
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	# Request data
 	db = get_db()
@@ -118,6 +122,18 @@ def archive_media(media_id=None, version=None, lang=None):
 				'm.language = "%s" ' % lang
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -259,6 +275,8 @@ def archive_series(series_id=None, version=None, lang=None):
 	with_subject     -- Also return all subjects (default: enabled)
 	limit            -- Maximum amount of results to return (default: 10)
 	offset           -- Offset of results to return (default: 0)
+	order            -- Order results by field (ascending)
+	rorder           -- Order results by field (descending)
 	'''
 
 	user = None
@@ -301,6 +319,8 @@ def archive_series(series_id=None, version=None, lang=None):
 	with_subject     = is_true(request.args.get('with_subject',     '1'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -325,6 +345,18 @@ def archive_series(series_id=None, version=None, lang=None):
 				's.language = "%s" ' % lang
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
