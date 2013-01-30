@@ -536,6 +536,22 @@ def view_series(series_id=None, lang=None):
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'  : ('uuid','s.id'),
+					'version'     : ('int','s.version'),
+					'description' : ('str','s.description'),
+					'title'       : ('str','s.title'),
+					'date'        : ('time','s.timestamp_created'),
+					'last_edit'   : ('time','s.timestamp_edit')}
+			query_condition += 'and (%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	db = get_db()
 	cur = db.cursor()
@@ -543,8 +559,8 @@ def view_series(series_id=None, lang=None):
 			s.language, s.description, s.source, s.timestamp_edit,
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
 			s.source_key, s.source_system 
-			from lf_published_series s '''
-	count_query = '''select count(s.id) from lf_published_series s '''
+			from lf_latest_published_series s '''
+	count_query = '''select count(s.id) from lf_latest_published_series s '''
 	if series_id:
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				"s.id = x'%s' " % series_id.hex

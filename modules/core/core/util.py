@@ -16,6 +16,7 @@ from string import hexdigits, letters, digits
 from xml.dom.minidom import parseString
 import re
 from flask import request, make_response
+import uuid
 
 '''All characters allowed for language tags.'''
 lang_chars = letters + digits + '-_'
@@ -128,6 +129,65 @@ def to_int( s, default=0 ):
 		return int(s)
 	except ValueError:
 		return default
+
+
+
+def sql_escape( s ):
+	return ''.join([ '\\'+c if c in '\\"' else c for c in s ])
+
+
+
+def search_query( query, allowed ):
+	return 'or '.join([ 
+		'and '.join([ search_op(allowed, *y.split(':',2)) \
+				for y in x.split(',')]) \
+				for x in query.split(';') ])
+
+
+
+def search_op( allowed, op, key, val ):
+	
+	if not key in allowed.keys():
+		raise ValueError('Illegal identifier for search argument')
+
+	type,key = allowed[key]
+	
+	if type == 'uuid':
+		if op == 'eq':
+			return "%s = x'%s' " % (key, uuid.UUID(val).hex)
+		if op == 'neq':
+			return "%s != x'%s' " % (key, uuid.UUID(val).hex)
+
+	elif type == 'int':
+		if op == 'eq':
+			return '%s = %i ' % (key, int(val))
+		if op == 'neq':
+			return '%s != %i ' % (key, int(val))
+		if op == 'lt':
+			return '%s < %i ' % (key, int(val))
+		if op == 'gt':
+			return '%s > %i ' % (key, int(val))
+		if op == 'leq':
+			return '%s <= %i ' % (key, int(val))
+		if op == 'geq':
+			return '%s >= %i ' % (key, int(val))
+
+	elif type == 'str':
+		val = sql_escape(val)
+		if op == 'eq':
+			return '%s = "%s" ' % (key, val)
+		if op == 'neq':
+			return '%s != "%s" ' % (key, val)
+		if op == 'in':
+			return '%s like "%%%s%%" ' % (key, val)
+		if op == 'startswith':
+			return '%s like "%s%%" ' % (key, val)
+		if op == 'endswith':
+			return '%s like "%%%s" ' % (key, val)
+
+	raise ValueError('Illegal search operator')
+
+	return '-'
 
 
 
