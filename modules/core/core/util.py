@@ -22,8 +22,9 @@ import uuid
 lang_chars = letters + digits + '-_'
 
 '''Simple regular expression to match IETF language tags.'''
-lang_regex_str = '(?:[a-zA-Z]{2,3}([-_][a-zA-Z\d]{1,8})*)'
-lang_regex     = re.compile(lang_regex_str)
+lang_regex_str  = '(?:[a-zA-Z]{2,3}([-_][a-zA-Z\d]{1,8})*)'
+lang_regex      = re.compile(lang_regex_str)
+lang_regex_full = re.compile('^'+lang_regex_str+'$')
 
 '''All characters allowed for usernames.'''
 username_chars = lang_chars
@@ -184,6 +185,44 @@ def search_op( allowed, op, key, val ):
 			return '%s like "%s%%" ' % (key, val)
 		if op == 'endswith':
 			return '%s like "%%%s" ' % (key, val)
+
+	elif type == 'time':
+		import datetime
+		try:
+			# Assume ISO datetime format (YYYY-MM-DD HH:MM:SS)
+			datetime.datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
+		except ValueError:
+			import email.utils
+			# Check RFC2822 datetime format instead
+			# (Do not use , for separating weekday and month!)
+			val = datetime.datetime.fromtimestamp(
+					email.utils.mktime_tz(email.utils.parsedate_tz(val))
+					).strftime("%Y-%m-%d %H:%M:%S")
+		if op == 'eq':
+			return '%s = "%s" ' % (key, val)
+		if op == 'neq':
+			return '%s != "%s" ' % (key, val)
+		if op == 'lt':
+			return '%s < "%s" ' % (key, val)
+		if op == 'gt':
+			return '%s > "%s" ' % (key, val)
+		if op == 'leq':
+			return '%s <= "%s" ' % (key, val)
+		if op == 'geq':
+			return '%s >= "%s" ' % (key, val)
+	
+	elif type == 'lang':
+		if not lang_regex_full.match(val):
+			raise ValueError('Invalid language tag')
+		if op == 'eq':
+			return '%s = "%s" ' % (key, val)
+		if op == 'neq':
+			return '%s != "%s" ' % (key, val)
+		if op == 'in':
+			return '%s like "%%%s%%" ' % (key, val)
+		if op == 'startswith':
+			return '%s like "%s%%" ' % (key, val)
+
 
 	raise ValueError('Illegal search operator')
 

@@ -45,6 +45,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 	offset           -- Offset of results to return (default: 0)
 	order            -- Order results by field (ascending)
 	rorder           -- Order results by field (descending)
+	q                -- Search/filter query
 	'''
 
 	user = None
@@ -92,6 +93,23 @@ def view_media(media_id=None, lang=None, series_id=None):
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'  : ('uuid','m.id'),
+					'version'     : ('int','m.version'),
+					'description' : ('str','m.description'),
+					'title'       : ('str','m.title'),
+					'date'        : ('time','m.timestamp_created'),
+					'last_edit'   : ('time','m.timestamp_edit'),
+					'lang'        : ('lang','m.language')}
+			query_condition += 'and (%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	# Request data
 	db = get_db()
@@ -270,6 +288,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 	offset           -- Offset of results to return (default: 0)
 	order            -- Order results by field (ascending)
 	rorder           -- Order results by field (descending)
+	q                -- Search/filter query
 	'''
 
 	user = None
@@ -315,6 +334,23 @@ def view_series_media(series_id, media_id=None, lang=None):
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'  : ('uuid','m.id'),
+					'version'     : ('int','m.version'),
+					'description' : ('str','m.description'),
+					'title'       : ('str','m.title'),
+					'date'        : ('time','m.timestamp_created'),
+					'last_edit'   : ('time','m.timestamp_edit'),
+					'lang'        : ('lang','m.language')}
+			query_condition += 'and (%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	# Request data
 	db = get_db()
@@ -492,6 +528,7 @@ def view_series(series_id=None, lang=None):
 	offset           -- Offset of results to return (default: 0)
 	order            -- Order results by field (ascending)
 	rorder           -- Order results by field (descending)
+	q                -- Search/filter query
 	'''
 
 	user = None
@@ -546,7 +583,8 @@ def view_series(series_id=None, lang=None):
 					'description' : ('str','s.description'),
 					'title'       : ('str','s.title'),
 					'date'        : ('time','s.timestamp_created'),
-					'last_edit'   : ('time','s.timestamp_edit')}
+					'last_edit'   : ('time','s.timestamp_edit'),
+					'lang'        : ('lang','s.language')}
 			query_condition += 'and (%s) ' % search_query( search, allowed )
 		except ValueError as e:
 			return e.message, 400
@@ -686,11 +724,13 @@ def view_subject(subject_id=None, lang=None):
 	offset -- Offset for results to return (default: 0)
 	order            -- Order results by field (ascending)
 	rorder           -- Order results by field (descending)
+	q                -- Search/filter query
 	'''
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -713,6 +753,19 @@ def view_subject(subject_id=None, lang=None):
 		query_condition += ( 'and language = "%s" ' \
 				if 'where id' in query \
 				else 'where language = "%s" ' ) % lang
+	
+	if search:
+		try:
+			allowed = {
+					'id'        : ('int','id'),
+					'name'      : ('str','name'),
+					'lang'      : ('lang','language')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 	query += query_condition
 	count_query += query_condition
 
@@ -774,6 +827,7 @@ def view_file(file_id=None):
 	offset  -- Offset of results to return (default: 0)
 	order   -- Order results by field (ascending)
 	rorder  -- Order results by field (descending)
+	q       -- Search/filter query
 	'''
 
 	user = None
@@ -810,6 +864,7 @@ def view_file(file_id=None):
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -817,7 +872,26 @@ def view_file(file_id=None):
 				f.source, f.source_key, f.source_system from lf_prepared_file f '''
 	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
-		query_condition += "where f.id = x'%s' " % file_id.hex
+		query_condition += ('and ' if query_condition else 'where ') + \
+				"f.id = x'%s' " % file_id.hex
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'    : ('uuid','f.id'),
+					'media_id'      : ('uuid','f.media_id'),
+					'format'        : ('str','f.format'),
+					'uri'           : ('str','f.uri'),
+					'source'        : ('str','f.source'),
+					'source_key'    : ('str','f.source_key'),
+					'source_system' : ('str','f.source_system')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
 	query += query_condition
 	count_query += query_condition
 
@@ -882,25 +956,42 @@ def view_organization(organization_id=None):
 	offset -- Offset of results to return (default: 0)
 	order  -- Order results by field (ascending)
 	rorder -- Order results by field (descending)
+	q      -- Search/filter query
 	'''
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name, vcard_uri, parent_organization 
 			from lf_organization '''
 	count_query = '''select count(id) from lf_organization '''
+	query_condition = ''
 	if organization_id != None:
 		# abort with 400 Bad Request if organization_id is not valid
 		try:
-			query += 'where id = %s ' % int(organization_id)
-			count_query += 'where id = %s ' % int(organization_id)
+			query_condition += 'where id = %s ' % int(organization_id)
 		except ValueError:
 			return 'Invalid organization_id', 400
+	
+	if search:
+		try:
+			allowed = {
+					'id'   : ('int','id'),
+					'name' : ('str','name')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
+	query += query_condition
+	count_query += query_condition
 
 	# Sort by column
 	order_opts = ['id', 'name']
@@ -957,6 +1048,7 @@ def view_group(group_id=None):
 	offset -- Offset of results to return (default: 0)
 	order  -- Order results by field (ascending)
 	rorder -- Order results by field (descending)
+	q      -- Search/filter query
 	'''
 
 	# Check for authentication as admin
@@ -970,18 +1062,34 @@ def view_group(group_id=None):
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name from lf_group '''
 	count_query = 'select count(id) from lf_group '
+	query_condition = ''
 	if group_id != None:
 		# abort with 400 Bad Request if id is not valid
 		try:
-			query += 'where id = %s ' % int(group_id)
-			count_query += 'where id = %s ' % int(group_id)
+			query_condition += 'where id = %s ' % int(group_id)
 		except ValueError:
 			return 'Invalid group_id', 400
+	
+	if search:
+		try:
+			allowed = {
+					'id'   : ('int','id'),
+					'name' : ('str','name')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
+	query += query_condition
+	count_query += query_condition
 
 	# Sort by column
 	order_opts = ['id', 'name']
@@ -1035,6 +1143,7 @@ def view_user(user_id=None):
 	offset -- Offset of results to return (default: 0)
 	order  -- Order results by field (ascending)
 	rorder -- Order results by field (descending)
+	q      -- Search/filter query
 	'''
 
 	user = None
@@ -1062,6 +1171,21 @@ def view_user(user_id=None):
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'id'       : ('int','u.id'),
+					'realname' : ('str','u.realname'),
+					'email'    : ('str','u.email'),
+					'name'     : ('str','u.name')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	db = get_db()
 	cur = db.cursor()
