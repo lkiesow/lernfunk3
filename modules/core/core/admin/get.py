@@ -425,6 +425,68 @@ def admin_series(series_id=None, lang=None):
 
 
 
+@app.route('/admin/server/')
+@app.route('/admin/server/<server_id>')
+def admin_server(server_id=None):
+	'''This method provides access to all server in the Lernfunk database.
+	
+	KeyError argument:
+	server_id -- Id of a specific server
+
+	GET parameter:
+	limit            -- Maximum amount of results to return (default: 10)
+	offset           -- Offset for results to return (default: 0)
+	'''
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	# Check for authentication as admin.
+	# Neither normal user nor editors have access to server.
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Authentication as admin failed', 403
+	except KeyError as e:
+		return str(e), 401
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, format, uri_pattern from lf_server '''
+	count_query = '''select count(id) from lf_server '''
+	query_condition = ''
+	if server_id:
+		query_condition += 'where id = %s ' % sql_escape(server_id)
+
+	query += query_condition
+	count_query += query_condition
+	
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	result = []
+
+	# For each media we get
+	for id, format, uri_pattern in cur.fetchall():
+		server = {}
+		server["lf:id"]          = id
+		server["lf:format"]      = format
+		server["lf:uri_pattern"] = uri_pattern
+		result.append( server )
+
+	result = { 'lf:server' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
+
+
+
 @app.route('/admin/subject/')
 @app.route('/admin/subject/<int:subject_id>')
 @app.route('/admin/subject/<lang:lang>')
