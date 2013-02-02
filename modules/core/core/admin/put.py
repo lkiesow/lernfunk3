@@ -164,22 +164,6 @@ def admin_server_delete(server_id=None, format=None):
 
 	'''
 
-	if request.content_length > app.config['PUT_LIMIT']:
-		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
-				(request.content_length, app.config['PUT_LIMIT']), 400
-
-	if request.content_type == 'application/x-www-form-urlencoded':
-		data = request.form['data']
-		type = request.form['type']
-	elif request.content_type in ['application/xml', 'application/json']:
-		data = request.data
-		type = request.content_type
-
-	if type == 'application/xml':
-		data = parseString(data)
-	elif type == 'application/json':
-		data = json.loads(data)
-	return ''
 	# Check authentication. 
 	# _Only_ admins are allowed to delete data. Other users may be able 
 	# to hide data but they can never delete data.
@@ -188,45 +172,83 @@ def admin_server_delete(server_id=None, format=None):
 			return 'Only admins are allowed to delete data', 401
 	except KeyError as e:
 		return str(e), 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type == 'application/x-www-form-urlencoded':
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+
+	# RegExp to check data with:
+	idcheck  = re.compile('^[\w\-_\.:]+$')
+	fmtcheck = re.compile('^[\w\-\.\/]+$')
+
+	sqldata = []
+	if type == 'application/xml':
+		data = parseString(data)
+		try:
+			for server in data.getElementsByTagName( 'lf:server' ):
+				id = server.getElementsByTagName('lf:id')[0].childNodes[0].data
+				if not idcheck.match(id):
+					return 'Bad identifier for server: %s' % id, 400
+				fmt = server.getElementsByTagName('lf:format')[0].childNodes[0].data
+				if not fmtcheck.match(fmt):
+					return 'Bad format for server: %s' % fmt, 400
+				uri_pattern = server.getElementsByTagName('lf:uri_pattern')[0]\
+						.childNodes[0].data
+				sqldata.append( ( id, fmt, uri_pattern ) )
+		except AttributeError and IndexError:
+			return 'Invalid server data', 400
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new server data
+		try:
+			data = data['lf:server']
+		except KeyError:
+			# Assume that there is only one server
+			data = [data]
+		for server in data:
+			try:
+				id = server['lf:id']
+				if not idcheck.match(id):
+					return 'Bad identifier for server: %s' % id, 400
+				fmt = server['lf:format']
+				if not fmtcheck.match(fmt):
+					return 'Bad format for server: %s' % fmt, 400
+				sqldata.append( ( id, fmt, sql_escape(server['lf:uri_pattern']) ) )
+			except KeyError:
+				return 'Invalid server data', 400
 	
 	# Request data
 	db = get_db()
 	cur = db.cursor()
 
-	query = '''delete from lf_server '''
-	if server_id:
-		# Abort with 400 Bad Request if id may be harmful (SQL injection):
-		for c in server_id:
-			if not c in servername_chars:
-				return 'Invalid server_id', 400
-		query += 'where id = "%s" ' % server_id
-
-		# Check for format
-		if format:
-			# Check for harmful (SQL injection) characters in 
-			# format (delimeter, quotation marks
-			for c in ';"\'`':
-				if c in format:
-					return 'Invalid format', 400
-			query += 'and format = "%s" ' % format
-
-	if app.debug:
-		print('### Query ######################')
-		print( query )
-		print('################################')
-
-	# Get data
 	affected_rows = 0
 	try:
-		affected_rows = cur.execute( query )
+		affected_rows = cur.executemany('''insert into lf_server 
+			(id, format, uri_pattern) values (%s, %s, %s) 
+			on duplicate key update uri_pattern=values(uri_pattern)''', sqldata )
 	except IntegrityError as e:
 		return str(e), 409
 	db.commit()
 
-	if not affected_rows:
-		return '', 410
-
-	return '', 204
+	if affected_rows:
+		return '', 201
+	return '', 200
 
 
 
