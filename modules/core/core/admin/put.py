@@ -150,17 +150,48 @@ from flask import request, session, g, redirect, url_for
 
 
 
-@app.route('/admin/server/',                     methods=['PUT'])
-@app.route('/admin/server/<server_id>/',         methods=['PUT'])
-def admin_server_delete(server_id=None, format=None):
-	'''This method provides you with the functionality to delete server.
-	Only administrators are allowed to delete data.
+@app.route('/admin/server/', methods=['PUT'])
+def admin_server_put():
+	'''This method provides you with the functionality to set server data. It
+	will create a new dataset or replace an old one if one with the given
+	identifier/format already exists.
+	Only administrators are allowed to add/modify server data.
 
-	Keyword arguments:
-	server_id -- Id of a specific server.
-	format    -- Format for a specific URI pattern.
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:server": [
+			{
+				"lf:format": "video/mpeg", 
+				"lf:id": "myserver", 
+				"lf:uri_pattern": "http://myserver.com/{source_key}.mpg"
+			}, 
+			{ ... }
+		]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	PUT parameters:
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+			xmlns:lf="http://lernfunk.de/terms">
+		<lf:server>
+			<lf:format>video/mpeg</lf:format>
+			<lf:id>myserver</lf:id>
+			<lf:uri_pattern>http://myserver.com/{source_key}.mpg</lf:uri_pattern>
+		</lf:server>
+		...
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
 
 	'''
 
@@ -180,7 +211,7 @@ def admin_server_delete(server_id=None, format=None):
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type == 'application/x-www-form-urlencoded':
+	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -206,7 +237,7 @@ def admin_server_delete(server_id=None, format=None):
 					return 'Bad format for server: %s' % fmt, 400
 				uri_pattern = server.getElementsByTagName('lf:uri_pattern')[0]\
 						.childNodes[0].data
-				sqldata.append( ( id, fmt, uri_pattern ) )
+				sqldata.append( ( id, fmt, sql_escape(uri_pattern) ) )
 		except AttributeError and IndexError:
 			return 'Invalid server data', 400
 	elif type == 'application/json':
@@ -252,69 +283,145 @@ def admin_server_delete(server_id=None, format=None):
 
 
 
-#@app.route('/admin/subject/',                             methods=['DELETE'])
-#@app.route('/admin/subject/<int:subject_id>',             methods=['DELETE'])
-#@app.route('/admin/subject/<lang:lang>',                  methods=['DELETE'])
-#@app.route('/admin/subject/<int:subject_id>/<lang:lang>', methods=['DELETE'])
-#def admin_subject_delete(subject_id=None, lang=None):
-#	'''This method provides you with the functionality to delete subjects.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	subject_id -- UUID of a specific series.
-#	lang       -- Language filter for the subjects.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	query_condition = ''
-#
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	query = '''delete from lf_subject '''
-#	if subject_id != None:
-#		# abort with 400 Bad Request if subject_id is not a valid uuid or thread it
-#		# as language code if language argument does not exist
-#		try:
-#			query_condition += 'where id = %i ' % int(subject_id)
-#		except ValueError:
-#			return 'Invalid subject_id', 400
-#
-#	# Check for language argument
-#	if lang:
-#		query_condition += ( 'and ' if query_condition else 'where ' ) + \
-#				'language = "%s" ' % lang
-#	query += query_condition
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410
-#
-#	return '', 204
-#
-#
-#
+@app.route('/admin/subject/', methods=['PUT'])
+def admin_subject_put():
+	'''This method provides you with the functionality to set subject data. It
+	will create a new dataset or replace an old one if one with the given
+	identifier already exists.
+	Only administrators and editors are allowed to add/modify subject data.
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:subject": [
+		{
+			"lf:name": "Computer Science", 
+			"dc:language": "en", 
+			"lf:id": 1
+		}, 
+		{ ... }
+		]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
+		<lf:subject>
+			<lf:name>Computer Science</lf:name>
+			<dc:language>en</dc:language>
+			<lf:id>1</lf:id>
+		</lf:subject>
+		...
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	The id can be ommittet. In that case a new id is generated automatically.
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	# Check authentication. 
+	# _Only_ admins and editors are allowed to create/modify subjects.
+	try:
+		if not get_authorization( request.authorization ).is_editor():
+			return 'Only admins and editors are allowed to create/modify subjects', 401
+	except KeyError as e:
+		return str(e), 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+
+	# RegExp to check data with:
+	fmtcheck = re.compile('^[\w\-\.\/]+$')
+
+	sqldata = []
+	if type == 'application/xml':
+		data = parseString(data)
+		try:
+			for subject in data.getElementsByTagName( 'lf:subject' ):
+				try:
+					id = int(subject.getElementsByTagName('lf:id')[0].childNodes[0].data)
+				except AttributeError:
+					id = None
+				except ValueError:
+					return 'Bad identifier for subject: %s' % id, 400
+				lang = subject.getElementsByTagName('dc:language')[0].childNodes[0].data
+				if not lang_regex_full.match(lang):
+					return 'Bad language tag: %s' % lang, 400
+				name = subject.getElementsByTagName('lf:name')[0].childNodes[0].data
+				sqldata.append( ( id, lang, sql_escape(name) ) )
+		except AttributeError and IndexError:
+			return 'Invalid subject data', 400
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new subject data
+		try:
+			data = data['lf:subject']
+		except KeyError:
+			# Assume that there is only one subject dataset
+			data = [data]
+		for subject in data:
+			try:
+				try:
+					id = subject['lf:id']
+				except KeyError:
+					id = None
+				except ValueError:
+					return 'Bad identifier for subject: %s' % id, 400
+				lang = subject['dc:language']
+				if not lang_regex_full.match(lang):
+					return 'Bad language tag: %s' % fmt, 400
+				sqldata.append( ( id, lang, sql_escape(subject['lf:name']) ) )
+			except KeyError:
+				return 'Invalid subject data', 400
+	
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	affected_rows = 0
+	try:
+		affected_rows = cur.executemany('''insert into lf_subject
+			(id, language, name) values (%s, %s, %s) 
+			on duplicate key update 
+			language=values(language), name=values(name) ''', sqldata )
+	except IntegrityError as e:
+		return str(e), 409
+	db.commit()
+
+	if affected_rows:
+		return '', 201
+	return '', 200
+
+
+
 #@app.route('/admin/file/',               methods=['DELETE'])
 #@app.route('/admin/file/<uuid:file_id>', methods=['DELETE'])
 #def admin_file_delete(file_id=None):
