@@ -454,7 +454,7 @@ def admin_server(server_id=None):
 	count_query = '''select count(id) from lf_server '''
 	query_condition = ''
 	if server_id:
-		query_condition += 'where id = %s ' % sql_escape(server_id)
+		query_condition += 'where id = "%s" ' % db.escape_string(server_id)
 
 	query += query_condition
 	count_query += query_condition

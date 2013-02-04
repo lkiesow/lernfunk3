@@ -12,6 +12,7 @@
 """
 
 from core import app
+from core.db import get_db
 from string import hexdigits, letters, digits
 from xml.dom.minidom import parseString
 import re
@@ -133,11 +134,6 @@ def to_int( s, default=0 ):
 
 
 
-def sql_escape( s ):
-	return ''.join([ '\\'+c if c in '\\"' else c for c in s ])
-
-
-
 def search_query( query, allowed ):
 	return 'or '.join([ 
 		'and '.join([ search_op(allowed, *y.split(':',2)) \
@@ -174,7 +170,7 @@ def search_op( allowed, op, key, val ):
 			return '%s >= %i ' % (key, int(val))
 
 	elif type == 'str':
-		val = sql_escape(val)
+		val = get_db().escape_string(val)
 		if op == 'eq':
 			return '%s = "%s" ' % (key, val)
 		if op == 'neq':
