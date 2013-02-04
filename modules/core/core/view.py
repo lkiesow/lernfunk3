@@ -868,7 +868,7 @@ def view_file(file_id=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select f.id, f.format, f.uri, bin2uuid(f.media_id),
+	query = '''select f.id, f.format, f.type, f.quality, f.uri, bin2uuid(f.media_id),
 				f.source, f.source_key, f.source_system from lf_prepared_file f '''
 	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
@@ -881,6 +881,8 @@ def view_file(file_id=None):
 					'identifier'    : ('uuid','f.id'),
 					'media_id'      : ('uuid','f.media_id'),
 					'format'        : ('str','f.format'),
+					'type'          : ('str','f.type'),
+					'quality'       : ('str','f.quality'),
 					'uri'           : ('str','f.uri'),
 					'source'        : ('str','f.source'),
 					'source_key'    : ('str','f.source_key'),
@@ -923,11 +925,13 @@ def view_file(file_id=None):
 	result = []
 
 	# For each file we get
-	for id, format, uri, media_id, src, src_key, src_sys in cur.fetchall():
+	for id, format, type, quality, uri, media_id, src, src_key, src_sys in cur.fetchall():
 		file_uuid = uuid.UUID(bytes=id)
 		file = {}
 		file["dc:identifier"]    = str(file_uuid)
 		file["dc:format"]        = format
+		file["lf:type"]          = type
+		file["lf:quality"]       = quality
 		file["lf:uri"]           = uri
 		file["lf:media_id"]      = media_id
 		file["lf:source"]        = src
