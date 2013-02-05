@@ -367,7 +367,7 @@ def admin_subject_put():
 				except AttributeError:
 					id = None
 				except ValueError:
-					return 'Bad identifier for subject: %s' % id, 400
+					return 'Bad identifier for subject', 400
 				lang = subject.getElementsByTagName('dc:language')[0].childNodes[0].data
 				if not lang_regex_full.match(lang):
 					return 'Bad language tag: %s' % lang, 400
@@ -394,7 +394,7 @@ def admin_subject_put():
 				except KeyError:
 					id = None
 				except ValueError:
-					return 'Bad identifier for subject: %s' % id, 400
+					return 'Bad identifier for subject', 400
 				lang = subject['dc:language']
 				if not lang_regex_full.match(lang):
 					return 'Bad language tag: %s' % fmt, 400
@@ -455,12 +455,13 @@ def admin_file_put():
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 			xmlns:lf="http://lernfunk.de/terms">
-		<lf:subject>
-			<lf:name>Computer Science</lf:name>
-			<dc:language>en</dc:language>
-			<lf:id>1</lf:id>
-		</lf:subject>
-		...
+		<lf:file>
+			<lf:source_key>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:source_key>
+			<dc:identifier>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</dc:identifier>
+			<dc:format>video/mpeg</dc:format>
+			<lf:media_id>BA8488D1-6ADC-11E2-8B4E-047D7B0F869A</lf:media_id>
+			<lf:server_id>exampleserver<lf:server_id>
+		</lf:file>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	
@@ -501,7 +502,8 @@ def admin_file_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in ['application/x-www-form-urlencoded', 
+			'multipart/form-data']:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -516,24 +518,49 @@ def admin_file_put():
 	sqldata = []
 	if type == 'application/xml':
 		data = parseString(data)
-		return 'Not yet implemented'
-		'''
 		try:
-			for subject in data.getElementsByTagName( 'lf:subject' ):
+			for file in data.getElementsByTagName( 'lf:file' ):
+				d = {}
 				try:
-					id = int(subject.getElementsByTagName('lf:id')[0].childNodes[0].data)
-				except AttributeError:
-					id = None
-				except ValueError:
-					return 'Bad identifier for subject: %s' % id, 400
-				lang = subject.getElementsByTagName('dc:language')[0].childNodes[0].data
-				if not lang_regex_full.match(lang):
-					return 'Bad language tag: %s' % lang, 400
-				name = subject.getElementsByTagName('lf:name')[0].childNodes[0].data
-				sqldata.append( ( id, lang, name ) )
+					d['id'] = uuid.UUID(file.getElementsByTagName('dc:identifier')[0]\
+							.childNodes[0].data).bytes
+				except AttributeError and IndexError:
+					pass
+				d['media_id'] = uuid.UUID(file.getElementsByTagName('lf:media_id')[0]\
+						.childNodes[0].data).bytes
+				d['format'] = file.getElementsByTagName('dc:format')[0].childNodes[0].data
+				try:
+					d['quality'] = file.getElementsByTagName('lf:quality')[0].childNodes[0].data
+				except IndexError:
+					pass
+				try:
+					d['source'] = file.getElementsByTagName('lf:source')[0].childNodes[0].data
+				except IndexError:
+					pass
+				try:
+					d['source_system'] = file.getElementsByTagName('lf:source_system')[0]\
+							.childNodes[0].data
+				except IndexError:
+					pass
+				try:
+					d['source_key'] = file.getElementsByTagName('lf:source_key')[0]\
+							.childNodes[0].data
+				except IndexError:
+					pass
+				try:
+					d['type'] = file.getElementsByTagName('lf:type')[0].childNodes[0].data
+				except IndexError:
+					pass
+				try:
+					d['uri'] = file.getElementsByTagName('lf:uri')[0].childNodes[0].data
+				except IndexError:
+					d['server_id'] = file.getElementsByTagName('lf:server_id')[0].childNodes[0].data
+				sqldata.append( ( d.get('id'), d['media_id'], 
+					d['format'], d.get('type'), d.get('quality'), d.get('server_id'),
+					d.get('uri'), d.get('source'), d.get('source_system'), 
+					d.get('source_key') ) )
 		except AttributeError and IndexError:
 			return 'Invalid subject data', 400
-		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -550,21 +577,30 @@ def admin_file_put():
 			try:
 				d = {}
 				try:
-					d['id'] = uuid.UUID(file['dc:identifier'])
-				except TypeError and KeyError:
+					d['id'] = uuid.UUID(file.get('dc:identifier')).bytes
+				except TypeError:
 					pass
 				except ValueError:
-					return 'Bad identifier for subject: %s' % id, 400
-				d['source'] = file.get('lf:source')
+					return 'Bad identifier', 400
 				try:
-					source_system = file['lf:source_system']
+					d['media_id'] = uuid.UUID(file.get('lf:media_id')).bytes
+				except ValueError:
+					return 'Bad media identifier', 400
+				d['format'] = file['dc:format']
+				d['quality'] = file.get('lf:quality')
+				d['source'] = file.get('lf:source')
+				d['source_key'] = file.get('lf:source_key')
+				d['source_system'] = file.get('lf:source_system')
+				d['type'] = file.get('lf:type')
+				try:
+					d['uri'] = file['lf:uri']
 				except KeyError:
-					source_system = None
+					d['server_id'] = file['lf:server_id']
 
-				lang = subject['dc:language']
-				if not lang_regex_full.match(lang):
-					return 'Bad language tag: %s' % fmt, 400
-				sqldata.append( ( id, lang, subject['lf:name'] ) )
+				sqldata.append( ( d.get('id'), d['media_id'], 
+					d['format'], d['type'], d['quality'], d.get('server_id'),
+					d.get('uri'), d['source'], d['source_system'], 
+					d['source_key'] ) )
 			except KeyError:
 				return 'Invalid subject data', 400
 	
@@ -574,10 +610,15 @@ def admin_file_put():
 
 	affected_rows = 0
 	try:
-		affected_rows = cur.executemany('''insert into lf_subject
-			(id, language, name) values (%s, %s, %s) 
+		affected_rows = cur.executemany('''insert into lf_file
+			(id, media_id, format, type, quality, server_id, uri, source,
+				source_system, source_key) 
+			values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
 			on duplicate key update 
-			language=values(language), name=values(name) ''', sqldata )
+			media_id=values(media_id), format=values(format) , type=values(type),
+			quality=values(quality), server_id=values(server_id), uri=values(uri),
+			source=values(source), source_system=values(source_system),
+			source_key=values(source_key)''', sqldata )
 	except IntegrityError as e:
 		return str(e), 409
 	db.commit()
@@ -588,52 +629,6 @@ def admin_file_put():
 
 
 
-#@app.route('/admin/file/<uuid:file_id>', methods=['DELETE'])
-#def admin_file_delete(file_id=None):
-#	'''This method provides you with the functionality to delete file objects.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	file_id -- UUID of a specific file object.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	query = '''delete from lf_file '''
-#	if file_id:
-#		query += "where id = x'%s' " % file_id.hex
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409 # Constraint failure -> 409 CONFLICT
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410 # No data was deleted -> 410 GONE
-#
-#	return '', 204 # Data deleted -> 204 NO CONTENT
-#
-#
-#
 #@app.route('/admin/organization/',                      methods=['DELETE'])
 #@app.route('/admin/organization/<int:organization_id>', methods=['DELETE'])
 #def admin_organization_delete(organization_id=None):
