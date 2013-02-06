@@ -238,7 +238,7 @@ def admin_server_put():
 				uri_pattern = server.getElementsByTagName('lf:uri_pattern')[0]\
 						.childNodes[0].data
 				sqldata.append( ( id, fmt, uri_pattern ) )
-		except AttributeError and IndexError:
+		except (AttributeError, IndexError):
 			return 'Invalid server data', 400
 	elif type == 'application/json':
 		# Parse JSON
@@ -373,7 +373,7 @@ def admin_subject_put():
 					return 'Bad language tag: %s' % lang, 400
 				name = subject.getElementsByTagName('lf:name')[0].childNodes[0].data
 				sqldata.append( ( id, lang, name ) )
-		except AttributeError and IndexError:
+		except (AttributeError, IndexError):
 			return 'Invalid subject data', 400
 	elif type == 'application/json':
 		# Parse JSON
@@ -524,7 +524,7 @@ def admin_file_put():
 				try:
 					d['id'] = uuid.UUID(file.getElementsByTagName('dc:identifier')[0]\
 							.childNodes[0].data).bytes
-				except AttributeError and IndexError:
+				except (AttributeError, IndexError):
 					pass
 				d['media_id'] = uuid.UUID(file.getElementsByTagName('lf:media_id')[0]\
 						.childNodes[0].data).bytes
@@ -559,7 +559,7 @@ def admin_file_put():
 					d['format'], d.get('type'), d.get('quality'), d.get('server_id'),
 					d.get('uri'), d.get('source'), d.get('source_system'), 
 					d.get('source_key') ) )
-		except AttributeError and IndexError:
+		except (AttributeError, IndexError):
 			return 'Invalid subject data', 400
 	elif type == 'application/json':
 		# Parse JSON
@@ -629,57 +629,144 @@ def admin_file_put():
 
 
 
-#@app.route('/admin/organization/',                      methods=['DELETE'])
-#@app.route('/admin/organization/<int:organization_id>', methods=['DELETE'])
-#def admin_organization_delete(organization_id=None):
-#	'''This method provides you with the functionality to delete organizations.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	organization_id -- Identifier of a specific organization.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	query = '''delete from lf_organization '''
-#	if organization_id != None:
-#		try:
-#			# abort with 400 Bad Request if file_id is not a valid uuid:
-#			query += 'where id = %s ' % int(organization_id)
-#		except ValueError:
-#			return 'Invalid file_id', 400 # 400 BAD REQUEST
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409 # Constraint failure -> 409 CONFLICT
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410 # No data was deleted -> 410 GONE
-#
-#	return '', 204 # Data deleted -> 204 NO CONTENT
-#
-#
-#
+@app.route('/admin/organization/', methods=['PUT'])
+def admin_organization_put():
+	'''This method provides you with the functionality to set organizations. It
+	will create a new dataset or replace an old one if one with the given
+	identifier already exists.
+	Only administrators and editors are allowed to add/modify subject data.
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:organization": [
+		{
+			"lf:name": "Universit\u00e4t Osnabr\u00fcck", 
+			"lf:parent_organization_id": null, 
+			"vcard_uri": null, 
+			"dc:identifier": 1
+		}
+		]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
+		<lf:organization>
+			<lf:name>Universität Osnabrück</lf:name>
+			<dc:identifier>1</dc:identifier>
+		</lf:organization>
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	The id can be ommittet. In that case a new id is generated automatically.
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	# Check authentication. 
+	# _Only_ admins and editors are allowed to create/modify subjects.
+	try:
+		if not get_authorization( request.authorization ).is_editor():
+			return 'Only admins and editors are allowed to create/modify subjects', 401
+	except KeyError as e:
+		return str(e), 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+
+	# RegExp to check data with:
+	fmtcheck = re.compile('^[\w\-\.\/]+$')
+
+	sqldata = []
+	if type == 'application/xml':
+		data = parseString(data)
+		try:
+			for org in data.getElementsByTagName( 'lf:organization' ):
+				try:
+					id = int(org.getElementsByTagName('dc:identifier')[0]\
+							.childNodes[0].data)
+				except IndexError:
+					id = None
+				try:
+					parent_id = int(org.getElementsByTagName('lf:parent_organization_id')[0]\
+							.childNodes[0].data)
+				except IndexError:
+					parent_id = None
+				try:
+					vcard_uri = org.getElementsByTagName('lf:vcard_uri')[0].childNodes[0].data
+				except IndexError:
+					vcard_uri = None
+				name = org.getElementsByTagName('lf:name')[0].childNodes[0].data
+				sqldata.append( ( id, name, vcard_uri, parent_id ) )
+		except (AttributeError, IndexError, ValueError):
+			return 'Invalid subject data', 400
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new subject data
+		try:
+			data = data['lf:organization']
+		except KeyError:
+			# Assume that there is only one subject dataset
+			data = [data]
+		for org in data:
+			try:
+				id = int(org['dc:identifier']) if org.get('dc:identifier') else None
+				parent_id = int(org['lf:parent_organization_id']) \
+						if org.get('lf:parent_organization_id') else None
+				vcard_uri = org.get('lf:vcard_uri')
+				name = org['lf:name']
+				sqldata.append( ( id, name, vcard_uri, parent_id ) )
+			except KeyError:
+				return 'Invalid subject data', 400
+	
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	affected_rows = 0
+	try:
+		affected_rows = cur.executemany('''insert into lf_organization
+			(id, name, vcard_uri, parent_organization) values (%s, %s, %s, %s) 
+			on duplicate key update 
+			name=values(name), vcard_uri=values(vcard_uri), 
+			parent_organization=values(parent_organization) ''', sqldata )
+	except IntegrityError as e:
+		return str(e), 409
+	db.commit()
+
+	if affected_rows:
+		return '', 201
+	return '', 200
+
+
+
 #@app.route('/admin/group/',               methods=['DELETE'])
 #@app.route('/admin/group/<int:group_id>', methods=['DELETE'])
 #def admin_group_delete(group_id=None):
