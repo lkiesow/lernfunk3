@@ -1025,7 +1025,7 @@ def view_organization(organization_id=None):
 		org['dc:identifier']             = id
 		org['lf:name']                   = name
 		org['lf:parent_organization_id'] = parent_organization
-		org['vcard_uri']                 = vcard_uri
+		org['lf:vcard_uri']               = vcard_uri
 		result.append( org )
 
 	result = { 'lf:organization' : result }
