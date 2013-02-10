@@ -898,59 +898,157 @@ def admin_group_put():
 
 
 
-#@app.route('/admin/group/<int:group_id>', methods=['DELETE'])
-#def admin_group_delete(group_id=None):
-#	'''This method provides you with the functionality to delete groups.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	group_id -- Identifier of a specific group.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	# admin and public are special. You cannot delete them.
-#	query = '''delete from lf_group 
-#		where name != 'admin' and name != 'public' '''
-#	if group_id != None:
-#		try:
-#			# abort with 400 Bad Request if id is not valid:
-#			query += 'and id = %s ' % int(group_id)
-#		except ValueError:
-#			return 'Invalid group_id', 400 # 400 BAD REQUEST
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409 # Constraint failure -> 409 CONFLICT
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410 # No data was deleted -> 410 GONE
-#
-#	return '', 204 # Data deleted -> 204 NO CONTENT
-#
-#
-#
-#@app.route('/admin/user/',              methods=['DELETE'])
+@app.route('/admin/user/', methods=['PUT'])
+def admin_user_put():
+	'''This method provides you with the functionality to set user. It
+	will create a new dataset or replace an old one if one with the given
+	identifier already exists.
+	Only administrators are allowed to add/modify any user. Other users may only
+	modify their own data 
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:user": [
+		{
+			"lf:name": "admin", 
+			"lf:access": "administrators only", 
+			"dc:identifier": 1, 
+			"lf:realname": null, 
+			"lf:email": null, 
+			"lf:vcard_uri": null,
+			"lf:passwd": "<secret>"
+		}
+		]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
+		<lf:group>
+			<lf:name>test</lf:name>
+			<dc:identifier>42</dc:identifier>
+		</lf:group>
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	The id can be ommittet. In that case a new id is generated automatically.
+
+	The access data can be given either as integer or as their string
+	representation. The latter is automatically converted to an integer.
+	Possible values for the access field are:
+		1 : 'public'
+		2 : 'login required'
+		3 : 'editors only'
+		4 : 'administrators only'
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	# Check authentication. 
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		return str(e), 401
+
+	# Deny access for public users:
+	if user.name == 'public':
+		return 'You cannot modify your user if you are not logged in', 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+	
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	cur.execute( '''select id, name from lf_group 
+			where name in ("admin", "editor", "public") ''' )
+	restricted_ids = {}
+	for id, name in cur.fetchall():
+		restricted_ids[id] = name
+
+	sqldata = []
+	if type == 'application/xml':
+		return 'Not yet implemented', 400
+		data = parseString(data)
+		try:
+			for group in data.getElementsByTagName( 'lf:groups' ):
+				try:
+					id = int(group.getElementsByTagName('dc:identifier')[0]\
+							.childNodes[0].data)
+				except IndexError:
+					id = None
+				if id in restricted_ids.keys():
+					return 'Cannot modify fixed group "%s"' % restricted_ids[id], 400
+				name = group.getElementsByTagName('lf:name')[0].childNodes[0].data
+				if name in ['admin', 'editor', 'public']:
+					return 'Cannot create fixed group "%s"' % name, 400
+				sqldata.append( ( id, name ) )
+		except (AttributeError, IndexError, ValueError):
+			return 'Invalid group data', 400
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new data
+		try:
+			data = data['lf:user']
+		except KeyError:
+			# Assume that there is only one dataset
+			data = [data]
+		for group in data:
+			try:
+				id = int(group['dc:identifier']) if group.get('dc:identifier') else None
+				if id in restricted_ids.keys():
+					return 'Cannot modify fixed group "%s"' % restricted_ids[id], 400
+				name = group['lf:name']
+				if name in ['admin', 'editor', 'public']:
+					return 'Cannot create fixed group "%s"' % name, 400
+				sqldata.append( ( id, name ) )
+			except KeyError:
+				return 'Invalid group data', 400
+
+	affected_rows = 0
+	try:
+		affected_rows = cur.executemany('''insert into lf_group
+			(id, name) values (%s, %s) 
+			on duplicate key update name=values(name) ''', sqldata )
+	except IntegrityError as e:
+		return str(e), 409
+	db.commit()
+
+	if affected_rows:
+		return '', 201
+	return '', 200
+
+
+
 #@app.route('/admin/user/<int:user_id>', methods=['DELETE'])
 #@app.route('/admin/user/<user:name>',   methods=['DELETE'])
 #def admin_user_delete(user_id=None, name=None):
