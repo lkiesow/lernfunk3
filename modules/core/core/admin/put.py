@@ -23,6 +23,198 @@ import json
 from flask import request, session, g, redirect, url_for
 
 
+@app.route('/admin/media/', methods=['PUT'])
+def admin_media_put():
+	'''This method provides you with the functionality to set media. It
+	will create a new dataset or replace an old one if one with the given
+	identifier/format already exists.
+	Only administrators are allowed to add/modify server data.
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+{
+	"lf:media": [
+	{
+		"lf:source_key": "123456789", 
+		"dc:type": "Image", 
+		"dc:title": "test", 
+		"dc:language": "de", 
+		"lf:visible": 1, 
+		"dc:subject": [ "Informatik" ], 
+		"dc:source": null, 
+		"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
+		"lf:published": 0, 
+		"dc:date": "2013-01-30 13:58:22", 
+		"lf:publisher": [ 1 ], 
+		"dc:description": "some text\u2026", 
+		"dc:rights": "cc-by", 
+		"lf:owner": 3, 
+		"lf:series_id": [
+			"BA88024F-6ADC-11E2-8B4E-047D7B0F869A", 
+			"BA885F64-6ADC-11E2-8B4E-047D7B0F869A"
+		], 
+		"lf:last_edit": "2013-01-30 13:58:22", 
+		"lf:parent_version": null, 
+		"lf:source_system": null, 
+		"lf:creator": [ 3 ], 
+		"lf:contributor": [ 3 ]
+	}
+	]
+}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+			xmlns:lf="http://lernfunk.de/terms">
+		<!-- TODO -->
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	NOTICES:
+	 * If the identifier is ommittet a new id is generated automatically. 
+	 * Only administrators and editors can change the ownership of a media.
+	 * You need to have write access to a series to add this edia to a series.
+	 * You cannot modify a specific version. Insted a new version is created
+		automatically. If you really want to get rid of a specific version: Be
+		admin, delete the old one and create a new version. If you are no admin:
+		Create a new version based on an old one and ask someone who is admin to
+		delete this one.
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	user = None
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		return str(e), 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+	
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	# If the user is no editor (or admin) we want to know which objects he is
+	# allowed to modify. In any case, he is not allowed to add new data.
+	access_to_media = []
+	access_to_series = []
+	if not user.is_editor():
+		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
+				if user.groups else ''
+		q ='''select media_id, series_id from lf_access 
+				where ( user_id = %i %s) 
+				and write_access ''' % ( user.id, groups )
+		print q
+		cur.execute( q )
+		for ( media_id, series_id ) in cur.fetchall():
+			if media_id:
+				access_to_media.append( media_id )
+			elif series_id:
+				access_to_series.append( series_id )
+
+	sqldata = []
+	if type == 'application/xml':
+		data = parseString(data)
+		return 'Not yet implemented', 500
+		try:
+			for media in data.getElementsByTagName( 'lf:media' ):
+				m = {}
+				if not idcheck.match(id):
+					return 'Bad identifier for server: %s' % id, 400
+				fmt = server.getElementsByTagName('lf:format')[0].childNodes[0].data
+				if not fmtcheck.match(fmt):
+					return 'Bad format for server: %s' % fmt, 400
+				uri_pattern = server.getElementsByTagName('lf:uri_pattern')[0]\
+						.childNodes[0].data
+				sqldata.append( ( id, fmt, uri_pattern ) )
+		except (AttributeError, IndexError):
+			return 'Invalid server data', 400
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new server data
+		try:
+			data = data['lf:media']
+		except KeyError:
+			# Assume that there is only one server
+			data = [data]
+		for media in data:
+			m = {}
+			try:
+				if media.get('dc:identifier'):
+					m['id'] = uuid.UUID(media['dc:identifier'])
+				elif not user.is_editor():
+					return 'You are not allowed to create new mediao', 403
+				m['source_key'] = media.get('lf:source_key')
+				m['source_system'] = media.get('lf:source_system')
+				m['type'] = media.get('dc:type')
+				if not m['type'] in ['Collection','Dataset','Event','Image',
+						'Interactive Resource','Service','Software','Sound','Text',
+						None]:
+					return 'dc:type has to be part of the DCMI Type Vocabulary ' \
+							+ '[http://dublincore.org/documents/2000/07/11/'\
+							+ 'dcmi-type-vocabulary/]', 400
+				m['title'] = media.get('dc:title')
+				m['language'] = media.get['dc:language']
+				m['visible'] = media['lf:visible']
+				m['subject'] = media.get('dc:subject')
+				m['source'] = media.get('source')
+				if media.get('lf:editor'):
+					return 'You cannot set the editor manually.', 400
+				m['published'] = 1 if media['lf:published'] else 0
+				m['description'] = media.get('dc:description')
+				m['rights'] = media.get('dc:rights')
+				if media.get('lf:owner'):
+					if user.is_editor():
+						m['owner'] = media['lf:owner']
+					else:
+						return 'The owner can only be set by editors', 403
+				sqldata.append( m )
+			except KeyError:
+				return 'Invalid server data', 400
+
+	affected_rows = 0
+	try:
+		affected_rows = cur.executemany('''insert into lf_server 
+			(id, format, uri_pattern) values (%s, %s, %s) 
+			on duplicate key update uri_pattern=values(uri_pattern)''', sqldata )
+	except IntegrityError as e:
+		return str(e), 409
+	db.commit()
+
+	if affected_rows:
+		return '', 201
+	return '', 200
+
+
+
 #@app.route('/admin/media/',                              methods=['DELETE'])
 #@app.route('/admin/media/<uuid:media_id>',               methods=['DELETE'])
 #@app.route('/admin/media/<uuid:media_id>/<int:version>', methods=['DELETE'])
