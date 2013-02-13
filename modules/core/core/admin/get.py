@@ -201,7 +201,7 @@ def admin_media(media_id=None, version=None, lang=None):
 			organization = []
 			for (organization_id,) in cur.fetchall():
 				organization.append( organization_id )
-			media["lf:publisher"] = organization
+			media["dc:publisher"] = organization
 
 		# Get files
 		if with_file:
@@ -403,7 +403,7 @@ def admin_series(series_id=None, lang=None):
 			publisher = []
 			for (organization_id,) in cur.fetchall():
 				publisher.append( organization_id )
-			series["lf:publisher"] = publisher
+			series["dc:publisher"] = publisher
 
 		# Get subjects
 		if with_subject:

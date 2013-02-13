@@ -222,7 +222,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 			organization = []
 			for (organization_id,) in cur.fetchall():
 				organization.append( organization_id )
-			media["lf:publisher"] = organization
+			media["dc:publisher"] = organization
 
 		# Get files
 		if with_file:
@@ -466,7 +466,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 			organization = []
 			for (organization_id,) in cur.fetchall():
 				organization.append( organization_id )
-			media["lf:publisher"] = organization
+			media["dc:publisher"] = organization
 
 		# Get files
 		if with_file:
@@ -686,7 +686,7 @@ def view_series(series_id=None, lang=None):
 			publisher = []
 			for (organization_id,) in cur.fetchall():
 				publisher.append( organization_id )
-			series["lf:publisher"] = publisher
+			series["dc:publisher"] = publisher
 
 		# Get subjects
 		if with_subject:
