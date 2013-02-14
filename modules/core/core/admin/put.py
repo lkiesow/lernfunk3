@@ -17,10 +17,16 @@ from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
 from MySQLdb import IntegrityError
+from MySQLdb import Error as MySQLdbError
 from xml.dom.minidom import parseString
 import json
+from datetime import datetime
+import email.utils
 
 from flask import request, session, g, redirect, url_for
+
+
+_formdata = ['application/x-www-form-urlencoded', 'multipart/form-data']
 
 
 @app.route('/admin/media/', methods=['PUT'])
@@ -33,35 +39,27 @@ def admin_media_put():
 	The data can either be JSON or XML. 
 	JSON example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-{
-	"lf:media": [
 	{
-		"lf:source_key": "123456789", 
-		"dc:type": "Image", 
-		"dc:title": "test", 
-		"dc:language": "de", 
-		"lf:visible": 1, 
-		"dc:subject": [ "Informatik" ], 
-		"dc:source": null, 
-		"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
-		"lf:published": 0, 
-		"dc:date": "2013-01-30 13:58:22", 
-		"lf:publisher": [ 1 ], 
-		"dc:description": "some text\u2026", 
-		"dc:rights": "cc-by", 
-		"lf:owner": 3, 
-		"lf:series_id": [
-			"BA88024F-6ADC-11E2-8B4E-047D7B0F869A", 
-			"BA885F64-6ADC-11E2-8B4E-047D7B0F869A"
-		], 
-		"lf:last_edit": "2013-01-30 13:58:22", 
-		"lf:parent_version": null, 
-		"lf:source_system": null, 
-		"lf:creator": [ 3 ], 
-		"lf:contributor": [ 3 ]
+		"lf:media": [
+		{
+			"lf:source_key": "123456789", 
+			"dc:type": "Image", 
+			"dc:title": "test", 
+			"dc:language": "de", 
+			"lf:visible": 1, 
+			"dc:source": null, 
+			"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
+			"lf:published": 0, 
+			"dc:date": "2013-01-30 13:58:22", 
+			"dc:description": "some text\u2026", 
+			"dc:rights": "cc-by", 
+			"lf:owner": 3, 
+			"lf:last_edit": "2013-01-30 13:58:22", 
+			"lf:parent_version": null, 
+			"lf:source_system": null
+		}
+		]
 	}
-	]
-}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 	XML example:
@@ -105,7 +103,7 @@ def admin_media_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -128,7 +126,6 @@ def admin_media_put():
 		q ='''select media_id, series_id from lf_access 
 				where ( user_id = %i %s) 
 				and write_access ''' % ( user.id, groups )
-		print q
 		cur.execute( q )
 		for ( media_id, series_id ) in cur.fetchall():
 			if media_id:
@@ -140,6 +137,7 @@ def admin_media_put():
 	if type == 'application/xml':
 		data = parseString(data)
 		return 'Not yet implemented', 500
+		'''
 		try:
 			for media in data.getElementsByTagName( 'lf:media' ):
 				m = {}
@@ -153,6 +151,7 @@ def admin_media_put():
 				sqldata.append( ( id, fmt, uri_pattern ) )
 		except (AttributeError, IndexError):
 			return 'Invalid server data', 400
+		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -172,33 +171,176 @@ def admin_media_put():
 					m['id'] = uuid.UUID(media['dc:identifier'])
 				elif not user.is_editor():
 					return 'You are not allowed to create new mediao', 403
-				m['source_key'] = media.get('lf:source_key')
-				m['source_system'] = media.get('lf:source_system')
-				m['type'] = media.get('dc:type')
-				if not m['type'] in ['Collection','Dataset','Event','Image',
-						'Interactive Resource','Service','Software','Sound','Text',
-						None]:
-					return 'dc:type has to be part of the DCMI Type Vocabulary ' \
-							+ '[http://dublincore.org/documents/2000/07/11/'\
-							+ 'dcmi-type-vocabulary/]', 400
-				m['title'] = media.get('dc:title')
-				m['language'] = media.get['dc:language']
-				m['visible'] = media['lf:visible']
-				m['subject'] = media.get('dc:subject')
-				m['source'] = media.get('source')
-				if media.get('lf:editor'):
-					return 'You cannot set the editor manually.', 400
-				m['published'] = 1 if media['lf:published'] else 0
-				m['description'] = media.get('dc:description')
-				m['rights'] = media.get('dc:rights')
-				if media.get('lf:owner'):
-					if user.is_editor():
-						m['owner'] = media['lf:owner']
-					else:
-						return 'The owner can only be set by editors', 403
+
+				m['coverage']       = media.get('dc:coverage')
+				m['description']    = media.get('dc:description')
+				m['language']       = media['dc:language']
+				m['owner']          = media.get('lf:owner')
+				m['parent_version'] = media.get('lf:parent_version')
+				m['published']      = 1 if media['lf:published'] else 0
+				m['relation']       = media.get('dc:relation')
+				m['rights']         = media.get('dc:rights')
+				m['source']         = media.get('source')
+				m['source_key']     = media.get('lf:source_key')
+				m['source_system']  = media.get('lf:source_system')
+				m['title']          = media.get('dc:title')
+				m['type']           = media.get('dc:type')
+				m['visible']        = media['lf:visible']
+				m['date']           = media['dc:date']
+
+				# Maybe will implement this later. May be convinient:
+				'''
+				# Additional relations:
+				m['subject']        = media.get('dc:subject')
+				m['publisher']      = media.get('dc:publisher')
+				m['series']         = media.get('lf:series_id')
+				m['creator']        = media.get('lf:creator')
+				m['contributor']    = media.get('lf:contributor')
+				'''
+
 				sqldata.append( m )
 			except KeyError:
 				return 'Invalid server data', 400
+
+	# Check some data
+	for media in sqldata:
+		try:
+			if not media['type'] in ['Collection','Dataset','Event','Image',
+					'Interactive Resource','Service','Software','Sound','Text',
+					None]:
+				return 'dc:type has to be part of the DCMI Type Vocabulary ' \
+						+ '[http://dublincore.org/documents/2000/07/11/'\
+						+ 'dcmi-type-vocabulary/]', 400
+			if not media.get('date'):
+				media['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+			else:
+				try:
+					# Assume ISO datetime format (YYYY-MM-DD HH:MM:SS)
+					datetime.strptime(media['date'], '%Y-%m-%d %H:%M:%S')
+				except ValueError:
+					# Check RFC2822 datetime format instead
+					# (Do not use , for separating weekday and month!)
+					media['date'] = datetime.fromtimestamp(
+							email.utils.mktime_tz(email.utils.parsedate_tz(val))
+							).strftime("%Y-%m-%d %H:%M:%S")
+			media['owner'] = int(media['owner'])
+		except (KeyError, ValueError):
+			return 'Invalid server data', 400
+
+	# Admins and editors are allowed to create new media and change the
+	# ownership of all existing ones. Thus we do not have to check their
+	# permissions on each object:
+	result = []
+	if user.is_editor:
+		for media in sqldata:
+			# If there is no id, we create a new one:
+			if not media.get('id'):
+				media['id'] = uuid.uuid4()
+			try:
+				# Get next version for this media. Since this happens in a
+				# transaction the value will not change between transactions.
+				cur.execute('''select max(version) from lf_media 
+					where id = x'%s' ''' % media['id'].hex )
+				(version,) = cur.fetchone()
+				version = 0 if ( version is None ) else version + 1
+				cur.execute('''insert into lf_media
+					(id, version, parent_version, language, title, description,
+					owner, editor, timestamp_created, published, source, visible,
+					source_system, source_key, rights, type, coverage, relation) 
+					values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+					%s, %s, %s) ''', 
+					( media['id'].bytes,
+						version,
+						media.get('parent_version'),
+						media['language'],
+						media.get('title'),
+						media.get('description'),
+						media.get('owner'),
+						user.id,
+						media['date'],
+						media['published'],
+						media.get('source'),
+						media['visible'],
+						media.get('source_system'),
+						media.get('source_key'),
+						media.get('rights'),
+						media.get('type'),
+						media.get('coverage'),
+						media.get('relation') ) )
+				# We could also add relations here. That would be a nice feature.
+				# So maybe I'll implement it later.
+			except MySQLdbError as e:
+				db.rollback()
+				cur.close()
+				return str(e), 400
+			result.append( {'id':str(media['id']), 'version':version} )
+
+		# We will never reach this in case of a failure.
+		db.commit()
+		cur.close()
+		return str(result) # TODO: Make xml/json from this
+
+
+	# A simple user tries to update a media object (Create a new version). We
+	# have to check if he is (a) the owner of the media or (b) has write access
+	# defined in lf_access.
+	else:
+		try:
+			# Get owner
+			cur.execute('''select owner from lf_latest_media 
+				where id = x'%s' ''' % media['id'])
+			owner = int( cur.fetchone() )
+			if not ( media['id'].bytes in access_to_media or user.id == owner ):
+				return 'You are not allowed to modify this media object', 403
+			if owner != media['owner']:
+				return 'You are not allowed to change the ownership', 403
+			try:
+				# Get next version for this media. Since this happens in a
+				# transaction the value will not change between transactions.
+				cur.execute('''select max(version) from lf_media 
+					where id = x'%s' ''' % media['id'].hex )
+				(version,) = cur.fetchone()
+				version = 0 if ( version is None ) else version + 1
+				cur.execute('''insert into lf_media
+					(id, version, parent_version, language, title, description,
+					owner, editor, timestamp_created, published, source, visible,
+					source_system, source_key, rights, type, coverage, relation) 
+					values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+					%s, %s, %s) ''', 
+					( media['id'].bytes,
+						version,
+						media.get('parent_version'),
+						media['language'],
+						media.get('title'),
+						media.get('description'),
+						media.get('owner'),
+						user.id,
+						media['date'],
+						media['published'],
+						media.get('source'),
+						media['visible'],
+						media.get('source_system'),
+						media.get('source_key'),
+						media.get('rights'),
+						media.get('type'),
+						media.get('coverage'),
+						media.get('relation') ) )
+				# We could also add relations here. That would be a nice feature.
+				# So maybe I'll implement it later.
+			except MySQLdbError as e:
+				db.rollback()
+				cur.close()
+				return str(e), 400
+			result.append( {'id':str(media['id']), 'version':version} )
+		except KeyError:
+			return 'A mere user cannot create a new media object', 403
+
+		# We will never reach this in case of a failure.
+		db.commit()
+		cur.close()
+		return str(result) # TODO: Make xml/json from this
+	
+	return ''
 
 	affected_rows = 0
 	try:
