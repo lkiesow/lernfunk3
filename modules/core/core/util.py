@@ -119,6 +119,21 @@ def is_true( val ):
 	return val.lower() in ['1', 'yes', 'true']
 
 
+def xml_get_text(node, name, raiseError=False):
+	'''Get text from first selected elements. 
+	Return None if there is no text.
+
+	Keyword arguments:
+	node -- Selected nodes
+	'''
+	if raiseError:
+		return node.getElementsByTagName(name)[0].childNodes[0].data
+	try:
+		return node.getElementsByTagName(name)[0].childNodes[0].data
+	except IndexError:
+		return None
+
+
 def to_int( s, default=0 ):
 	'''Convert string to integer. If the string cannot be converted a default
 	value is used.

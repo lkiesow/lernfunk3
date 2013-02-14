@@ -136,22 +136,31 @@ def admin_media_put():
 	sqldata = []
 	if type == 'application/xml':
 		data = parseString(data)
-		return 'Not yet implemented', 500
-		'''
 		try:
 			for media in data.getElementsByTagName( 'lf:media' ):
 				m = {}
-				if not idcheck.match(id):
-					return 'Bad identifier for server: %s' % id, 400
-				fmt = server.getElementsByTagName('lf:format')[0].childNodes[0].data
-				if not fmtcheck.match(fmt):
-					return 'Bad format for server: %s' % fmt, 400
-				uri_pattern = server.getElementsByTagName('lf:uri_pattern')[0]\
-						.childNodes[0].data
-				sqldata.append( ( id, fmt, uri_pattern ) )
+				m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
+				if not ( m['id'] or user.is_editor() ):
+					return 'You are not allowed to create new mediao', 403
+
+				m['coverage']       = xml_get_text(media, 'dc:coverage')
+				m['description']    = xml_get_text(media, 'dc:description')
+				m['language']       = xml_get_text(media, 'dc:language', True)
+				m['owner']          = xml_get_text(media, 'lf:owner')
+				m['parent_version'] = xml_get_text(media, 'lf:parent_version')
+				m['published']      = 1 if xml_get_text(media, 'lf:published', True) else 0
+				m['relation']       = xml_get_text(media, 'dc:relation')
+				m['rights']         = xml_get_text(media, 'dc:rights')
+				m['source']         = xml_get_text(media, 'source')
+				m['source_key']     = xml_get_text(media, 'lf:source_key')
+				m['source_system']  = xml_get_text(media, 'lf:source_system')
+				m['title']          = xml_get_text(media, 'dc:title')
+				m['type']           = xml_get_text(media, 'dc:type')
+				m['visible']        = xml_get_text(media, 'lf:visible', True)
+				m['date']           = xml_get_text(media, 'dc:date', True)
+				sqldata.append( m )
 		except (AttributeError, IndexError):
 			return 'Invalid server data', 400
-		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
