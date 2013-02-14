@@ -1012,12 +1012,17 @@ def admin_user_put():
 			'public' : 1,
 			'login required' : 2,
 			'editors only' : 3,
-			'administrators only' : 4
+			'administrators only' : 4,
+			'1' : 1,
+			'2' : 2,
+			'3' : 3,
+			'4' : 4
 			}
 
 	sqldata = []
 	if type == 'application/xml':
 		return 'Not yet implemented', 400
+		''''
 		data = parseString(data)
 		try:
 			for group in data.getElementsByTagName( 'lf:groups' ):
@@ -1034,6 +1039,7 @@ def admin_user_put():
 				sqldata.append( ( id, name ) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
+		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -1046,17 +1052,26 @@ def admin_user_put():
 		except KeyError:
 			# Assume that there is only one dataset
 			data = [data]
-		for user in data:
+		for udata in data:
 			try:
-				id = int(user['dc:identifier']) if user.get('dc:identifier') else None
-				if not user.is_admin() and id != user.id:
-					return 'You have to be admin to modify another users data' % restricted_ids[id], 400
-				name = group['lf:name']
-				if name in ['admin', 'editor', 'public']:
-					return 'Cannot create fixed group "%s"' % name, 400
-				sqldata.append( ( id, name ) )
-			except KeyError:
+				u = {}
+				u['id']       = int(udata['dc:identifier']) \
+						if udata.get('dc:identifier') else None
+				u['name']     = udata['lf:name']
+				u['access']   = accessmap[udata['lf:access']]
+				u['realname'] = udata.get('lf:realname')
+				u['vcard']    = udata.get('lf:vcard_uri')
+				u['email']    = udata.get('lf:email')
+				sqldata.append( u )
+			except (KeyError, ValueError):
 				return 'Invalid group data', 400
+
+	# Check data
+	for udata in sqldata:
+		if not user.is_admin() and udata['id'] != user.id:
+			return 'You have to be admin to modify another user', 400
+		if udata['name'] in ['admin', 'public']:
+			return 'Cannot create fixed group "%s"' % udata['name'], 400
 
 	# Request data
 	db = get_db()
