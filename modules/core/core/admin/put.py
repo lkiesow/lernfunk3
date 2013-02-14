@@ -23,7 +23,7 @@ import json
 from datetime import datetime
 import email.utils
 
-from flask import request, session, g, redirect, url_for
+from flask import request, session, g, redirect, url_for, jsonify
 
 
 _formdata = ['application/x-www-form-urlencoded', 'multipart/form-data']
@@ -278,7 +278,11 @@ def admin_media_put():
 		# We will never reach this in case of a failure.
 		db.commit()
 		cur.close()
-		return str(result) # TODO: Make xml/json from this
+		result = { 'lf:created_media' : result }
+		if request.accept_mimetypes.best_match(
+				['application/xml', 'application/json']) == 'application/json':
+			return jsonify(result=result)
+		return xmlify(result=result)
 
 
 	# A simple user tries to update a media object (Create a new version). We
@@ -338,7 +342,11 @@ def admin_media_put():
 		# We will never reach this in case of a failure.
 		db.commit()
 		cur.close()
-		return str(result) # TODO: Make xml/json from this
+		result = { 'lf:created_media' : result }
+		if request.accept_mimetypes.best_match(
+				['application/xml', 'application/json']) == 'application/json':
+			return jsonify(result=result)
+		return xmlify(result=result)
 	
 	return ''
 
