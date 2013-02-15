@@ -904,28 +904,27 @@ def admin_user_put():
 	will create a new dataset or replace an old one if one with the given
 	identifier already exists.
 	Only administrators are allowed to add/modify any user. Other users may only
-	modify their own data 
+	modify their own data.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	{
 		"lf:user": [
 		{
-			"lf:name": "admin", 
-			"lf:access": "administrators only", 
-			"dc:identifier": 1, 
-			"lf:realname": null, 
-			"lf:email": null, 
-			"lf:vcard_uri": null,
-			"lf:passwd": "<secret>"
+			"dc:identifier": 42,
+			"lf:name": "testuser",
+			"lf:access": "administrators only",
+			"lf:realname": null,
+			"lf:email": null,
+			"lf:vcard_uri": null
 		}
 		]
 	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
 		<lf:group>
@@ -933,7 +932,7 @@ def admin_user_put():
 			<dc:identifier>42</dc:identifier>
 		</lf:group>
 	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 	The id can be omitted. In that case a new id is generated automatically.
 
@@ -946,20 +945,17 @@ def admin_user_put():
 		4 : 'administrators only'
 
 	IMPORTANT NOTICE (Passwords):
-	 | The password field can also be omitted. In that case the password is set
-	 | to NULL if a new user is created or remains the old password if an
-	 | existing user is modified. However, if the field exists but has no
-	 | content (<lf:passwd />) or is explicitly set to null ("lf:passwd": null)
-	 | the users password will always be set to NULL which will prohibit all
-	 | further login attempts of the user.
+	 | Although a password is part of a users data it cannot be set along with
+	 | the rest of the “normal” user data as it more important. If a new user is
+	 | created, the password is set to NULL which means that the user cannot log
+	 | into to system. A password can then be set by using /admin/user/passwd.
 
-	IMPORTANT NOTICE (Username): 
+	IMPORTANT NOTICE (Username):
 	 | Usernames are as unique as user ids attempting to insert an already
 	 | existing username will fail. Furthermore the username cannot be modified
 	 | afterwards to ensure that one username always identifies the same user.
-	 | Thus all updates will fail if there is a username given. If fact this is
-	 | so, even if it is the same username as the old one (just omit it on
-	 | updates).
+	 | Thus all updates will fail if there is a username given which differes
+	 | from the old one.
 
 	IMPORTANT NOTICE (Multiple datasets):
 	 | As with all the other PUT methods this method can be used to insert
@@ -977,7 +973,7 @@ def admin_user_put():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	user = None
 	try:
 		user = get_authorization( request.authorization )
@@ -988,7 +984,7 @@ def admin_user_put():
 	if user.name == 'public':
 		return 'You cannot modify your user if you are not logged in', 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -1072,6 +1068,8 @@ def admin_user_put():
 			return 'You have to be admin to modify another user', 400
 		if udata['name'] in ['admin', 'public']:
 			return 'Cannot create fixed group "%s"' % udata['name'], 400
+		if not ( udata['email'] is None or '@' in udata['email'] ):
+			return 'Invalid email address “%s”' % udata['email'], 400
 
 	# Request data
 	db = get_db()
@@ -1080,7 +1078,7 @@ def admin_user_put():
 	affected_rows = 0
 	try:
 		affected_rows = cur.executemany('''insert into lf_group
-			(id, name) values (%s, %s) 
+			(id, name) values (%s, %s)
 			on duplicate key update name=values(name) ''', sqldata )
 	except IntegrityError as e:
 		return str(e), 409
