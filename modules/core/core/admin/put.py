@@ -1426,18 +1426,46 @@ def admin_user_put():
 	db = get_db()
 	cur = db.cursor()
 
-	affected_rows = 0
+	result = []
 	try:
-		affected_rows = cur.executemany('''insert into lf_group
-			(id, name) values (%s, %s)
-			on duplicate key update name=values(name) ''', sqldata )
-	except IntegrityError as e:
-		return str(e), 409
-	db.commit()
+		# check username
+		for udata in sqldata:
+			# Check if id has another username:
+			cur.execute('''select id from lf_user where id = %s and name != %s ''', 
+					  ( udata['id'], udata['name'] ))
+			if cur.fetchone():
+				db.rollback()
+				cur.close()
+				return 'You cannot change a username', 400
 
-	if affected_rows:
-		return '', 201
-	return '', 200
+			cur.execute('''insert into lf_user
+				(id, name, vcard_uri, realname, email, access)
+				values (%s, %s, %s, %s, %s, %s)
+				on duplicate key update id=LAST_INSERT_ID(id), 
+					vcard_uri=values(vcard_uri), realname=values(realname),
+					email=values(realname), access=values(access) ''',
+					( udata['id'], udata['name'], udata['vcard'], udata['realname'],
+					udata['email'], udata['access'] ) )
+			
+			cur.execute('''select LAST_INSERT_ID()''')
+			(id,) = cur.fetchone
+			result.append( {'id':id, 'name':udata['name']} )
+
+	except MySQLdbError as e:
+		db.rollback()
+		cur.close()
+		return str(e), 400
+
+	# We will never reach this in case of a failure.
+	db.commit()
+	cur.close()
+	result = { 'lf:created_user' : result }
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result)
+	return xmlify(result=result)
+				
+
 
 
 
