@@ -1369,24 +1369,21 @@ def admin_user_put():
 	sqldata = []
 	if type == 'application/xml':
 		return 'Not yet implemented', 400
-		''''
 		data = parseString(data)
 		try:
-			for group in data.getElementsByTagName( 'lf:groups' ):
-				try:
-					id = int(group.getElementsByTagName('dc:identifier')[0]\
-							.childNodes[0].data)
-				except IndexError:
-					id = None
-				if id in restricted_ids.keys():
-					return 'Cannot modify fixed group "%s"' % restricted_ids[id], 400
-				name = group.getElementsByTagName('lf:name')[0].childNodes[0].data
-				if name in ['admin', 'editor', 'public']:
-					return 'Cannot create fixed group "%s"' % name, 400
-				sqldata.append( ( id, name ) )
+			for udata in data.getElementsByTagName( 'lf:user' ):
+				u = {}
+				u['id']       = xml_get_text(media, 'dc:coverage')
+				if u['id']:
+					u['id'] = int(u['id'])
+				u['name']       = xml_get_text(media, 'lf:name', True)
+				u['access']     = accessmap[xml_get_text(media, 'lf:access')]
+				u['realname']   = xml_get_text(media, 'lf:realname')
+				u['vcard']      = xml_get_text(media, 'lf:vcard_uri')
+				u['email']      = xml_get_text(media, 'lf:email')
+				sqldata.append( u )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
-		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
