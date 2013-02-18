@@ -31,10 +31,9 @@ _formdata = ['application/x-www-form-urlencoded', 'multipart/form-data']
 
 @app.route('/admin/media/', methods=['PUT'])
 def admin_media_put():
-	'''This method provides you with the functionality to set media. It
-	will create a new dataset or replace an old one if one with the given
-	identifier/format already exists.
-	Only administrators are allowed to add/modify server data.
+	'''This method provides you with the functionality to set media. It will
+	create a new dataset or a new version if one with the given identifier
+	already exists.
 
 	The data can either be JSON or XML. 
 	JSON example:
@@ -359,145 +358,318 @@ def admin_media_put():
 	
 	return ''
 
-	affected_rows = 0
+
+
+@app.route('/admin/series/', methods=['PUT'])
+def admin_series_put():
+	'''This method provides you with the functionality to set series. It
+	will create a new dataset or a new version if one with the given
+	identifier already exists.
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+{
+	"lf:series": [
+	{
+		"lf:parent_version": null, 
+		"dc:source": null, 
+		"lf:version": 0, 
+		"lf:source_key": null, 
+		"lf:editor": 3, 
+		"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
+		"lf:owner": 3, 
+		"dc:title": "testseries", 
+		"dc:language": "de", 
+		"lf:published": 1, 
+		"dc:date": "2013-01-30 13:58:22", 
+		"lf:source_system": null, 
+		"lf:visible": 1, 
+		"lf:last_edit": "2013-01-30 13:58:22", 
+		"dc:description": "some text\u2026", 
+	}
+	]
+}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+			xmlns:lf="http://lernfunk.de/terms">
+		<!-- TODO -->
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	NOTICES:
+	 * If the identifier is ommittet a new id is generated automatically. 
+	 * Only administrators and editors can change the ownership of a series.
+	 * You cannot modify a specific version. Insted a new version is created
+		automatically. If you really want to get rid of a specific version: Be
+		admin, delete the old one and create a new version. If you are no admin:
+		Create a new version based on an old one and ask someone who is admin to
+		delete the old one.
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	user = None
 	try:
-		affected_rows = cur.executemany('''insert into lf_server 
-			(id, format, uri_pattern) values (%s, %s, %s) 
-			on duplicate key update uri_pattern=values(uri_pattern)''', sqldata )
-	except IntegrityError as e:
-		return str(e), 409
-	db.commit()
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		return str(e), 401
 
-	if affected_rows:
-		return '', 201
-	return '', 200
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in _formdata:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+	
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	# If the user is no editor (or admin) we want to know which objects he is
+	# allowed to modify. In any case, he is not allowed to add new data.
+	access_to_media = []
+	access_to_series = []
+	if not user.is_editor():
+		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
+				if user.groups else ''
+		q ='''select media_id, series_id from lf_access 
+				where ( user_id = %i %s) 
+				and write_access ''' % ( user.id, groups )
+		cur.execute( q )
+		for ( media_id, series_id ) in cur.fetchall():
+			if media_id:
+				access_to_media.append( media_id )
+			elif series_id:
+				access_to_series.append( series_id )
+
+	sqldata = []
+	if type == 'application/xml':
+		return 'Not yet implemented', 500
+		'''
+		data = parseString(data)
+		try:
+			for media in data.getElementsByTagName( 'lf:media' ):
+				m = {}
+				m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
+				if not ( m['id'] or user.is_editor() ):
+					return 'You are not allowed to create new mediao', 403
+
+				m['coverage']       = xml_get_text(media, 'dc:coverage')
+				m['description']    = xml_get_text(media, 'dc:description')
+				m['language']       = xml_get_text(media, 'dc:language', True)
+				m['owner']          = xml_get_text(media, 'lf:owner')
+				m['parent_version'] = xml_get_text(media, 'lf:parent_version')
+				m['published']      = 1 if xml_get_text(media, 'lf:published', True) else 0
+				m['relation']       = xml_get_text(media, 'dc:relation')
+				m['rights']         = xml_get_text(media, 'dc:rights')
+				m['source']         = xml_get_text(media, 'source')
+				m['source_key']     = xml_get_text(media, 'lf:source_key')
+				m['source_system']  = xml_get_text(media, 'lf:source_system')
+				m['title']          = xml_get_text(media, 'dc:title')
+				m['type']           = xml_get_text(media, 'dc:type')
+				m['visible']        = xml_get_text(media, 'lf:visible', True)
+				m['date']           = xml_get_text(media, 'dc:date', True)
+				sqldata.append( m )
+		except (AttributeError, IndexError):
+			return 'Invalid server data', 400
+		'''
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new server data
+		try:
+			data = data['lf:series']
+		except KeyError:
+			# Assume that there is only one server
+			data = [data]
+		for series in data:
+			s = {}
+			try:
+				if series.get('dc:identifier'):
+					s['id'] = uuid.UUID(series['dc:identifier'])
+				elif not user.is_editor():
+					return 'You are not allowed to create new serieso', 403
+
+				s['description']    = series.get('dc:description')
+				s['language']       = series['dc:language']
+				s['owner']          = series.get('lf:owner')
+				s['parent_version'] = series.get('lf:parent_version')
+				s['published']      = 1 if series['lf:published'] else 0
+				s['source']         = series.get('source')
+				s['source_key']     = series.get('lf:source_key')
+				s['source_system']  = series.get('lf:source_system')
+				s['title']          = series.get('dc:title')
+				s['visible']        = series['lf:visible']
+				s['date']           = series['dc:date']
+
+				# Maybe will implement this later. May be convinient:
+				'''
+				# Additional relations:
+				s['subject']        = series.get('dc:subject')
+				s['publisher']      = series.get('dc:publisher')
+				s['series']         = series.get('lf:series_id')
+				s['creator']        = series.get('lf:creator')
+				s['contributor']    = series.get('lf:contributor')
+				'''
+
+				sqldata.append( m )
+			except KeyError:
+				return 'Invalid server data', 400
+
+	# Check some data
+	for series in sqldata:
+		try:
+			if not series.get('date'):
+				series['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+			else:
+				try:
+					# Assume ISO datetime format (YYYY-MM-DD HH:MM:SS)
+					datetime.strptime(series['date'], '%Y-%m-%d %H:%M:%S')
+				except ValueError:
+					# Check RFC2822 datetime format instead
+					# (Do not use , for separating weekday and month!)
+					series['date'] = datetime.fromtimestamp(
+							email.utils.mktime_tz(email.utils.parsedate_tz(val))
+							).strftime("%Y-%m-%d %H:%M:%S")
+			series['owner'] = int(series['owner'])
+		except (KeyError, ValueError):
+			return 'Invalid server data', 400
+
+	# Admins and editors are allowed to create new series and change the
+	# ownership of all existing ones. Thus we do not have to check their
+	# permissions on each object:
+	result = []
+	if user.is_editor:
+		for series in sqldata:
+			# If there is no id, we create a new one:
+			if not series.get('id'):
+				series['id'] = uuid.uuid4()
+			try:
+				# Get next version for this series. Since this happens in a
+				# transaction the value will not change between transactions.
+				cur.execute('''select max(version) from lf_series 
+					where id = x'%s' ''' % series['id'].hex )
+				(version,) = cur.fetchone()
+				version = 0 if ( version is None ) else version + 1
+				cur.execute('''insert into lf_series
+					(id, version, parent_version, language, title, description,
+					owner, editor, timestamp_created, published, source, visible,
+					source_system, source_key) 
+					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''',
+					( series['id'].bytes,
+						version,
+						series.get('parent_version'),
+						series['language'],
+						series.get('title'),
+						series.get('description'),
+						series.get('owner'),
+						user.id,
+						series['date'],
+						series['published'],
+						series.get('source'),
+						series['visible'],
+						series.get('source_system'),
+						series.get('source_key') ) )
+				# We could also add relations here. That would be a nice feature.
+				# So maybe I'll implement it later.
+			except MySQLdbError as e:
+				db.rollback()
+				cur.close()
+				return str(e), 400
+			result.append( {'id':str(series['id']), 'version':version} )
+
+		# We will never reach this in case of a failure.
+		db.commit()
+		cur.close()
+		result = { 'lf:created_series' : result }
+		if request.accept_mimetypes.best_match(
+				['application/xml', 'application/json']) == 'application/json':
+			return jsonify(result=result)
+		return xmlify(result=result)
 
 
+	# If a simple user tries to update a series object (Create a new version).
+	# We have to check if he is (a) the owner of the series or (b) has write
+	# access defined in lf_access.
+	else:
+		try:
+			# Get owner
+			cur.execute('''select owner from lf_latest_series 
+				where id = x'%s' ''' % series['id'])
+			owner = int( cur.fetchone() )
+			if not ( series['id'].bytes in access_to_series or user.id == owner ):
+				return 'You are not allowed to modify this series object', 403
+			if owner != series['owner']:
+				return 'You are not allowed to change the ownership', 403
+			try:
+				# Get next version for this series. Since this happens in a
+				# transaction the value will not change between transactions.
+				cur.execute('''select max(version) from lf_series 
+					where id = x'%s' ''' % series['id'].hex )
+				(version,) = cur.fetchone()
+				version = 0 if ( version is None ) else version + 1
+				cur.execute('''insert into lf_series
+					(id, version, parent_version, language, title, description,
+					owner, editor, timestamp_created, published, source, visible,
+					source_system, source_key) 
+					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''',
+					( series['id'].bytes,
+						version,
+						series.get('parent_version'),
+						series['language'],
+						series.get('title'),
+						series.get('description'),
+						series.get('owner'),
+						user.id,
+						series['date'],
+						series['published'],
+						series.get('source'),
+						series['visible'],
+						series.get('source_system'),
+						series.get('source_key') ) )
+				# We could also add relations here. That would be a nice feature.
+				# So maybe I'll implement it later.
+			except MySQLdbError as e:
+				db.rollback()
+				cur.close()
+				return str(e), 400
+			result.append( {'id':str(series['id']), 'version':version} )
+		except KeyError:
+			return 'A mere user cannot create a new series object', 403
 
-#@app.route('/admin/media/',                              methods=['DELETE'])
-#@app.route('/admin/media/<uuid:media_id>',               methods=['DELETE'])
-#@app.route('/admin/media/<uuid:media_id>/<int:version>', methods=['DELETE'])
-#@app.route('/admin/media/<uuid:media_id>/<lang:lang>',   methods=['DELETE'])
-#@app.route('/admin/media/<lang:lang>',                   methods=['DELETE'])
-#def admin_media_delete(media_id=None, version=None, lang=None):
-#	'''This method provides you with the functionality to delete media objects.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	media_id -- UUID of a specific media object.
-#	version  -- Specific version of the media
-#	lang     -- Language filter for the mediaobjects.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	query_condition = ''
-#
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	query = '''delete from lf_media '''
-#	if media_id:
-#		query_condition += "where id = x'%s' " % media_id.hex
-#
-#		# Check for version
-#		if version is not None:
-#			query_condition += 'and version = %i ' % int(version)
-#		
-#	# Check for language argument
-#	elif lang:
-#		query_condition += ( 'and ' if query_condition else 'where ' ) + \
-#				'language = "%s" ' % lang
-#	query += query_condition
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410
-#
-#	return '', 204
-#
-#
-#
-#@app.route('/admin/series/',                               methods=['DELETE'])
-#@app.route('/admin/series/<uuid:series_id>',               methods=['DELETE'])
-#@app.route('/admin/series/<uuid:series_id>/<int:version>', methods=['DELETE'])
-#@app.route('/admin/series/<uuid:series_id>/<lang:lang>',   methods=['DELETE'])
-#@app.route('/admin/series/<lang:lang>',                    methods=['DELETE'])
-#def admin_series_delete(series_id=None, version=None, lang=None):
-#	'''This method provides you with the functionality to delete series.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	series_id -- UUID of a specific series.
-#	version   -- Specific version of the series.
-#	lang      -- Language filter for the series.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	query_condition = ''
-#
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	query = '''delete from lf_series '''
-#	if series_id:
-#		query_condition += "where id = x'%s' " % series_id.hex
-#		# Check for version
-#		if version != None:
-#			query_condition += 'and version = %i ' % int(version)
-#		
-#	# Check for language argument
-#	if lang:
-#		query_condition += ( 'and ' if query_condition else 'where ' ) + \
-#				'language = "%s" ' % lang
-#	query += query_condition
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410
-#	
-#	return '', 204
+		# We will never reach this in case of a failure.
+		db.commit()
+		cur.close()
+		result = { 'lf:created_series' : result }
+		if request.accept_mimetypes.best_match(
+				['application/xml', 'application/json']) == 'application/json':
+			return jsonify(result=result)
+		return xmlify(result=result)
+	
+	return ''
 
 
 
