@@ -31,11 +31,16 @@ lang_regex_full = re.compile('^'+lang_regex_str+'$')
 username_chars = lang_chars
 
 '''Simple regular expression to match usernames.'''
-username_regex_str = '(?:[\w-]+)'
-username_regex     = re.compile(username_regex_str)
+username_regex_str  = '(?:[\w-]+)'
+username_regex      = re.compile(username_regex_str)
+username_regex_full = re.compile('^'+username_regex_str+'$')
 
 '''All characters allowed for server names.'''
 servername_chars = username_chars + '.'
+
+'''XML namespace definitions'''
+XML_NS_DC = "http://purl.org/dc/elements/1.1/"
+XML_NS_LF = "http://lernfunk.de/terms"
 
 def result_dom( count=0 ):
 	'''Return an empty DOM tree for results
@@ -119,17 +124,30 @@ def is_true( val ):
 	return val.lower() in ['1', 'yes', 'true']
 
 
-def xml_get_text(node, name, raiseError=False):
+def xml_get_text(node, name, raiseError=False, namespace=None):
 	'''Get text from first selected elements. 
 	Return None if there is no text.
 
 	Keyword arguments:
 	node -- Selected nodes
 	'''
+	if not namespace:
+		if name.startsWith('lf:'):
+			namespace = XML_NS_LF
+			name = name.split(':',1)[1]
+		elif name.startsWith('dc:'):
+			namespace = XML_NS_DC
+			name = name.split(':',1)[1]
 	if raiseError:
-		return node.getElementsByTagName(name)[0].childNodes[0].data
+		if namespace:
+			return node.getElementsByTagNameNS(namespace, name)[0].childNodes[0].data
+		else:
+			return node.getElementsByTagName(name)[0].childNodes[0].data
 	try:
-		return node.getElementsByTagName(name)[0].childNodes[0].data
+		if namespace:
+			return node.getElementsByTagNameNS(namespace, name)[0].childNodes[0].data
+		else:
+			return node.getElementsByTagName(name)[0].childNodes[0].data
 	except IndexError:
 		return None
 
