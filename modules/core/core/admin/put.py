@@ -1418,6 +1418,8 @@ def admin_user_put():
 			return 'Cannot create fixed group "%s"' % udata['name'], 400
 		if not ( udata['email'] is None or '@' in udata['email'] ):
 			return 'Invalid email address “%s”' % udata['email'], 400
+		if not username_regex_full.match(udata['name']):
+			return 'Invalid username “%s”' % udata['name'], 400
 
 	# Request data
 	db = get_db()
@@ -1428,8 +1430,10 @@ def admin_user_put():
 		# check username
 		for udata in sqldata:
 			# Check if id has another username:
-			cur.execute('''select id from lf_user where id = %s and name != %s ''', 
-					  ( udata['id'], udata['name'] ))
+			cur.execute('''select id from lf_user 
+					where ( id = %(id)i and name != "%(name)s" ) 
+					or ( name = "%(name)s" and id != %(id)i ) ''' %
+					{ 'id':udata['id'], 'name':udata['name'] } )
 			if cur.fetchone():
 				db.rollback()
 				cur.close()
@@ -1444,8 +1448,8 @@ def admin_user_put():
 					( udata['id'], udata['name'], udata['vcard'], udata['realname'],
 					udata['email'], udata['access'] ) )
 			
-			cur.execute('''select LAST_INSERT_ID()''')
-			(id,) = cur.fetchone
+			cur.execute('''select id from lf_user where name = %s''', udata['name'])
+			(id,) = cur.fetchone()
 			result.append( {'id':id, 'name':udata['name']} )
 
 	except MySQLdbError as e:
