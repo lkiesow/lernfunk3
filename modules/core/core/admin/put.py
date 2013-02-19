@@ -1635,71 +1635,14 @@ def admin_user_put():
 
 
 
-#@app.route('/admin/user/<int:user_id>', methods=['DELETE'])
-#@app.route('/admin/user/<user:name>',   methods=['DELETE'])
-#def admin_user_delete(user_id=None, name=None):
-#	'''This method provides you with the functionality to delete user.
-#	Only administrators are allowed to delete data.
-#
-#	Keyword arguments:
-#	user_id -- Identifier of a specific user.
-#	name    -- Name of a specific user.
-#	'''
-#
-#	# Check authentication. 
-#	# _Only_ admins are allowed to delete data. Other users may be able 
-#	# to hide data but they can never delete data.
-#	try:
-#		if not get_authorization( request.authorization ).is_admin():
-#			return 'Only admins are allowed to delete data', 401
-#	except KeyError as e:
-#		return e, 401
-#	
-#	# Request data
-#	db = get_db()
-#	cur = db.cursor()
-#
-#	# admin and public are special. You cannot delete them.
-#	query = '''delete from lf_user
-#		where name != 'admin' and name != 'public' '''
-#	if user_id != None:
-#		try:
-#			# abort with 400 Bad Request if id is not valid:
-#			query += 'and id = %i ' % int(user_id)
-#		except ValueError:
-#			return 'Invalid user_id', 400 # 400 BAD REQUEST
-#	elif name:
-#		query += 'and name = %s ' % name
-#
-#
-#	if app.debug:
-#		print('### Query ######################')
-#		print( query )
-#		print('################################')
-#
-#	# Get data
-#	affected_rows = 0
-#	try:
-#		affected_rows = cur.execute( query )
-#	except IntegrityError as e:
-#		return str(e), 409 # Constraint failure -> 409 CONFLICT
-#	db.commit()
-#
-#	if not affected_rows:
-#		return '', 410 # No data was deleted -> 410 GONE
-#
-#	return '', 204 # Data deleted -> 204 NO CONTENT
-#
-#
-#
-#''' ----------------------------------------------------------------------------
-#	End of method which effect entities. The following methods are for
-#	relations. Access is still only granted to administrators. Other user have
-#	to create a new entity version without the specific connector.
-#---------------------------------------------------------------------------- '''
-#
-#
-#
+''' ----------------------------------------------------------------------------
+	End of method which effect entities. The following methods are for
+	relations. Access is still only granted to administrators. Other user have
+	to create a new entity version without the specific connector.
+---------------------------------------------------------------------------- '''
+
+
+
 #@app.route('/admin/access/media/<uuid:media_id>/',                       methods=['DELETE'])
 #@app.route('/admin/access/media/<uuid:media_id>/user/',                  methods=['DELETE'])
 #@app.route('/admin/access/media/<uuid:media_id>/user/<int:user_id>',     methods=['DELETE'])
