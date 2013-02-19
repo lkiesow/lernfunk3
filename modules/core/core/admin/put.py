@@ -464,35 +464,28 @@ def admin_series_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		return 'Not yet implemented', 500
-		'''
 		data = parseString(data)
 		try:
-			for media in data.getElementsByTagName( 'lf:media' ):
-				m = {}
-				m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
-				if not ( m['id'] or user.is_editor() ):
-					return 'You are not allowed to create new mediao', 403
+			for series in data.getElementsByTagName( 'lf:series' ):
+				s = {}
+				s['id'] = uuid.UUID(xml_get_text(series, 'dc:identifier'))
+				if not ( s['id'] or user.is_editor() ):
+					return 'You are not allowed to create new series', 403
 
-				m['coverage']       = xml_get_text(media, 'dc:coverage')
-				m['description']    = xml_get_text(media, 'dc:description')
-				m['language']       = xml_get_text(media, 'dc:language', True)
-				m['owner']          = xml_get_text(media, 'lf:owner')
-				m['parent_version'] = xml_get_text(media, 'lf:parent_version')
-				m['published']      = 1 if xml_get_text(media, 'lf:published', True) else 0
-				m['relation']       = xml_get_text(media, 'dc:relation')
-				m['rights']         = xml_get_text(media, 'dc:rights')
-				m['source']         = xml_get_text(media, 'source')
-				m['source_key']     = xml_get_text(media, 'lf:source_key')
-				m['source_system']  = xml_get_text(media, 'lf:source_system')
-				m['title']          = xml_get_text(media, 'dc:title')
-				m['type']           = xml_get_text(media, 'dc:type')
-				m['visible']        = xml_get_text(media, 'lf:visible', True)
-				m['date']           = xml_get_text(media, 'dc:date', True)
-				sqldata.append( m )
+				s['description']    = xml_get_text(series, 'dc:description')
+				s['language']       = xml_get_text(series, 'dc:language', True)
+				s['owner']          = xml_get_text(series, 'lf:owner')
+				s['parent_version'] = xml_get_text(series, 'lf:parent_version')
+				s['published']      = 1 if xml_get_text(series, 'lf:published', True) else 0
+				s['source']         = xml_get_text(series, 'source')
+				s['source_key']     = xml_get_text(series, 'lf:source_key')
+				s['source_system']  = xml_get_text(series, 'lf:source_system')
+				s['title']          = xml_get_text(series, 'dc:title')
+				s['visible']        = xml_get_text(series, 'lf:visible', True)
+				s['date']           = xml_get_text(series, 'dc:date', True)
+				sqldata.append( s )
 		except (AttributeError, IndexError):
-			return 'Invalid server data', 400
-		'''
+			return 'Invalid series data', 400
 	elif type == 'application/json':
 		# Parse JSON
 		try:
