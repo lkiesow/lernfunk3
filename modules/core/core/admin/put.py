@@ -196,15 +196,15 @@ def admin_media_put():
 				m['visible']        = media['lf:visible']
 				m['date']           = media['dc:date']
 
-				# Maybe will implement this later. May be convinient:
-				'''
 				# Additional relations:
 				m['subject']        = media.get('dc:subject')
 				m['publisher']      = media.get('dc:publisher')
-				m['series']         = media.get('lf:series_id')
 				m['creator']        = media.get('lf:creator')
 				m['contributor']    = media.get('lf:contributor')
-				'''
+				if media.get('lf:series_id'):
+					m['series'] = []
+					for series in media['lf:series_id']:
+						m['series'].append( uuid.UUID(series) )
 
 				sqldata.append( m )
 			except KeyError:
@@ -232,6 +232,13 @@ def admin_media_put():
 							email.utils.mktime_tz(email.utils.parsedate_tz(val))
 							).strftime("%Y-%m-%d %H:%M:%S")
 			media['owner'] = int(media['owner'])
+			# Check relations:
+			if media.get('publisher'):
+				media['publisher'] = [ int(pub) for pub in media['publisher'] ]
+			if media.get('creator'):
+				media['creator'] = [ int(creator) for creator in media['creator'] ]
+			if media.get('contributor'):
+				media['contributor'] = [ int(contrib) for contrib in media['contributor'] ]
 		except (KeyError, ValueError):
 			return 'Invalid server data', 400
 
@@ -275,8 +282,28 @@ def admin_media_put():
 						media.get('type'),
 						media.get('coverage'),
 						media.get('relation') ) )
-				# We could also add relations here. That would be a nice feature.
-				# So maybe I'll implement it later.
+
+				# Add relations
+				if media.get('published'):
+					for pub in media['published']:
+						cur.execute('''insert into lf_media_publisher
+							(media_id, organization_id, media_version)
+							values (%s, %s, %s) ''',
+							( media['id'].bytes, pub, version ) )
+				if media.get('creator'):
+					for creator in media['creator']:
+						cur.execute('''insert into lf_media_creator
+							(media_id, user_id, media_version)
+							values (%s, %s, %s) ''',
+							( media['id'].bytes, creator, version ) )
+				if media.get('contributor'):
+					for contrib in media['contributor']:
+						cur.execute('''insert into lf_media_contributor
+							(media_id, user_id, media_version)
+							values (%s, %s, %s) ''',
+							( media['id'].bytes, contrib, version ) )
+
+				# TODO: Add seried and subjects
 			except MySQLdbError as e:
 				db.rollback()
 				cur.close()
