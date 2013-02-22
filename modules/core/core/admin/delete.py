@@ -830,15 +830,9 @@ def admin_media_subject_delete(media_id=None, subject_id=None):
 
 @app.route('/admin/media/<uuid:media_id>' \
 		'/series/',                                                  methods=['DELETE'])
-@app.route('/admin/media/<uuid:media_id>/<int:media_version>' \
-		'/series/',                                                  methods=['DELETE'])
 @app.route('/admin/media/<uuid:media_id>' \
 		'/series/<uuid:series_id>',                                  methods=['DELETE'])
-@app.route('/admin/media/<uuid:media_id>/<int:media_version>' \
-		'/series/<uuid:series_id>',                                  methods=['DELETE'])
 @app.route('/admin/media/<uuid:media_id>' \
-		'/series/<uuid:series_id>/<int:series_version>',             methods=['DELETE'])
-@app.route('/admin/media/<uuid:media_id>/<int:media_version>' \
 		'/series/<uuid:series_id>/<int:series_version>',             methods=['DELETE'])
 @app.route('/admin/series/<uuid:series_id>' \
 		'/media/',                                                   methods=['DELETE'])
@@ -848,18 +842,13 @@ def admin_media_subject_delete(media_id=None, subject_id=None):
 		'/media/<uuid:media_id>',                                    methods=['DELETE'])
 @app.route('/admin/series/<uuid:series_id>/<int:series_version>' \
 		'/media/<uuid:media_id>',                                    methods=['DELETE'])
-@app.route('/admin/series/<uuid:series_id>' \
-		'/media/<uuid:media_id>/<int:media_version>',                methods=['DELETE'])
-@app.route('/admin/series/<uuid:series_id>/<int:series_version>' \
-		'/media/<uuid:media_id>/<int:media_version>',                methods=['DELETE'])
-def admin_media_series_delete(media_id=None, series_id=None, media_version=None, series_version=None):
+def admin_media_series_delete(media_id=None, series_id=None, series_version=None):
 	'''This method provides the functionality to delete media from series.
 	Only administrators are allowed to delete data.
 
 	Keyword arguments:
 	media_id       -- Identifies a specific mediaobject.
 	series_id      -- Identifies a specific series.
-	media_version  -- Identifies a specific version of a mediaobject.
 	series_version -- Identifies a specific version of a series.
 	'''
 
@@ -875,8 +864,6 @@ def admin_media_series_delete(media_id=None, series_id=None, media_version=None,
 	query_condition = ''
 	if media_id:
 		query_condition += "where media_id = x'%s' " % media_id.hex
-		if media_version is not None:
-			query_condition += 'and media_version = %i ' % int(media_version)
 	
 	if series_id:
 		query_condition += ( 'and ' if query_condition else 'where ' ) \
