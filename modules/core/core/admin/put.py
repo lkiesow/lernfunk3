@@ -262,8 +262,7 @@ def admin_media_put():
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
 					source_system, source_key, rights, type, coverage, relation) 
-					values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-					%s, %s, %s) ''', 
+					values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
 					( media['id'].bytes,
 						version,
 						media.get('parent_version'),
@@ -303,7 +302,23 @@ def admin_media_put():
 							values (%s, %s, %s) ''',
 							( media['id'].bytes, contrib, version ) )
 
-				# TODO: Add seried and subjects
+				if media.get('subject'):
+					for subj in media['subject']:
+						cur.execute('''select id from lf_subject
+							where language=%s and name=%s ''',
+							( media['language'], subj ) )
+						id = cur.fetchone()
+						if not id:
+							cur.execute('''insert into lf_subject
+								(language, name) values (%s, %s) ''',
+								( media['language'], subj ) )
+							cur.execute('''select last_insert_id() ''')
+							id = cur.fetchone()
+						id, = id
+						cur.execute('''replace into lf_media_subject
+							(subject_id, media_id) values (%s, %s) ''',
+							(id, media['id'].bytes) )
+
 			except MySQLdbError as e:
 				db.rollback()
 				cur.close()
@@ -344,8 +359,7 @@ def admin_media_put():
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
 					source_system, source_key, rights, type, coverage, relation) 
-					values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-					%s, %s, %s) ''', 
+					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
 					( media['id'].bytes,
 						version,
 						media.get('parent_version'),
@@ -364,8 +378,43 @@ def admin_media_put():
 						media.get('type'),
 						media.get('coverage'),
 						media.get('relation') ) )
-				# We could also add relations here. That would be a nice feature.
-				# So maybe I'll implement it later.
+
+				# Add relations
+				if media.get('published'):
+					for pub in media['published']:
+						cur.execute('''insert into lf_media_publisher
+							(media_id, organization_id, media_version)
+							values (%s, %s, %s) ''',
+							( media['id'].bytes, pub, version ) )
+				if media.get('creator'):
+					for creator in media['creator']:
+						cur.execute('''insert into lf_media_creator
+							(media_id, user_id, media_version)
+							values (%s, %s, %s) ''',
+							( media['id'].bytes, creator, version ) )
+				if media.get('contributor'):
+					for contrib in media['contributor']:
+						cur.execute('''insert into lf_media_contributor
+							(media_id, user_id, media_version)
+							values (%s, %s, %s) ''',
+							( media['id'].bytes, contrib, version ) )
+
+				if media.get('subject'):
+					for subj in media['subject']:
+						cur.execute('''select id from lf_subject
+							where language=%s and name=%s ''',
+							( media['language'], subj ) )
+						id = cur.fetchone()
+						if not id:
+							cur.execute('''insert into lf_subject
+								(language, name) values (%s, %s) ''',
+								( media['language'], subj ) )
+							cur.execute('''select last_insert_id() ''')
+							id = cur.fetchone()
+						id, = id
+						cur.execute('''replace into lf_media_subject
+							(subject_id, media_id) values (%s, %s) ''',
+							(id, media['id'].bytes) )
 			except MySQLdbError as e:
 				db.rollback()
 				cur.close()
