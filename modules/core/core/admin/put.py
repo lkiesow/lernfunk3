@@ -157,6 +157,8 @@ def admin_media_put():
 				m['type']           = xml_get_text(media, 'dc:type')
 				m['visible']        = xml_get_text(media, 'lf:visible', True)
 				m['date']           = xml_get_text(media, 'dc:date', True)
+
+				#TODO: Handle relations
 				sqldata.append( m )
 		except (AttributeError, IndexError):
 			return 'Invalid server data', 400
@@ -201,10 +203,6 @@ def admin_media_put():
 				m['publisher']      = media.get('dc:publisher')
 				m['creator']        = media.get('lf:creator')
 				m['contributor']    = media.get('lf:contributor')
-				if media.get('lf:series_id'):
-					m['series'] = []
-					for series in media['lf:series_id']:
-						m['series'].append( uuid.UUID(series) )
 
 				sqldata.append( m )
 			except KeyError:
@@ -552,7 +550,8 @@ def admin_series_put():
 				s['language']       = xml_get_text(series, 'dc:language', True)
 				s['owner']          = xml_get_text(series, 'lf:owner')
 				s['parent_version'] = xml_get_text(series, 'lf:parent_version')
-				s['published']      = 1 if xml_get_text(series, 'lf:published', True) else 0
+				s['published']      = 1 \
+						if xml_get_text(series, 'lf:published', True) else 0
 				s['source']         = xml_get_text(series, 'source')
 				s['source_key']     = xml_get_text(series, 'lf:source_key')
 				s['source_system']  = xml_get_text(series, 'lf:source_system')
@@ -594,15 +593,11 @@ def admin_series_put():
 				s['visible']        = series['lf:visible']
 				s['date']           = series['dc:date']
 
-				# Maybe will implement this later. May be convinient:
-				'''
 				# Additional relations:
 				s['subject']        = series.get('dc:subject')
 				s['publisher']      = series.get('dc:publisher')
-				s['series']         = series.get('lf:series_id')
 				s['creator']        = series.get('lf:creator')
-				s['contributor']    = series.get('lf:contributor')
-				'''
+				s['media']          = series.get('lf:media_id')
 
 				sqldata.append( m )
 			except KeyError:
@@ -624,6 +619,13 @@ def admin_series_put():
 							email.utils.mktime_tz(email.utils.parsedate_tz(val))
 							).strftime("%Y-%m-%d %H:%M:%S")
 			series['owner'] = int(series['owner'])
+			# Check relations:
+			if series.get('publisher'):
+				series['publisher'] = [ int(pub) for pub in series['publisher'] ]
+			if series.get('creator'):
+				series['creator'] = [ int(creator) for creator in series['creator'] ]
+			if series.get('media'):
+				series['media'] = [ uuid.UUID(m) for m in series['media'] ]
 		except (KeyError, ValueError):
 			return 'Invalid server data', 400
 
@@ -662,8 +664,43 @@ def admin_series_put():
 						series['visible'],
 						series.get('source_system'),
 						series.get('source_key') ) )
-				# We could also add relations here. That would be a nice feature.
-				# So maybe I'll implement it later.
+
+				# Add relations
+				if series.get('published'):
+					for pub in series['published']:
+						cur.execute('''insert into lf_series_publisher
+							(series_id, organization_id, series_version)
+							values (%s, %s, %s) ''',
+							( series['id'].bytes, pub, version ) )
+				if series.get('creator'):
+					for creator in series['creator']:
+						cur.execute('''insert into lf_series_creator
+							(series_id, user_id, series_version)
+							values (%s, %s, %s) ''',
+							( series['id'].bytes, creator, version ) )
+
+				if series.get('subject'):
+					for subj in series['subject']:
+						cur.execute('''select id from lf_subject
+							where language=%s and name=%s ''',
+							( series['language'], subj ) )
+						id = cur.fetchone()
+						if not id:
+							cur.execute('''insert into lf_subject
+								(language, name) values (%s, %s) ''',
+								( series['language'], subj ) )
+							cur.execute('''select last_insert_id() ''')
+							id = cur.fetchone()
+						id, = id
+						cur.execute('''replace into lf_series_subject
+							(subject_id, series_id) values (%s, %s) ''',
+							(id, series['id'].bytes) )
+
+				if series.get('media'):
+					for media_id in series['media']:
+						cur.execute('''insert into lf_media_series
+							(series_id, media_id, series_version) values (%s,%s,%s) ''',
+							(series['id'].bytes, media_id.bytes, version) )
 			except MySQLdbError as e:
 				db.rollback()
 				cur.close()
@@ -719,8 +756,44 @@ def admin_series_put():
 						series['visible'],
 						series.get('source_system'),
 						series.get('source_key') ) )
-				# We could also add relations here. That would be a nice feature.
-				# So maybe I'll implement it later.
+
+				# Add relations
+				if series.get('published'):
+					for pub in series['published']:
+						cur.execute('''insert into lf_series_publisher
+							(series_id, organization_id, series_version)
+							values (%s, %s, %s) ''',
+							( series['id'].bytes, pub, version ) )
+				if series.get('creator'):
+					for creator in series['creator']:
+						cur.execute('''insert into lf_series_creator
+							(series_id, user_id, series_version)
+							values (%s, %s, %s) ''',
+							( series['id'].bytes, creator, version ) )
+
+				if series.get('subject'):
+					for subj in series['subject']:
+						cur.execute('''select id from lf_subject
+							where language=%s and name=%s ''',
+							( series['language'], subj ) )
+						id = cur.fetchone()
+						if not id:
+							cur.execute('''insert into lf_subject
+								(language, name) values (%s, %s) ''',
+								( series['language'], subj ) )
+							cur.execute('''select last_insert_id() ''')
+							id = cur.fetchone()
+						id, = id
+						cur.execute('''replace into lf_series_subject
+							(subject_id, series_id) values (%s, %s) ''',
+							(id, series['id'].bytes) )
+
+				if series.get('media'):
+					for media_id in series['media']:
+						cur.execute('''insert into lf_media_series
+							(series_id, media_id, series_version) values (%s,%s,%s) ''',
+							(series['id'].bytes, media_id.bytes, version) )
+
 			except MySQLdbError as e:
 				db.rollback()
 				cur.close()
