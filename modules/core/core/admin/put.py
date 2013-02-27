@@ -1850,7 +1850,7 @@ def admin_access_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -1863,15 +1863,11 @@ def admin_access_put():
 	db = get_db()
 	cur = db.cursor()
 
-	cur.execute( '''select id, name from lf_group 
-			where name in ("admin", "editor", "public") ''' )
-	restricted_ids = {}
-	for id, name in cur.fetchall():
-		restricted_ids[id] = name
-
 	sqldata = []
 	if type == 'application/xml':
 		data = parseString(data)
+		return 'Not yet implemented', 500
+		'''
 		try:
 			for group in data.getElementsByTagName( 'lf:groups' ):
 				try:
@@ -1887,6 +1883,7 @@ def admin_access_put():
 				sqldata.append( ( id, name ) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
+		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -1895,27 +1892,37 @@ def admin_access_put():
 			return e.message, 400
 		# Get array of new data
 		try:
-			data = data['lf:group']
+			data = data['lf:access']
 		except KeyError:
 			# Assume that there is only one dataset
 			data = [data]
-		for group in data:
+		for access in data:
 			try:
-				id = int(group['dc:identifier']) if group.get('dc:identifier') else None
-				if id in restricted_ids.keys():
-					return 'Cannot modify fixed group "%s"' % restricted_ids[id], 400
-				name = group['lf:name']
-				if name in ['admin', 'editor', 'public']:
-					return 'Cannot create fixed group "%s"' % name, 400
-				sqldata.append( ( id, name ) )
+				id = int(access['dc:identifier']) if access.get('dc:identifier') else None
+				media_id = uuid.UUID(access['lf:media_id']) \
+						if access.get('lf:media_id') else None
+				series_id = uuid.UUID(access['lf:series_id']) \
+						if access.get('lf:series_id') else None
+				user_id = int(access['lf:user_id']) \
+						if access.get('lf:user_id') else None
+				group_id = int(access['lf:group_id']) \
+						if access.get('lf:group_id') else None
+				read_access  = 1 if access.get('lf:read_access') else 0
+				write_access = 1 if access.get('lf:write_access') else 0
+				sqldata.append( ( id, media_id, series_id, user_id, group_id,
+					read_access, write_access ) )
 			except KeyError:
 				return 'Invalid group data', 400
 
 	affected_rows = 0
 	try:
-		affected_rows = cur.executemany('''insert into lf_group
-			(id, name) values (%s, %s) 
-			on duplicate key update name=values(name) ''', sqldata )
+		affected_rows = cur.executemany('''insert into lf_access
+			(id, media_id, series_id, group_id, user_id, read_access, write_access)
+			values (%s,%s,%s,%s,%s,%s,%s) 
+			on duplicate key update media_id=values(media_id),
+				series_id=values(series_id), user_id=values(user_id),
+				group_id=values(group_id), read_access=values(read_access),
+				write_access=values(write_access) ''', sqldata )
 	except IntegrityError as e:
 		return str(e), 409
 	db.commit()
