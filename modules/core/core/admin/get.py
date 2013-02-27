@@ -885,3 +885,86 @@ def admin_user(user_id=None):
 			['application/xml', 'application/json']) == 'application/json':
 		return jsonify(result=result, resultcount=result_count)
 	return xmlify(result=result, resultcount=result_count)
+
+
+
+@app.route('/admin/access/')
+@app.route('/admin/access/media/')
+@app.route('/admin/access/series/')
+@app.route('/admin/access/media/<uuid:media_id>')
+@app.route('/admin/access/series/<uuid:series_id>')
+def admin_group(media_id=None, series_id=None):
+	'''This method provides access to all defined access rights, defined in the
+	Lernfunk database. You have to authenticate yourself as an administrator to
+	access this data.
+
+	Keyword arguments:
+	media_id  -- Show access to a specific media.
+	series_id -- Show access to a specific series.
+
+	GET parameter:
+	limit  -- Maximum amount of results to return (default: 10)
+	offset -- Offset of results to return (default: 0)
+	'''
+
+	# Check for authentication as admin.
+	# Neither normal user nor editors may read access rights.
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Authentication as admin failed', 403
+	except KeyError as e:
+		return str(e), 401
+
+	limit            = to_int(request.args.get('limit',  '10'), 10)
+	offset           = to_int(request.args.get('offset',  '0'),  0)
+
+	db = get_db()
+	cur = db.cursor()
+	query = '''select id, bin2uuid(media_id), bin2uuid(series_id),
+		group_id, user_id, read_access, write_access
+		from lf_access '''
+	count_query = 'select count(id) from lf_access '
+	query_condition = ''
+
+	if media_id:
+		query_condition = "where media_id = x'%s' " % media_id.hex
+	elif series_id:
+		query_condition = "where series_id = x'%s' " % series_id.hex
+	elif 'media' in request.path:
+		query_condition = 'where not isnull(media_id) '
+	elif 'series' in request.path:
+		query_condition = 'where not isnull(series_id) '
+
+	query       += query_condition
+	count_query += query_condition
+
+	# Add limit and offset
+	query += 'limit %s, %s ' % ( offset, limit )
+
+	# Get amount of results
+	cur.execute( count_query )
+	result_count = cur.fetchone()[0]
+
+	# Get data
+	cur.execute( query )
+	result = []
+
+	# For each file we get
+	for id, media_id, series_id, group_id, user_id, \
+			read_access, write_access in cur.fetchall():
+		a = {}
+		a['dc:identifier']   = id
+		a['lf:media_id']     = media_id
+		a['lf:series_id']    = series_id
+		a['lf:group_id']     = group_id
+		a['lf:user_id']      = user_id
+		a['lf:read_access']  = read_access
+		a['lf:write_access'] = write_access
+		result.append( a )
+
+	result = { 'lf:access' : result }
+
+	if request.accept_mimetypes.best_match(
+			['application/xml', 'application/json']) == 'application/json':
+		return jsonify(result=result, resultcount=result_count)
+	return xmlify(result=result, resultcount=result_count)
