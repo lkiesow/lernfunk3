@@ -1865,25 +1865,30 @@ def admin_access_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		data = parseString(data)
-		return 'Not yet implemented', 500
-		'''
 		try:
-			for group in data.getElementsByTagName( 'lf:groups' ):
-				try:
-					id = int(group.getElementsByTagName('dc:identifier')[0]\
-							.childNodes[0].data)
-				except IndexError:
-					id = None
-				if id in restricted_ids.keys():
-					return 'Cannot modify fixed group "%s"' % restricted_ids[id], 400
-				name = group.getElementsByTagName('lf:name')[0].childNodes[0].data
-				if name in ['admin', 'editor', 'public']:
-					return 'Cannot create fixed group "%s"' % name, 400
-				sqldata.append( ( id, name ) )
-		except (AttributeError, IndexError, ValueError):
+			data = parseString(data)
+			for access in data.getElementsByTagNameNS(XML_NS_LF, 'access'):
+				id       = xml_get_text(access, 'dc:identifier')
+				if not id is None:
+					id = int(id)
+				media_id = xml_get_text(access, 'lf:media_id')
+				if not media_id is None:
+					media_id = uuid.UUID(media_id)
+				series_id = xml_get_text(access, 'lf:series_id')
+				if not series_id is None:
+					series_id = uuid.UUID(series_id)
+				user_id  = xml_get_text(access, 'lf:user_id')
+				if not user_id is None:
+					user_id = int(user_id)
+				group_id = xml_get_text(access, 'lf:group_id')
+				if not group_id is None:
+					group_id = int(group_id)
+				read_access  = is_true(xml_get_text(access, 'lf:read_access' ))
+				write_access = is_true(xml_get_text(access, 'lf:write_access'))
+
+				sqldata.append( u )
+		except:
 			return 'Invalid group data', 400
-		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -1955,9 +1960,8 @@ def admin_series_media_put(series_id, version=None):
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
-		<lf:access>
-			…
-		</lf:access>
+		<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
+		<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -1998,32 +2002,15 @@ def admin_series_media_put(series_id, version=None):
 		type = request.content_type
 	if not type in ['application/xml', 'application/json']:
 		return 'Invalid data type: %s' % type, 400
-		
-	# Request data
-	db = get_db()
-	cur = db.cursor()
 
 	sqldata = []
 	if type == 'application/xml':
 		data = parseString(data)
-		return 'Not yet implemented', 500
-		'''
 		try:
-			for group in data.getElementsByTagName( 'lf:groups' ):
-				try:
-					id = int(group.getElementsByTagName('dc:identifier')[0]\
-							.childNodes[0].data)
-				except IndexError:
-					id = None
-				if id in restricted_ids.keys():
-					return 'Cannot modify fixed group "%s"' % restricted_ids[id], 400
-				name = group.getElementsByTagName('lf:name')[0].childNodes[0].data
-				if name in ['admin', 'editor', 'public']:
-					return 'Cannot create fixed group "%s"' % name, 400
-				sqldata.append( ( id, name ) )
+			sqldata = [ uuid.UUID(id.childNodes[0].data) \
+					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
-		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -2035,9 +2022,14 @@ def admin_series_media_put(series_id, version=None):
 			sqldata = [ uuid.UUID(id) for id in data['lf:media_id'] ]
 		except KeyError:
 			return 'Invalid data', 400
+		
+	# Request data
+	db = get_db()
+	cur = db.cursor()
 
 	affected_rows = 0
 	try:
+		# First: Create new version of series
 		cur.execute('''select id, version, parent_version, title, language,
 			description, source, timestamp_edit, timestamp_created, published,
 			owner, editor, visible, source_key, source_system from %s 
@@ -2050,22 +2042,24 @@ def admin_series_media_put(series_id, version=None):
 				visible, source_key, source_system ) = cur.fetchone()
 		cur.execute('''select max(version) from lf_series 
 				where id = x'%s' ''' % series_id.hex )
-		(latest_version,) = cur.fetchone()
+		(new_version,) = cur.fetchone()
+		new_version += 1
 		cur.execute('''insert into lf_series (id, version, parent_version, title,
 				language, description, source, timestamp_created, published, owner,
 				editor, visible, source_key, source_system)
 				values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
-				( id, latest_version+1, version, title, language, description,
+				( id, new_version, version, title, language, description,
 					source, timestamp_created, published, owner, editor, visible,
 					source_key, source_system ))
 		
-		affected_rows = cur.executemany('''insert into lf_access
-			(id, media_id, series_id, group_id, user_id, read_access, write_access)
-			values (%s,%s,%s,%s,%s,%s,%s) 
-			on duplicate key update media_id=values(media_id),
-				series_id=values(series_id), user_id=values(user_id),
-				group_id=values(group_id), read_access=values(read_access),
-				write_access=values(write_access) ''', sqldata )
+		# Second: Connect media to new series
+		insertdata = []
+		for media_id in sqldata:
+			insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
+
+		affected_rows = cur.executemany('''insert into lf_media_series
+			(series_id, media_id, series_version) values (%s,%s,%s) ''', 
+			insertdata )
 	except IntegrityError as e:
 		return str(e), 409
 	db.commit()
