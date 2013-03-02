@@ -1934,8 +1934,8 @@ def admin_access_put():
 
 
 @app.route('/admin/series/<uuid:series_id>/media/', methods=['PUT'])
-@app.route('/admin/series/<uuid:series_id>/media/<uuid:media_id>', methods=['PUT'])
-def admin_series_media_put(series_id, media_id=None):
+@app.route('/admin/series/<uuid:series_id>/<int:version>/media/', methods=['PUT'])
+def admin_series_media_put(series_id, version=None):
 	'''This method provides you with the functionality to connect media and
 	series. Every time the connection between series and media is changed a new
 	series version is created.
@@ -1945,15 +1945,8 @@ def admin_series_media_put(series_id, media_id=None):
 	JSON example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	{
-		"lf:access": [
-		{
-			"lf:media_id"     : "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A",
-			"lf:series_id"    : null,
-			"lf:group_id"     : null,
-			"lf:user_id"      : 1,
-			"lf:read_access"  : 1,
-			"lf:write_access" : 0
-		}
+		"lf:media_id": [
+			"6EB7CD04-7F69-11E2-9DE9-047D7B0F869A"
 		]
 	}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -1970,14 +1963,7 @@ def admin_series_media_put(series_id, media_id=None):
 
 	IMPORTANT NOTICE: If you send JSON/XML data to set up new series media
 	 | connections, the old ones will not be cloned. Thus they should be
-	 | included in the new data if you want to keep them. For a different
-	 | behaviour use the POST method or push the data to
-	 | /admin/series/<uuid:series_id>/media/<uuid:media_id>.
-
-	NOTICE: /admin/series/<uuid:series_id>/media/<uuid:media_id> will not
-	 | replace the old connections but clone them and just add one new. This is
-	 | just a convenient shortcut. Such a method is _not_ available for all REST
-	 | paths.
+	 | included in the new data if you want to keep them.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -1995,36 +1981,29 @@ def admin_series_media_put(series_id, media_id=None):
 	except KeyError as e:
 		return str(e), 401
 
-	if not media_id or request.content_length:
-		# Check content length and reject lange chunks of data 
-		# which would block the server.
-		if request.content_length > app.config['PUT_LIMIT']:
-			return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
-					(request.content_length, app.config['PUT_LIMIT']), 400
+	series_id = uuid.UUID(series_id)
 
-		# Determine content type
-		if request.content_type in _formdata:
-			data = request.form['data']
-			type = request.form['type']
-		else:
-			data = request.data
-			type = request.content_type
-		if not type in ['application/xml', 'application/json']:
-			return 'Invalid data type: %s' % type, 400
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in _formdata:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
 		
 	# Request data
 	db = get_db()
 	cur = db.cursor()
 
 	sqldata = []
-	if not request.content_length and media_id:
-		sqldata.append( media_id )
-		cur.execute('''select media_id from lf_media_series 
-				where series_id = x'%(sid)s' and series_version = 
-				(select max(version) from lf_series where id = x'%(sid)s') ''' % \
-						{ 'sid' : series_id.hex })
-		for mid, in cur.fetchall():
-			sqldata.append( mid )
 	if type == 'application/xml':
 		data = parseString(data)
 		return 'Not yet implemented', 500
@@ -2053,30 +2032,33 @@ def admin_series_media_put(series_id, media_id=None):
 			return e.message, 400
 		# Get array of new data
 		try:
-			data = data['lf:access']
+			sqldata = [ uuid.UUID(id) for id in data['lf:media_id'] ]
 		except KeyError:
-			# Assume that there is only one dataset
-			data = [data]
-		for access in data:
-			try:
-				id = int(access['dc:identifier']) if access.get('dc:identifier') else None
-				media_id = uuid.UUID(access['lf:media_id']) \
-						if access.get('lf:media_id') else None
-				series_id = uuid.UUID(access['lf:series_id']) \
-						if access.get('lf:series_id') else None
-				user_id = int(access['lf:user_id']) \
-						if access.get('lf:user_id') else None
-				group_id = int(access['lf:group_id']) \
-						if access.get('lf:group_id') else None
-				read_access  = 1 if access.get('lf:read_access') else 0
-				write_access = 1 if access.get('lf:write_access') else 0
-				sqldata.append( ( id, media_id, series_id, user_id, group_id,
-					read_access, write_access ) )
-			except KeyError:
-				return 'Invalid group data', 400
+			return 'Invalid data', 400
 
 	affected_rows = 0
 	try:
+		cur.execute('''select id, version, parent_version, title, language,
+			description, source, timestamp_edit, timestamp_created, published,
+			owner, editor, visible, source_key, source_system from %s 
+			where id = x'%s' %s''' % \
+					('lf_series', series_id.hex, 'and version = %i ' % version) \
+					if not version is None else \
+					('lf_latest_series', series_id.hex, ''))
+		( id, version, parent_version, title, language, description, source,
+				timestamp_edit, timestamp_created, published, owner, editor,
+				visible, source_key, source_system ) = cur.fetchone()
+		cur.execute('''select max(version) from lf_series 
+				where id = x'%s' ''' % series_id.hex )
+		(latest_version,) = cur.fetchone()
+		cur.execute('''insert into lf_series (id, version, parent_version, title,
+				language, description, source, timestamp_created, published, owner,
+				editor, visible, source_key, source_system)
+				values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
+				( id, latest_version+1, version, title, language, description,
+					source, timestamp_created, published, owner, editor, visible,
+					source_key, source_system ))
+		
 		affected_rows = cur.executemany('''insert into lf_access
 			(id, media_id, series_id, group_id, user_id, read_access, write_access)
 			values (%s,%s,%s,%s,%s,%s,%s) 
