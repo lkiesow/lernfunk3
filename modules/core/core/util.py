@@ -121,7 +121,9 @@ def is_true( val ):
 	Keyword arguments:
 	val -- Value to check
 	'''
-	return val.lower() in ['1', 'yes', 'true']
+	if isinstance(val, basestring):
+		return val.lower() in ('1', 'yes', 'true')
+	return val
 
 
 def xml_get_text(node, name, raiseError=False, namespace=None):
