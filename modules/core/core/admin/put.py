@@ -22,6 +22,9 @@ from xml.dom.minidom import parseString
 import json
 from datetime import datetime
 import email.utils
+from string import printable as printable_chars
+import os
+import hashlib
 
 from flask import request, session, g, redirect, url_for, jsonify
 
@@ -1682,7 +1685,6 @@ def admin_user_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		return 'Not yet implemented', 400
 		data = parseString(data)
 		try:
 			for udata in data.getElementsByTagName( 'lf:user' ):
@@ -1809,43 +1811,14 @@ def admin_user_put():
 	XML example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
-		<lf:group>
-			<lf:name>test</lf:name>
-			<dc:identifier>42</dc:identifier>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
+		<lf:user_password>
+			<lf:user_id>42</lf:user_id>
+			<lf:password>SECRET_PASSWORD</lf:password>
 		</lf:group>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-	The id can be omitted. In that case a new id is generated automatically.
-
-	The access data can be given either as integer or as their string
-	representation. The latter is automatically converted to an integer.
-	Possible values for the access field are:
-		1 : 'public'
-		2 : 'login required'
-		3 : 'editors only'
-		4 : 'administrators only'
-
-	IMPORTANT NOTICE (Passwords):
-	 | Although a password is part of a users data it cannot be set along with
-	 | the rest of the “normal” user data as it more important. If a new user is
-	 | created, the password is set to NULL which means that the user cannot log
-	 | into to system. A password can then be set by using /admin/user/passwd.
-
-	IMPORTANT NOTICE (Username):
-	 | Usernames are as unique as user ids attempting to insert an already
-	 | existing username will fail. Furthermore the username cannot be modified
-	 | afterwards to ensure that one username always identifies the same user.
-	 | Thus all updates will fail if there is a username given which differes
-	 | from the old one.
-
-	IMPORTANT NOTICE (Multiple datasets):
-	 | As with all the other PUT methods this method can be used to insert
-	 | multiple datasets. However, it can only be used to insert multiple
-	 | datasets of _one_ type. This means that if one dataset contains an
-	 | username the data is inserted explicitly as new data and an omitted
-	 | username will result in a failure. The same goes for passwords.
 
 	The data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -1865,7 +1838,7 @@ def admin_user_put():
 
 	# Deny access for public users:
 	if user.name == 'public':
-		return 'You cannot modify your user if you are not logged in', 401
+		return 'You cannot modify your password if you are not logged in', 401
 
 	# Check content length and reject lange chunks of data
 	# which would block the server.
@@ -1874,7 +1847,7 @@ def admin_user_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -1882,25 +1855,11 @@ def admin_user_put():
 		type = request.content_type
 	if not type in ['application/xml', 'application/json']:
 		return 'Invalid data type: %s' % type, 400
-	
-	set_passwd = False
-	is_insert  = False
-
-	# Human readable mapping for user access rights
-	accessmap = {
-			'public' : 1,
-			'login required' : 2,
-			'editors only' : 3,
-			'administrators only' : 4,
-			'1' : 1,
-			'2' : 2,
-			'3' : 3,
-			'4' : 4
-			}
 
 	sqldata = []
 	if type == 'application/xml':
 		return 'Not yet implemented', 400
+		'''
 		data = parseString(data)
 		try:
 			for udata in data.getElementsByTagName( 'lf:user' ):
@@ -1916,6 +1875,7 @@ def admin_user_put():
 				sqldata.append( u )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
+		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -1924,65 +1884,47 @@ def admin_user_put():
 			return e.message, 400
 		# Get array of new data
 		try:
-			data = data['lf:user']
+			data = data['lf:user_password']
 		except KeyError:
 			# Assume that there is only one dataset
 			data = [data]
 		for udata in data:
 			try:
 				u = {}
-				u['id']       = int(udata['dc:identifier']) \
-						if udata.get('dc:identifier') else None
-				u['name']     = udata['lf:name']
-				u['access']   = accessmap[udata['lf:access']]
-				u['realname'] = udata.get('lf:realname')
-				u['vcard']    = udata.get('lf:vcard_uri')
-				u['email']    = udata.get('lf:email')
+				u['user_id']  = int(udata['lf:user_id'])
+				u['password'] = udata.get('lf:password')
 				sqldata.append( u )
 			except (KeyError, ValueError):
-				return 'Invalid group data', 400
+				return 'Invalid password data', 400
 
-	# Check data
-	for udata in sqldata:
-		if not user.is_admin() and udata['id'] != user.id:
-			return 'You have to be admin to modify another user', 400
-		if udata['name'] in ['admin', 'public']:
-			return 'Cannot create fixed group "%s"' % udata['name'], 400
-		if not ( udata['email'] is None or '@' in udata['email'] ):
-			return 'Invalid email address “%s”' % udata['email'], 400
-		if not username_regex_full.match(udata['name']):
-			return 'Invalid username “%s”' % udata['name'], 400
+	# Check and prepare data
+	import hashlib
+	h = hashlib.sha512()
+	sqldata_ready = []
+	for data in sqldata:
+		if not user.is_admin() and data['user_id'] != user.id:
+			return 'Only admins are allowed to edit other peoples accounts', 401
+		# Generate salt
+		salt = None
+		password = None
+		if not data['password'] is None:
+			salt = ''
+			for c in os.urandom(32):
+				c = ord(c) % len(printable_chars)
+				salt += printable_chars[c]
+			h.update( data['password'] + salt )
+			password = h.digest()
+		sqldata_ready.append( ( salt, password, data['user_id'] ) )
 
 	# Request data
 	db = get_db()
 	cur = db.cursor()
 
-	result = []
+	affected_rows = 0
 	try:
-		# check username
-		for udata in sqldata:
-			# Check if id has another username:
-			cur.execute('''select id from lf_user 
-					where ( id = %(id)i and name != "%(name)s" ) 
-					or ( name = "%(name)s" and id != %(id)i ) ''' %
-					{ 'id':udata['id'], 'name':udata['name'] } )
-			if cur.fetchone():
-				db.rollback()
-				cur.close()
-				return 'You cannot change a username', 400
-
-			cur.execute('''insert into lf_user
-				(id, name, vcard_uri, realname, email, access)
-				values (%s, %s, %s, %s, %s, %s)
-				on duplicate key update id=LAST_INSERT_ID(id), 
-					vcard_uri=values(vcard_uri), realname=values(realname),
-					email=values(realname), access=values(access) ''',
-					( udata['id'], udata['name'], udata['vcard'], udata['realname'],
-					udata['email'], udata['access'] ) )
-			
-			cur.execute('''select id from lf_user where name = %s''', udata['name'])
-			(id,) = cur.fetchone()
-			result.append( {'id':id, 'name':udata['name']} )
+		cur.executemany('''update lf_user
+				set salt=%s, passwd=%s
+				where id=%s''', sqldata_ready )
 
 	except MySQLdbError as e:
 		db.rollback()
@@ -1992,11 +1934,10 @@ def admin_user_put():
 	# We will never reach this in case of a failure.
 	db.commit()
 	cur.close()
-	result = { 'lf:created_user' : result }
-	if request.accept_mimetypes.best_match(
-			['application/xml', 'application/json']) == 'application/json':
-		return jsonify(result=result)
-	return xmlify(result=result)
+
+	if affected_rows:
+		return '', 201
+	return '', 200
 				
 
 
