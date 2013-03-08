@@ -2334,6 +2334,110 @@ def admin_user_group_put():
 
 
 
+@app.route('/admin/user/organization/', methods=['PUT'])
+def admin_user_organization_put():
+	'''This method provides you with the functionality to assign user to
+	organizations. Only administrators are allowed to do this.
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:user_organization": [{
+			"lf:user_id" : 42,
+			"lf:organization_id" : 42
+		}]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
+		<lf:user_organization>
+			<lf:user_id>42</lf:user_id>
+			<lf:organization_id>42</lf:organization_id>
+		</lf:user_organization>
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	# Check authentication. 
+	try:
+		if not get_authorization( request.authorization ).is_admin():
+			return 'Only admins are allowed to add user to a group', 401
+	except KeyError as e:
+		return str(e), 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in _formdata:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+
+	sqldata = []
+	if type == 'application/xml':
+		return 'Not yet implemented', 500
+		'''
+		data = parseString(data)
+		try:
+			sqldata = [ uuid.UUID(id.childNodes[0].data) \
+					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+		except (AttributeError, IndexError, ValueError):
+			return 'Invalid group data', 400
+		'''
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new data
+		try:
+			sqldata = [ ( int(uo['lf:user_id']), int(uo['lf:organization_id']) ) \
+					for uo in data['lf:user_organization'] ]
+		except (KeyError, ValueError):
+			return 'Invalid data', 400
+		
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	affected_rows = 0
+	try:
+		# We use INSERT IGNORE here as we do not need to update anything if the
+		# pair of keys already exists.
+		affected_rows = cur.executemany('''insert ignore into 
+			lf_user_organization (user_id, organization_id)
+			values (%s,%s) ''', sqldata )
+	except IntegrityError as e:
+		return str(e), 409
+	db.commit()
+
+	if affected_rows:
+		return '', 201
+	return '', 200
+
+
+
 #@app.route('/admin/media/<uuid:media_id>/subject/', methods=['DELETE'])
 #@app.route('/admin/series/<uuid:series_id>/subject/', methods=['DELETE'])
-#@app.route('/admin/user/<int:user_id>/organization/', methods=['DELETE'])
