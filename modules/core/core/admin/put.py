@@ -2230,18 +2230,19 @@ def admin_series_media_put(series_id, version=None):
 
 
 
-@app.route('/admin/user/<int:user_id>/group/', methods=['PUT'])
-def admin_user_group_put(series_id, version=None):
+@app.route('/admin/user/group/', methods=['PUT'])
+def admin_user_group_put():
 	'''This method provides you with the functionality to connect user and
-	groups.  Only administrators are allowed to add a user to some group.
+	groups. Only administrators are allowed to do this.
 
 	The data can either be JSON or XML. 
 	JSON example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	{
-		"lf:media_id": [
-			"6EB7CD04-7F69-11E2-9DE9-047D7B0F869A"
-		]
+		"lf:user_group": [{
+			"lf:user_id" : 42,
+			"lf:group_id" : 42
+		}]
 	}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -2250,14 +2251,12 @@ def admin_user_group_put(series_id, version=None):
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 			xmlns:lf="http://lernfunk.de/terms">
-		<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
-		<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
+		<lf:user_group>
+			<lf:user_id>42</lf:user_id>
+			<lf:group_id>42</lf:group_id>
+		</lf:user_group>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-	IMPORTANT NOTICE: If you send JSON/XML data to set up new series media
-	 | connections, the old ones will not be cloned. Thus they should be
-	 | included in the new data if you want to keep them.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -2271,11 +2270,9 @@ def admin_user_group_put(series_id, version=None):
 	# Check authentication. 
 	try:
 		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to create/modify groups', 401
+			return 'Only admins are allowed to add user to a group', 401
 	except KeyError as e:
 		return str(e), 401
-
-	series_id = uuid.UUID(series_id)
 
 	# Check content length and reject lange chunks of data 
 	# which would block the server.
@@ -2295,12 +2292,15 @@ def admin_user_group_put(series_id, version=None):
 
 	sqldata = []
 	if type == 'application/xml':
+		return 'Not yet implemented', 500
+		'''
 		data = parseString(data)
 		try:
 			sqldata = [ uuid.UUID(id.childNodes[0].data) \
 					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
+		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -2309,8 +2309,9 @@ def admin_user_group_put(series_id, version=None):
 			return e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ uuid.UUID(id) for id in data['lf:media_id'] ]
-		except KeyError:
+			sqldata = [ ( int(ug['lf:user_id']), int(ug['lf:group_id']) ) \
+					for ug in data['lf:user_group'] ]
+		except (KeyError, ValueError):
 			return 'Invalid data', 400
 		
 	# Request data
@@ -2319,37 +2320,10 @@ def admin_user_group_put(series_id, version=None):
 
 	affected_rows = 0
 	try:
-		# First: Create new version of series
-		cur.execute('''select id, version, parent_version, title, language,
-			description, source, timestamp_edit, timestamp_created, published,
-			owner, editor, visible, source_key, source_system from %s 
-			where id = x'%s' %s''' % \
-					('lf_series', series_id.hex, 'and version = %i ' % version) \
-					if not version is None else \
-					('lf_latest_series', series_id.hex, ''))
-		( id, version, parent_version, title, language, description, source,
-				timestamp_edit, timestamp_created, published, owner, editor,
-				visible, source_key, source_system ) = cur.fetchone()
-		cur.execute('''select max(version) from lf_series 
-				where id = x'%s' ''' % series_id.hex )
-		(new_version,) = cur.fetchone()
-		new_version += 1
-		cur.execute('''insert into lf_series (id, version, parent_version, title,
-				language, description, source, timestamp_created, published, owner,
-				editor, visible, source_key, source_system)
-				values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
-				( id, new_version, version, title, language, description,
-					source, timestamp_created, published, owner, editor, visible,
-					source_key, source_system ))
-		
-		# Second: Connect media to new series
-		insertdata = []
-		for media_id in sqldata:
-			insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
-
-		affected_rows = cur.executemany('''insert into lf_media_series
-			(series_id, media_id, series_version) values (%s,%s,%s) ''', 
-			insertdata )
+		# We use INSERT IGNORE here as we do not need to update anything if the
+		# pair of keys already exists.
+		affected_rows = cur.executemany('''insert ignore into lf_user_group
+			(user_id, group_id) values (%s,%s) ''', sqldata )
 	except IntegrityError as e:
 		return str(e), 409
 	db.commit()
