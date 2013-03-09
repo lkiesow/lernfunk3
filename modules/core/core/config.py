@@ -19,3 +19,6 @@ SECRET_KEY = 'development key'
 # exceeded a 400 Bad Request is returned.
 PUT_LIMIT = 50000
 POST_LIMIT = 50000
+
+# Default language which will be used for suggestions.
+DEFAULT_LANGUAGE = 'de'
