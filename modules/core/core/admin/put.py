@@ -150,7 +150,7 @@ def admin_media_put():
 				m['language']       = xml_get_text(media, 'dc:language', True)
 				m['owner']          = xml_get_text(media, 'lf:owner')
 				m['parent_version'] = xml_get_text(media, 'lf:parent_version')
-				m['published']      = 1 if xml_get_text(media, 'lf:published', True) else 0
+				m['published']      = 1 if xml_get_text(media,'lf:published',True) else 0
 				m['relation']       = xml_get_text(media, 'dc:relation')
 				m['rights']         = xml_get_text(media, 'dc:rights')
 				m['source']         = xml_get_text(media, 'source')
@@ -2449,8 +2449,10 @@ def admin_media_subject_put():
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	{
 		"lf:media_subject": [{
-			"lf:media_id" : 42,
-			"lf:subject" : 42
+			"lf:media_id"  : "aaaaaaaa-6adc-11e2-8b4e-047d7b0f8",
+			"lf:subject_id": 42,
+			"lf:subject"   : "Computer Science",
+			"dc:language"  : "en"
 		}]
 	}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -2460,12 +2462,17 @@ def admin_media_subject_put():
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 			xmlns:lf="http://lernfunk.de/terms">
-		<lf:user_organization>
-			<lf:user_id>42</lf:user_id>
-			<lf:organization_id>42</lf:organization_id>
-		</lf:user_organization>
+		<lf:media_subject>
+			<lf:media_id>aaaaaaaa-6adc-11e2-8b4e-047d7b0f8</lf:media_id>
+			<lf:subject_id>42</lf:subject_id>
+		</lf:media_subject>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	IMPORTANT NOTICE: Either lf:subject_id or lf:subject can be used. Not both.
+	 | If both fields are present lf:subject will be ignored. That is, because
+	 | using lf:subject_id is faster and will produce less load for database and
+	 | webservice.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -2478,8 +2485,7 @@ def admin_media_subject_put():
 
 	# Check authentication. 
 	try:
-		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to add user to a group', 401
+		user = get_authorization( request.authorization )
 	except KeyError as e:
 		return str(e), 401
 
@@ -2498,6 +2504,22 @@ def admin_media_subject_put():
 		type = request.content_type
 	if not type in ['application/xml', 'application/json']:
 		return 'Invalid data type: %s' % type, 400
+
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	# If the user is no editor (or admin) we want to know which objects he is
+	# allowed to modify. In any case, he is not allowed to add new data.
+	access = []
+	if not user.is_editor():
+		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
+				if user.groups else ''
+		q = '''select media_id from lf_access 
+				where ( user_id = %i %s) and media_id
+				and write_access ''' % ( user.id, groups )
+		cur.execute( q )
+		access = [ media_id for media_id, in cur.fetchall() ]
 
 	sqldata = []
 	if type == 'application/xml':
@@ -2518,23 +2540,53 @@ def admin_media_subject_put():
 			return e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ ( int(uo['lf:user_id']), int(uo['lf:organization_id']) ) \
-					for uo in data['lf:user_organization'] ]
+			sqldata = [ ( 
+					uuid.UUID(ms['lf:media_id']),
+					ms.get('lf:subject_id'),
+					ms.get('lf:subject'),
+					ms.get('dc:language')
+					) for ms in data['lf:user_organization'] ]
 		except (KeyError, ValueError):
 			return 'Invalid data', 400
 		
-	# Request data
-	db = get_db()
-	cur = db.cursor()
-
-	affected_rows = 0
+	# Check data and permissions
+	sqldata_ready = []
 	try:
+		for ( media_id, subject_id, subject, lang ) in sqldata:
+			if not user.is_editor() and not media_id.bytes in access:
+				db.rollback()
+				cur.close()
+				return 'You are not allowed to modify this media', 401
+			if subject_id is None:
+				if subject is None:
+					db.rollback()
+					cur.close()
+					return 'No subject data specified', 400
+				if lang is None:
+					db.rollback()
+					cur.close()
+					return 'No language for subject specified', 400
+				# Get subject_id from database
+				cur.execute('''select id from lf_subject
+					where language=%s and name=%s ''', (lang, subject) )
+				subject_id = cur.fetchone()
+				if not subject_id:
+					cur.execute('''insert into lf_subject
+						(language, name) values (%s, %s) ''', (lang, subject))
+					cur.execute('''select last_insert_id() ''')
+					subject_id = cur.fetchone()
+				subject_id, = subject_id
+			sqldata_ready.append( (subject_id, media_id.bytes) )
+
+		affected_rows = 0
 		# We use INSERT IGNORE here as we do not need to update anything if the
 		# pair of keys already exists.
 		affected_rows = cur.executemany('''insert ignore into 
-			lf_user_organization (user_id, organization_id)
-			values (%s,%s) ''', sqldata )
-	except IntegrityError as e:
+			lf_media_subject (subject_id, media_id)
+			values (%s,%s) ''', sqldata_ready )
+	except MySQLdbError as e:
+		db.rollback()
+		cur.close()
 		return str(e), 409
 	db.commit()
 
