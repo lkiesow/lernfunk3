@@ -1190,39 +1190,19 @@ def admin_file_put():
 			for file in data.getElementsByTagName( 'lf:file' ):
 				d = {}
 				try:
-					d['id'] = uuid.UUID(file.getElementsByTagName('dc:identifier')[0]\
-							.childNodes[0].data).bytes
-				except (AttributeError, IndexError):
+					d['id'] = uuid.UUID(xml_get_text(file,'dc:identifier')).bytes
+				except (AttributeError, IndexError, TypeError):
 					pass
-				d['media_id'] = uuid.UUID(file.getElementsByTagName('lf:media_id')[0]\
-						.childNodes[0].data).bytes
-				d['format'] = file.getElementsByTagName('dc:format')[0].childNodes[0].data
-				try:
-					d['quality'] = file.getElementsByTagName('lf:quality')[0].childNodes[0].data
-				except IndexError:
-					pass
-				try:
-					d['source'] = file.getElementsByTagName('lf:source')[0].childNodes[0].data
-				except IndexError:
-					pass
-				try:
-					d['source_system'] = file.getElementsByTagName('lf:source_system')[0]\
-							.childNodes[0].data
-				except IndexError:
-					pass
-				try:
-					d['source_key'] = file.getElementsByTagName('lf:source_key')[0]\
-							.childNodes[0].data
-				except IndexError:
-					pass
-				try:
-					d['type'] = file.getElementsByTagName('lf:type')[0].childNodes[0].data
-				except IndexError:
-					pass
-				try:
-					d['uri'] = file.getElementsByTagName('lf:uri')[0].childNodes[0].data
-				except IndexError:
-					d['server_id'] = file.getElementsByTagName('lf:server_id')[0].childNodes[0].data
+				d['media_id']      = uuid.UUID(xml_get_text(file,'lf:media_id')).bytes
+				d['format']        = xml_get_text(file,'dc:format',True)
+				d['quality']       = xml_get_text(file,'lf:quality')
+				d['source']        = xml_get_text(file,'lf:source')
+				d['source_system'] = xml_get_text(file,'lf:source_system')
+				d['source_key']    = xml_get_text(file,'lf:source_key')
+				d['type']          = xml_get_text(file,'lf:type')
+				d['uri']           = xml_get_text(file,'lf:uri')
+				if not d.get('uri'):
+					d['server_id'] = xml_get_text(file,'lf:server_id',True)
 				sqldata.append( ( d.get('id'), d['media_id'], 
 					d['format'], d.get('type'), d.get('quality'), d.get('server_id'),
 					d.get('uri'), d.get('source'), d.get('source_system'), 
@@ -1322,7 +1302,8 @@ def admin_organization_put():
 	XML example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
 		<lf:organization>
 			<lf:name>Universität Osnabrück</lf:name>
 			<dc:identifier>1</dc:identifier>
@@ -1356,7 +1337,7 @@ def admin_organization_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -1373,21 +1354,14 @@ def admin_organization_put():
 		data = parseString(data)
 		try:
 			for org in data.getElementsByTagName( 'lf:organization' ):
-				try:
-					id = int(org.getElementsByTagName('dc:identifier')[0]\
-							.childNodes[0].data)
-				except IndexError:
-					id = None
-				try:
-					parent_id = int(org.getElementsByTagName('lf:parent_organization_id')[0]\
-							.childNodes[0].data)
-				except IndexError:
-					parent_id = None
-				try:
-					vcard_uri = org.getElementsByTagName('lf:vcard_uri')[0].childNodes[0].data
-				except IndexError:
-					vcard_uri = None
-				name = org.getElementsByTagName('lf:name')[0].childNodes[0].data
+				id = xml_get_text(org, 'dc:identifier')
+				if not id is None:
+					id = int(id)
+				parent_id = xml_get_text(org,'lf:parent_organization_id')
+				if not parent_id is None:
+					parent_id = int(parent_id)
+				vcard_uri = xml_get_text(org,'lf:vcard_uri')
+				name = xml_get_text(org,'lf:name')
 				sqldata.append( ( id, name, vcard_uri, parent_id ) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid organization data', 400
@@ -1457,7 +1431,8 @@ def admin_group_put():
 	XML example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
 		<lf:group>
 			<lf:name>test</lf:name>
 			<dc:identifier>42</dc:identifier>
@@ -1490,7 +1465,7 @@ def admin_group_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -1594,7 +1569,8 @@ def admin_user_put():
 	XML example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
 		<lf:group>
 			<lf:name>test</lf:name>
 			<dc:identifier>42</dc:identifier>
@@ -1659,7 +1635,7 @@ def admin_user_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -1689,14 +1665,14 @@ def admin_user_put():
 		try:
 			for udata in data.getElementsByTagName( 'lf:user' ):
 				u = {}
-				u['id']       = xml_get_text(media, 'dc:coverage')
+				u['id']       = xml_get_text(udata, 'dc:coverage')
 				if u['id']:
 					u['id'] = int(u['id'])
-				u['name']       = xml_get_text(media, 'lf:name', True)
-				u['access']     = accessmap[xml_get_text(media, 'lf:access')]
-				u['realname']   = xml_get_text(media, 'lf:realname')
-				u['vcard']      = xml_get_text(media, 'lf:vcard_uri')
-				u['email']      = xml_get_text(media, 'lf:email')
+				u['name']       = xml_get_text(udata, 'lf:name', True)
+				u['access']     = accessmap[xml_get_text(udata, 'lf:access')]
+				u['realname']   = xml_get_text(udata, 'lf:realname')
+				u['vcard']      = xml_get_text(udata, 'lf:vcard_uri')
+				u['email']      = xml_get_text(udata, 'lf:email')
 				sqldata.append( u )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
@@ -1858,24 +1834,15 @@ def admin_user_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		return 'Not yet implemented', 400
-		'''
 		data = parseString(data)
 		try:
-			for udata in data.getElementsByTagName( 'lf:user' ):
+			for up in data.getElementsByTagName( 'lf:user_password' ):
 				u = {}
-				u['id']       = xml_get_text(media, 'dc:coverage')
-				if u['id']:
-					u['id'] = int(u['id'])
-				u['name']       = xml_get_text(media, 'lf:name', True)
-				u['access']     = accessmap[xml_get_text(media, 'lf:access')]
-				u['realname']   = xml_get_text(media, 'lf:realname')
-				u['vcard']      = xml_get_text(media, 'lf:vcard_uri')
-				u['email']      = xml_get_text(media, 'lf:email')
+				u['user_id']  = int(xml_get_text(up, 'lf:user_id'))
+				u['password'] = xml_get_text(up, 'lf:password')
 				sqldata.append( u )
 		except (AttributeError, IndexError, ValueError):
-			return 'Invalid group data', 400
-		'''
+			return 'Invalid data', 400
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -2062,7 +2029,8 @@ def admin_access_put():
 			data = [data]
 		for access in data:
 			try:
-				id = int(access['dc:identifier']) if access.get('dc:identifier') else None
+				id = int(access['dc:identifier']) \
+						if access.get('dc:identifier') else None
 				media_id = uuid.UUID(access['lf:media_id']) \
 						if access.get('lf:media_id') else None
 				series_id = uuid.UUID(access['lf:series_id']) \
@@ -2292,15 +2260,14 @@ def admin_user_group_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		return 'Not yet implemented', 500
-		'''
 		data = parseString(data)
 		try:
-			sqldata = [ uuid.UUID(id.childNodes[0].data) \
-					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+			for ug in data.getElementsByTagName('lf:user_group'):
+				user_id  = int(xml_get_text(ug, 'lf:user_id'))
+				group_id = int(xml_get_text(ug, 'lf:group_id'))
+				sqldata.append((user_id,group_id))
 		except (AttributeError, IndexError, ValueError):
-			return 'Invalid group data', 400
-		'''
+			return 'Invalid data', 400
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -2396,15 +2363,14 @@ def admin_user_organization_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		return 'Not yet implemented', 500
-		'''
 		data = parseString(data)
 		try:
-			sqldata = [ uuid.UUID(id.childNodes[0].data) \
-					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+			for uo in data.getElementsByTagName('lf:user_organization'):
+				user_id = int(xml_get_text(uo, 'lf:user_id'))
+				org_id  = int(xml_get_text(uo, 'lf:organization_id'))
+				sqldata.append((user_id,org_id))
 		except (AttributeError, IndexError, ValueError):
-			return 'Invalid group data', 400
-		'''
+			return 'Invalid data', 400
 	elif type == 'application/json':
 		# Parse JSON
 		try:
@@ -2523,15 +2489,16 @@ def admin_media_subject_put():
 
 	sqldata = []
 	if type == 'application/xml':
-		return 'Not yet implemented', 500
-		'''
 		data = parseString(data)
 		try:
-			sqldata = [ uuid.UUID(id.childNodes[0].data) \
-					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+			for ms in data.getElementsByTagName( 'lf:media_subject' ):
+				media_id   = uuid.UUID(xml_get_text(ms, 'lf:media_id'))
+				subject_id = xml_get_text(ms, 'lf:subject_id')
+				subject    = xml_get_text(ms, 'lf:subject')
+				language   = xml_get_text(ms, 'dc:language')
+				sqldata.append(( media_id, subject_id, subject, language ))
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
-		'''
 	elif type == 'application/json':
 		# Parse JSON
 		try:
