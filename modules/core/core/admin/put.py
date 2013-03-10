@@ -2408,7 +2408,7 @@ def admin_user_organization_put():
 @app.route('/admin/media/subject/', methods=['PUT'])
 def admin_media_subject_put():
 	'''This method provides you with the functionality to assign subjects to
-	media. Only administrators are allowed to do this.
+	media.
 
 	The data can either be JSON or XML. 
 	JSON example:
@@ -2563,4 +2563,157 @@ def admin_media_subject_put():
 
 
 
-#@app.route('/admin/series/<uuid:series_id>/subject/', methods=['DELETE'])
+@app.route('/admin/series/subject/', methods=['PUT'])
+def admin_series_subject_put():
+	'''This method allows you to assign subjects to series.
+
+	The data can either be JSON or XML. 
+	JSON example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:series_subject": [{
+			"lf:series_id"  : "aaaaaaaa-6adc-11e2-8b4e-047d7b0f8",
+			"lf:subject_id": 42,
+			"lf:subject"   : "Computer Science",
+			"dc:language"  : "en"
+		}]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	XML example:
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
+		<lf:series_subject>
+			<lf:series_id>aaaaaaaa-6adc-11e2-8b4e-047d7b0f8</lf:series_id>
+			<lf:subject_id>42</lf:subject_id>
+		</lf:series_subject>
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	IMPORTANT NOTICE: Either lf:subject_id or lf:subject can be used. Not both.
+	 | If both fields are present lf:subject will be ignored. That is, because
+	 | using lf:subject_id is faster and will produce less load for database and
+	 | webservice. If lf:subject is used there must also be a language.
+
+	This data should fill the whole body and the content type should be set
+	accordingly (“application/json” or “application/xml”). You can however also
+	send data with the mimetypes “application/x-www-form-urlencoded” or
+	“multipart/form-data” (For example if you want to use HTML forms). In this
+	case the data is expected to be in a field called data and the correct
+	content type of the data is expected to be in the field type of the request.
+
+	'''
+
+	# Check authentication. 
+	try:
+		user = get_authorization( request.authorization )
+	except KeyError as e:
+		return str(e), 401
+
+	# Check content length and reject lange chunks of data 
+	# which would block the server.
+	if request.content_length > app.config['PUT_LIMIT']:
+		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
+				(request.content_length, app.config['PUT_LIMIT']), 400
+
+	# Determine content type
+	if request.content_type in _formdata:
+		data = request.form['data']
+		type = request.form['type']
+	else:
+		data = request.data
+		type = request.content_type
+	if not type in ['application/xml', 'application/json']:
+		return 'Invalid data type: %s' % type, 400
+
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+
+	# If the user is no editor (or admin) we want to know which objects the user
+	# is allowed to modify. In any case, he is not allowed to add new data.
+	access = []
+	if not user.is_editor():
+		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
+				if user.groups else ''
+		q = '''select series_id from lf_access 
+				where ( user_id = %i %s) and series_id
+				and write_access ''' % ( user.id, groups )
+		cur.execute( q )
+		access = [ series_id for series_id, in cur.fetchall() ]
+
+	sqldata = []
+	if type == 'application/xml':
+		data = parseString(data)
+		try:
+			for ms in data.getElementsByTagName( 'lf:series_subject' ):
+				series_id   = uuid.UUID(xml_get_text(ms, 'lf:series_id'))
+				subject_id = xml_get_text(ms, 'lf:subject_id')
+				subject    = xml_get_text(ms, 'lf:subject')
+				language   = xml_get_text(ms, 'dc:language')
+				sqldata.append(( series_id, subject_id, subject, language ))
+		except (AttributeError, IndexError, ValueError):
+			return 'Invalid group data', 400
+	elif type == 'application/json':
+		# Parse JSON
+		try:
+			data = json.loads(data)
+		except ValueError as e:
+			return e.message, 400
+		# Get array of new data
+		try:
+			sqldata = [ ( 
+					uuid.UUID(ms['lf:series_id']),
+					ms.get('lf:subject_id'),
+					ms.get('lf:subject'),
+					ms.get('dc:language')
+					) for ms in data['lf:series_subject'] ]
+		except (KeyError, ValueError):
+			return 'Invalid data', 400
+		
+	# Check data and permissions
+	sqldata_ready = []
+	try:
+		for ( series_id, subject_id, subject, lang ) in sqldata:
+			if not user.is_editor() and not series_id.bytes in access:
+				db.rollback()
+				cur.close()
+				return 'You are not allowed to modify this series', 401
+			if subject_id is None:
+				if subject is None:
+					db.rollback()
+					cur.close()
+					return 'No subject data specified', 400
+				if lang is None:
+					db.rollback()
+					cur.close()
+					return 'No language for subject specified', 400
+				# Get subject_id from database
+				cur.execute('''select id from lf_subject
+					where language=%s and name=%s ''', (lang, subject) )
+				subject_id = cur.fetchone()
+				if not subject_id:
+					cur.execute('''insert into lf_subject
+						(language, name) values (%s, %s) ''', (lang, subject))
+					cur.execute('''select last_insert_id() ''')
+					subject_id = cur.fetchone()
+				subject_id, = subject_id
+			sqldata_ready.append( (subject_id, series_id.bytes) )
+
+		affected_rows = 0
+		# We use INSERT IGNORE here as we do not need to update anything if the
+		# pair of keys already exists.
+		affected_rows = cur.executemany('''insert ignore into 
+			lf_series_subject (subject_id, series_id)
+			values (%s,%s) ''', sqldata_ready )
+	except MySQLdbError as e:
+		db.rollback()
+		cur.close()
+		return str(e), 409
+	db.commit()
+
+	if affected_rows:
+		return '', 201
+	return '', 200
