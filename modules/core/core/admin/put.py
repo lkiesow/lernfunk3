@@ -2545,7 +2545,7 @@ def admin_media_subject_put():
 					ms.get('lf:subject_id'),
 					ms.get('lf:subject'),
 					ms.get('dc:language')
-					) for ms in data['lf:user_organization'] ]
+					) for ms in data['lf:media_subject'] ]
 		except (KeyError, ValueError):
 			return 'Invalid data', 400
 		
