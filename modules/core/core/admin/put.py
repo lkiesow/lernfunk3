@@ -161,7 +161,15 @@ def admin_media_put():
 				m['visible']        = xml_get_text(media, 'lf:visible', True)
 				m['date']           = xml_get_text(media, 'dc:date', True)
 
-				#TODO: Handle relations
+				# Additional relations:
+				m['subject']        = [ s.childNodes[0].data \
+						for s in media.getElementsByTagNameNS(XML_NS_DC,'subject') ]
+				m['publisher']      = [ int(p.childNodes[0].data) \
+						for p in media.getElementsByTagNameNS(XML_NS_DC,'publisher') ]
+				m['creator']        = [ int(c.childNodes[0].data) \
+						for c in media.getElementsByTagNameNS(XML_NS_LF,'creator') ]
+				m['contributor']    = [ int(c.childNodes[0].data) \
+						for c in media.getElementsByTagNameNS(XML_NS_LF,'contributor') ]
 				sqldata.append( m )
 		except (AttributeError, IndexError):
 			return 'Invalid server data', 400
@@ -561,6 +569,16 @@ def admin_series_put():
 				s['title']          = xml_get_text(series, 'dc:title')
 				s['visible']        = xml_get_text(series, 'lf:visible', True)
 				s['date']           = xml_get_text(series, 'dc:date', True)
+
+				# Additional relations:
+				m['subject']        = [ s.childNodes[0].data \
+						for s in series.getElementsByTagNameNS(XML_NS_DC,'subject') ]
+				m['publisher']      = [ int(p.childNodes[0].data) \
+						for p in series.getElementsByTagNameNS(XML_NS_DC,'publisher') ]
+				m['creator']        = [ int(c.childNodes[0].data) \
+						for c in series.getElementsByTagNameNS(XML_NS_LF,'creator') ]
+				m['media']          = [ c.childNodes[0].data \
+						for c in series.getElementsByTagNameNS(XML_NS_LF,'media_id') ]
 				sqldata.append( s )
 		except (AttributeError, IndexError):
 			return 'Invalid series data', 400
@@ -897,14 +915,13 @@ def admin_server_put():
 		data = parseString(data)
 		try:
 			for server in data.getElementsByTagName( 'lf:server' ):
-				id = server.getElementsByTagName('lf:id')[0].childNodes[0].data
+				id = xml_get_text(server, 'lf:id')
 				if not idcheck.match(id):
 					return 'Bad identifier for server: %s' % id, 400
-				fmt = server.getElementsByTagName('lf:format')[0].childNodes[0].data
+				fmt = xml_get_text(server,'lf:format',True)
 				if not fmtcheck.match(fmt):
 					return 'Bad format for server: %s' % fmt, 400
-				uri_pattern = server.getElementsByTagName('lf:uri_pattern')[0]\
-						.childNodes[0].data
+				uri_pattern = xml_get_text(server,'lf:uri_pattern',True)
 				sqldata.append( ( id, fmt, uri_pattern ) )
 		except (AttributeError, IndexError):
 			return 'Invalid server data', 400
@@ -1031,15 +1048,15 @@ def admin_subject_put():
 		try:
 			for subject in data.getElementsByTagName( 'lf:subject' ):
 				try:
-					id = int(subject.getElementsByTagName('lf:id')[0].childNodes[0].data)
-				except AttributeError:
+					id = int(xml_get_text(subject,'lf:id'))
+				except TypeError:
 					id = None
 				except ValueError:
 					return 'Bad identifier for subject', 400
-				lang = subject.getElementsByTagName('dc:language')[0].childNodes[0].data
+				lang = xml_get_text(subject,'dc:language')
 				if not lang_regex_full.match(lang):
 					return 'Bad language tag: %s' % lang, 400
-				name = subject.getElementsByTagName('lf:name')[0].childNodes[0].data
+				name = xml_get_text(subject,'lf:name',True)
 				sqldata.append( ( id, lang, name ) )
 		except (AttributeError, IndexError):
 			return 'Invalid subject data', 400
