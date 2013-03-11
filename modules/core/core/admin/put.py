@@ -897,7 +897,7 @@ def admin_server_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
@@ -1030,7 +1030,7 @@ def admin_subject_put():
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 'multipart/form-data']:
+	if request.content_type in _formdata:
 		data = request.form['data']
 		type = request.form['type']
 	else:
