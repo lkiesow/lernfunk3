@@ -143,7 +143,7 @@ def admin_media_put():
 				m = {}
 				m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
 				if not ( m['id'] or user.is_editor() ):
-					return 'You are not allowed to create new mediao', 403
+					return 'You are not allowed to create new media', 403
 
 				m['coverage']       = xml_get_text(media, 'dc:coverage')
 				m['description']    = xml_get_text(media, 'dc:description')
@@ -191,7 +191,7 @@ def admin_media_put():
 				if media.get('dc:identifier'):
 					m['id'] = uuid.UUID(media['dc:identifier'])
 				elif not user.is_editor():
-					return 'You are not allowed to create new mediao', 403
+					return 'You are not allowed to create new media', 403
 
 				m['coverage']       = media.get('dc:coverage')
 				m['description']    = media.get('dc:description')
@@ -872,6 +872,14 @@ def admin_server_put():
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
+	-- URI PATTERN ----------
+	You can use the following placeholders in the URI pattern:
+	  {file_id}          -- Fill in file identifier
+	  {format}           -- Fill in file format
+	  {media_id}         -- Fill in media identifier
+	  {source_key}       -- Fill in file source key
+	  {media_source_key} -- Fill in media source key
+
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
 	send data with the mimetypes “application/x-www-form-urlencoded” or
@@ -882,11 +890,10 @@ def admin_server_put():
 	'''
 
 	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
-	# to hide data but they can never delete data.
+	# Only admins are allowed to modify server.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to delete data', 401
+			return 'Only admins are allowed to modify server', 401
 	except KeyError as e:
 		return str(e), 401
 
@@ -1968,8 +1975,6 @@ def admin_access_put():
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	The id can be omitted. In that case a new id is generated automatically.
-
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
 	send data with the mimetypes “application/x-www-form-urlencoded” or
@@ -1982,7 +1987,7 @@ def admin_access_put():
 	# Check authentication. 
 	try:
 		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to create/modify groups', 401
+			return 'Only admins are allowed to create/modify access data', 401
 	except KeyError as e:
 		return str(e), 401
 
