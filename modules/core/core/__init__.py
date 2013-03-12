@@ -38,4 +38,5 @@ import core.login
 import core.admin.get
 import core.admin.delete
 import core.admin.put
+import core.admin.post
 import core.archive
