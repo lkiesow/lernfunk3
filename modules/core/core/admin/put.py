@@ -2387,6 +2387,9 @@ def admin_user_organization_put():
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
+	NOTICE: Like with user_groups you can have more than one user id or
+	 | organization id in  user_organization.
+
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
 	send data with the mimetypes “application/x-www-form-urlencoded” or
@@ -2424,9 +2427,11 @@ def admin_user_organization_put():
 		data = parseString(data)
 		try:
 			for uo in data.getElementsByTagName('lf:user_organization'):
-				user_id = int(xml_get_text(uo, 'lf:user_id'))
-				org_id  = int(xml_get_text(uo, 'lf:organization_id'))
-				sqldata.append((user_id,org_id))
+				for u in ug.getElementsByTagName('lf:user_id'):
+					for o in ug.getElementsByTagName('lf:organization_id'):
+						sqldata.append( (
+							int(u.childNodes[0].data),
+							int(o.childNodes[0].data) ) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid data', 400
 	elif type == 'application/json':
@@ -2437,8 +2442,16 @@ def admin_user_organization_put():
 			return e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ ( int(uo['lf:user_id']), int(uo['lf:organization_id']) ) \
-					for uo in data['lf:user_organization'] ]
+			for uo in data['lf:user_organization']:
+				user_id = ug['lf:user_id']
+				if not isinstance( user_id, list ):
+					user_id = [ user_id ]
+				org_id = ug['lf:organization_id']
+				if not isinstance( org_id, list ):
+					org_id = [ org_id ]
+				for u in user_id:
+					for o in org_id:
+						sqldata.append( (int(u), int(o)) )
 		except (KeyError, ValueError):
 			return 'Invalid data', 400
 		
