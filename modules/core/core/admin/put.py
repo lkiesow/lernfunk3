@@ -1785,7 +1785,7 @@ def admin_user_put():
 
 
 @app.route('/admin/user/passwd', methods=['PUT'])
-def admin_user_put():
+def admin_user_passwd_put():
 	'''This method provides you with the functionality to set a users password.
 	A users password can only be set by himself (assuming that a password was
 	already set for him and thus he can authorize himself) or by an
@@ -2226,12 +2226,21 @@ def admin_user_group_put():
 	groups. Only administrators are allowed to do this.
 
 	The data can either be JSON or XML. 
-	JSON example:
+	JSON examples:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	{
 		"lf:user_group": [{
 			"lf:user_id" : 42,
 			"lf:group_id" : 42
+		}]
+	}
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	{
+		"lf:user_group": [{
+			"lf:user_id" : [ 42, 23, 123 ],
+			"lf:group_id" : [ 42, 11 ]
 		}]
 	}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -2247,6 +2256,23 @@ def admin_user_group_put():
 		</lf:user_group>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	<?xml version="1.0" ?>
+	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:lf="http://lernfunk.de/terms">
+		<lf:user_group>
+			<lf:user_id>42</lf:user_id>
+			<lf:user_id>23</lf:user_id>
+			<lf:group_id>42</lf:group_id>
+			<lf:group_id>4</lf:group_id>
+			<lf:group_id>2</lf:group_id>
+		</lf:user_group>
+	</data>
+	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+	NOTICE: user_group can hold more than one user or group id. If more than one
+	 | user or group id is specified each user will be connected to each group.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -2285,9 +2311,11 @@ def admin_user_group_put():
 		data = parseString(data)
 		try:
 			for ug in data.getElementsByTagName('lf:user_group'):
-				user_id  = int(xml_get_text(ug, 'lf:user_id'))
-				group_id = int(xml_get_text(ug, 'lf:group_id'))
-				sqldata.append((user_id,group_id))
+				for u in ug.getElementsByTagName('lf:user_id'):
+					for g in ug.getElementsByTagName('lf:group_id'):
+						sqldata.append( (
+							int(u.childNodes[0].data),
+							int(g.childNodes[0].data) ) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid data', 400
 	elif type == 'application/json':
@@ -2298,8 +2326,16 @@ def admin_user_group_put():
 			return e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ ( int(ug['lf:user_id']), int(ug['lf:group_id']) ) \
-					for ug in data['lf:user_group'] ]
+			for ug in data['lf:user_group']:
+				user_id = ug['lf:user_id']
+				if not isinstance( user_id, list ):
+					user_id = [ user_id ]
+				group_id = ug['lf:group_id']
+				if not isinstance( group_id, list ):
+					group_id = [ group_id ]
+				for u in user_id:
+					for g in group_id:
+						sqldata.append( (int(u), int(g)) )
 		except (KeyError, ValueError):
 			return 'Invalid data', 400
 		
