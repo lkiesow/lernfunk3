@@ -2087,9 +2087,8 @@ def admin_access_put():
 
 
 
-@app.route('/admin/series/<uuid:series_id>/media/', methods=['PUT'])
-@app.route('/admin/series/<uuid:series_id>/<int:version>/media/', methods=['PUT'])
-def admin_series_media_put(series_id, version=None):
+@app.route('/admin/series/media/', methods=['PUT'])
+def admin_series_media_put():
 	'''This method provides you with the functionality to connect media and
 	series. Every time the connection between series and media is changed a new
 	series version is created.
@@ -2099,9 +2098,11 @@ def admin_series_media_put(series_id, version=None):
 	JSON example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	{
-		"lf:media_id": [
-			"6EB7CD04-7F69-11E2-9DE9-047D7B0F869A"
-		]
+		"lf:series_media": [{
+		"lf:series_id": "AAAAAAAA-7F69-11E2-9DE9-047D7B0F869A",
+		"lf:series_version": 2,
+		"lf:media_id": [ "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A" ]
+		}]
 	}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -2110,14 +2111,22 @@ def admin_series_media_put(series_id, version=None):
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 			xmlns:lf="http://lernfunk.de/terms">
-		<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
-		<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
+		<lf:series_media>
+			<lf:series_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:series_id>
+			<lf:series_version>1</lf:series_version>
+			<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
+			<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
+		</lf:series_media>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 	IMPORTANT NOTICE: If you send JSON/XML data to set up new series media
 	 | connections, the old ones will not be cloned. Thus they should be
-	 | included in the new data if you want to keep them.
+	 | included in the new data if you want to keep them. If you simply want to
+	 | add a new media object to a series, use the POST method.
+
+	NOTICE: series_version is used to determine the parent version. It can be
+	 | omittet in which case the latest version of the series is used as parent.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
