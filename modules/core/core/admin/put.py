@@ -2092,7 +2092,6 @@ def admin_series_media_put():
 	'''This method provides you with the functionality to connect media and
 	series. Every time the connection between series and media is changed a new
 	series version is created.
-	Only administrators are allowed to add/modify access rights.
 
 	The data can either be JSON or XML. 
 	JSON example:
