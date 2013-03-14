@@ -2138,13 +2138,15 @@ def admin_series_media_put():
 	'''
 
 	# Check authentication. 
+	user = None
 	try:
-		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to create/modify groups', 401
+		user = get_authorization( request.authorization ).is_admin()
 	except KeyError as e:
 		return str(e), 401
 
-	series_id = uuid.UUID(series_id)
+	# Deny access for public users:
+	if not user or user.name == 'public':
+		return 'You have to authenticate yourself to modify a series', 401
 
 	# Check content length and reject lange chunks of data 
 	# which would block the server.
@@ -2161,13 +2163,34 @@ def admin_series_media_put():
 		type = request.content_type
 	if not type in ['application/xml', 'application/json']:
 		return 'Invalid data type: %s' % type, 400
+		
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+	
+	# If the user is no editor (or admin) we want to know which objects he is
+	# allowed to modify. In any case, he is not allowed to add new data.
+	access = []
+	if not user.is_editor():
+		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
+				if user.groups else ''
+		q ='''select series_id from lf_access 
+				where ( user_id = %i %s) and series_id 
+				and write_access ''' % ( user.id, groups )
+		cur.execute( q )
+		for (series_id,) in cur.fetchall():
+			access.append( series_id )
 
 	sqldata = []
 	if type == 'application/xml':
 		data = parseString(data)
 		try:
-			sqldata = [ uuid.UUID(id.childNodes[0].data) \
-					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+			for ms in data.getElementsByTagNameNS(XML_NS_LF, 'series_media'):
+				series_id = uuid.UUID(xml_get_text(ms,'lf:series_id'))
+				series_version = xml_get_text(ms,'lf:series_version')
+				media = [ uuid.UUID(id.childNodes[0].data) \
+					for id in ms.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+				sqldata.add( (series_id, series_version, media) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
 	elif type == 'application/json':
@@ -2175,51 +2198,60 @@ def admin_series_media_put():
 		try:
 			data = json.loads(data)
 		except ValueError as e:
-			return e.message, 400
+			return 'Error parsing JSON data: %s' % e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ uuid.UUID(id) for id in data['lf:media_id'] ]
-		except KeyError:
+			for ms in data['lf:series_media']:
+				series_id = uuid.UUID(ms['lf:series_id'])
+				if not user.is_editor() and series_id.bytes in access:
+					cur.close()
+					return 'You cannot modify this series', 401
+				series_version = ms.get('lf:series_version')
+				media = ms['lf:media_id']
+				if not isinstance(media, list):
+					media = [ media ]
+				media = [ uuid.UUID(id) for id in media ]
+				sqldata.add( (series_id, series_version, media) )
+		except (KeyError, TypeError, ValueError):
 			return 'Invalid data', 400
-		
-	# Request data
-	db = get_db()
-	cur = db.cursor()
 
 	affected_rows = 0
 	try:
-		# First: Create new version of series
-		cur.execute('''select id, version, parent_version, title, language,
-			description, source, timestamp_edit, timestamp_created, published,
-			owner, editor, visible, source_key, source_system from %s 
-			where id = x'%s' %s''' % \
-					('lf_series', series_id.hex, 'and version = %i ' % version) \
-					if not version is None else \
-					('lf_latest_series', series_id.hex, ''))
-		( id, version, parent_version, title, language, description, source,
-				timestamp_edit, timestamp_created, published, owner, editor,
-				visible, source_key, source_system ) = cur.fetchone()
-		cur.execute('''select max(version) from lf_series 
-				where id = x'%s' ''' % series_id.hex )
-		(new_version,) = cur.fetchone()
-		new_version += 1
-		cur.execute('''insert into lf_series (id, version, parent_version, title,
-				language, description, source, timestamp_created, published, owner,
-				editor, visible, source_key, source_system)
-				values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
-				( id, new_version, version, title, language, description,
-					source, timestamp_created, published, owner, editor, visible,
-					source_key, source_system ))
-		
-		# Second: Connect media to new series
-		insertdata = []
-		for media_id in sqldata:
-			insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
+		for (series_id, version, media) in sqldata:
+			# First: Create new version of series
+			cur.execute('''select id, version, parent_version, title, language,
+				description, source, timestamp_edit, timestamp_created, published,
+				owner, editor, visible, source_key, source_system from %s 
+				where id = x'%s' %s''' % \
+						('lf_series', series_id.hex, 'and version = %i ' % version) \
+						if not version is None else \
+						('lf_latest_series', series_id.hex, ''))
+			( id, version, parent_version, title, language, description, source,
+					timestamp_edit, timestamp_created, published, owner, editor,
+					visible, source_key, source_system ) = cur.fetchone()
+			cur.execute('''select max(version) from lf_series 
+					where id = x'%s' ''' % series_id.hex )
+			(new_version,) = cur.fetchone()
+			new_version += 1
+			cur.execute('''insert into lf_series (id, version, parent_version, title,
+					language, description, source, timestamp_created, published, owner,
+					editor, visible, source_key, source_system)
+					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
+					( id, new_version, version, title, language, description,
+						source, timestamp_created, published, owner, editor, visible,
+						source_key, source_system ))
+			
+			# Second: Connect media to new series
+			insertdata = []
+			for media_id in media:
+				insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
 
-		affected_rows = cur.executemany('''insert into lf_media_series
-			(series_id, media_id, series_version) values (%s,%s,%s) ''', 
-			insertdata )
-	except IntegrityError as e:
+			affected_rows = cur.executemany('''insert into lf_media_series
+				(series_id, media_id, series_version) values (%s,%s,%s) ''', 
+				insertdata )
+	except (IntegrityError, MySQLdbError) as e:
+		db.rollback()
+		cur.close()
 		return str(e), 409
 	db.commit()
 
