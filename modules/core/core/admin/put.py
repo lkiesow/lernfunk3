@@ -2245,7 +2245,7 @@ def admin_series_media_put():
 			for media_id in media:
 				insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
 
-			affected_rows = cur.executemany('''insert into lf_media_series
+			affected_rows += cur.executemany('''insert into lf_media_series
 				(series_id, media_id, series_version) values (%s,%s,%s) ''', 
 				insertdata )
 	except (IntegrityError, MySQLdbError) as e:

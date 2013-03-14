@@ -1742,7 +1742,7 @@ def admin_user_post():
 
 
 @app.route('/admin/user/passwd', methods=['POST'])
-def admin_user_post():
+def admin_user_passwd_post():
 	'''This method provides you with the functionality to set an initial user
 	password. To modify a password later on use the PUT method. The initial
 	password can only be set by an administrator.
@@ -2028,21 +2028,23 @@ def admin_access_post():
 
 
 
-@app.route('/admin/series/<uuid:series_id>/media/', methods=['POST'])
-@app.route('/admin/series/<uuid:series_id>/<int:version>/media/', methods=['POST'])
-def admin_series_media_put(series_id, version=None):
+@app.route('/admin/series/media/', methods=['POST'])
+def admin_series_media_post():
 	'''This method provides you with the functionality to connect media and
 	series. Every time the connection between series and media is changed a new
-	series version is created.
-	Only administrators are allowed to add/modify access rights.
+	series version is created. This method is used to add new media to a series.
+	The new series version will inherit all media from its parent version. Use
+	the PUT method to specify exactly the media you want in the new version.
 
 	The data can either be JSON or XML. 
 	JSON example:
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	{
-		"lf:media_id": [
-			"6EB7CD04-7F69-11E2-9DE9-047D7B0F869A"
-		]
+		"lf:series_media": [{
+		"lf:series_id": "AAAAAAAA-7F69-11E2-9DE9-047D7B0F869A",
+		"lf:series_version": 2,
+		"lf:media_id": [ "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A" ]
+		}]
 	}
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -2051,14 +2053,21 @@ def admin_series_media_put(series_id, version=None):
 	<?xml version="1.0" ?>
 	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 			xmlns:lf="http://lernfunk.de/terms">
-		<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
-		<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
+		<lf:series_media>
+			<lf:series_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:series_id>
+			<lf:series_version>1</lf:series_version>
+			<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
+			<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
+		</lf:series_media>
 	</data>
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 	IMPORTANT NOTICE: If you send JSON/XML data to set up new series media
-	 | connections, the old ones will not be cloned. Thus they should be
-	 | included in the new data if you want to keep them.
+	 | connections, the connection of the parent series version will be cloned.
+	 | To specify all connections use PUT.
+
+	NOTICE: series_version is used to determine the parent version. It can be
+	 | omittet in which case the latest version of the series is used as parent.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -2070,11 +2079,15 @@ def admin_series_media_put(series_id, version=None):
 	'''
 
 	# Check authentication. 
+	user = None
 	try:
-		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to create/modify groups', 401
+		user = get_authorization( request.authorization )
 	except KeyError as e:
 		return str(e), 401
+
+	# Deny access for public users:
+	if not user or user.name == 'public':
+		return 'You have to authenticate yourself to modify a series', 401
 
 	# Check content length and reject lange chunks of data 
 	# which would block the server.
@@ -2091,13 +2104,34 @@ def admin_series_media_put(series_id, version=None):
 		type = request.content_type
 	if not type in ['application/xml', 'application/json']:
 		return 'Invalid data type: %s' % type, 400
+		
+	# Request data
+	db = get_db()
+	cur = db.cursor()
+	
+	# If the user is no editor (or admin) we want to know which objects he is
+	# allowed to modify. In any case, he is not allowed to add new data.
+	access = []
+	if not user.is_editor():
+		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
+				if user.groups else ''
+		q ='''select series_id from lf_access 
+				where ( user_id = %i %s) and series_id 
+				and write_access ''' % ( user.id, groups )
+		cur.execute( q )
+		for (series_id,) in cur.fetchall():
+			access.append( series_id )
 
 	sqldata = []
 	if type == 'application/xml':
 		data = parseString(data)
 		try:
-			sqldata = [ uuid.UUID(id.childNodes[0].data) \
-					for id in data.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+			for ms in data.getElementsByTagNameNS(XML_NS_LF, 'series_media'):
+				series_id = uuid.UUID(xml_get_text(ms,'lf:series_id'))
+				series_version = xml_get_text(ms,'lf:series_version')
+				media = [ uuid.UUID(id.childNodes[0].data) \
+					for id in ms.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
+				sqldata.append( (series_id, series_version, media) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
 	elif type == 'application/json':
@@ -2105,58 +2139,74 @@ def admin_series_media_put(series_id, version=None):
 		try:
 			data = json.loads(data)
 		except ValueError as e:
-			return e.message, 400
+			return 'Error parsing JSON data: %s' % e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ uuid.UUID(id) for id in data['lf:media_id'] ]
-		except KeyError:
+			for ms in data['lf:series_media']:
+				series_id = uuid.UUID(ms['lf:series_id'])
+				if not user.is_editor() and series_id.bytes in access:
+					cur.close()
+					return 'You cannot modify this series', 401
+				series_version = ms.get('lf:series_version')
+				media = ms['lf:media_id']
+				if not isinstance(media, list):
+					media = [ media ]
+				media = [ uuid.UUID(id) for id in media ]
+				sqldata.append( (series_id, series_version, media) )
+		except (KeyError, TypeError, ValueError):
 			return 'Invalid data', 400
-		
-	# Request data
-	db = get_db()
-	cur = db.cursor()
 
 	affected_rows = 0
 	try:
-		# First: Create new version of series
-		cur.execute('''select id, version, parent_version, title, language,
-			description, source, timestamp_edit, timestamp_created, published,
-			owner, editor, visible, source_key, source_system from %s 
-			where id = x'%s' %s''' % \
-					('lf_series', series_id.hex, 'and version = %i ' % version) \
-					if not version is None else \
-					('lf_latest_series', series_id.hex, ''))
-		( id, version, parent_version, title, language, description, source,
-				timestamp_edit, timestamp_created, published, owner, editor,
-				visible, source_key, source_system ) = cur.fetchone()
-		cur.execute('''select max(version) from lf_series 
-				where id = x'%s' ''' % series_id.hex )
-		(new_version,) = cur.fetchone()
-		new_version += 1
-		cur.execute('''insert into lf_series (id, version, parent_version, title,
-				language, description, source, timestamp_created, published, owner,
-				editor, visible, source_key, source_system)
-				values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
-				( id, new_version, version, title, language, description,
-					source, timestamp_created, published, owner, editor, visible,
-					source_key, source_system ))
-		
-		# Second: Connect media to new series
-		insertdata = []
-		for media_id in sqldata:
-			insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
+		for (series_id, version, media) in sqldata:
+			# First: Create new version of series
+			cur.execute('''select id, version, parent_version, title, language,
+				description, source, timestamp_edit, timestamp_created, published,
+				owner, editor, visible, source_key, source_system from %s 
+				where id = x'%s' %s''' % \
+						('lf_series', series_id.hex, 'and version = %i ' % int(version)) \
+						if not version is None else \
+						('lf_latest_series', series_id.hex, ''))
+			( id, version, parent_version, title, language, description, source,
+					timestamp_edit, timestamp_created, published, owner, editor,
+					visible, source_key, source_system ) = cur.fetchone()
+			cur.execute('''select max(version) from lf_series 
+					where id = x'%s' ''' % series_id.hex )
+			(new_version,) = cur.fetchone()
+			new_version += 1
+			cur.execute('''insert into lf_series (id, version, parent_version, title,
+					language, description, source, timestamp_created, published, owner,
+					editor, visible, source_key, source_system)
+					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
+					( id, new_version, version, title, language, description,
+						source, timestamp_created, published, owner, editor, visible,
+						source_key, source_system ))
+			
+			# Second: Get the media of the parent version
+			cur.execute('''select media_id from lf_media_series 
+					where series_id = %s and series_version = %s ''', 
+					(series_id.bytes, version) )
 
-		affected_rows = cur.executemany('''insert into lf_media_series
-			(series_id, media_id, series_version) values (%s,%s,%s) ''', 
-			insertdata )
-	except IntegrityError as e:
+			insertdata = []
+			for media_id, in cur.fetchall():
+				insertdata.append(( series_id.bytes, media_id, new_version ))
+
+			# Add ned media
+			for media_id in media:
+				insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
+
+			affected_rows += cur.executemany('''insert into lf_media_series
+				(series_id, media_id, series_version) values (%s,%s,%s) ''', 
+				insertdata )
+	except (IntegrityError, MySQLdbError) as e:
+		db.rollback()
+		cur.close()
 		return str(e), 409
 	db.commit()
 
 	if affected_rows:
 		return '', 201
 	return '', 200
-
 
 
 @app.route('/admin/user/group/', methods=['POST'])
