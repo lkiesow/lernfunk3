@@ -2140,7 +2140,7 @@ def admin_series_media_put():
 	# Check authentication. 
 	user = None
 	try:
-		user = get_authorization( request.authorization ).is_admin()
+		user = get_authorization( request.authorization )
 	except KeyError as e:
 		return str(e), 401
 
@@ -2190,7 +2190,7 @@ def admin_series_media_put():
 				series_version = xml_get_text(ms,'lf:series_version')
 				media = [ uuid.UUID(id.childNodes[0].data) \
 					for id in ms.getElementsByTagNameNS(XML_NS_LF, 'media_id') ]
-				sqldata.add( (series_id, series_version, media) )
+				sqldata.append( (series_id, series_version, media) )
 		except (AttributeError, IndexError, ValueError):
 			return 'Invalid group data', 400
 	elif type == 'application/json':
@@ -2211,7 +2211,7 @@ def admin_series_media_put():
 				if not isinstance(media, list):
 					media = [ media ]
 				media = [ uuid.UUID(id) for id in media ]
-				sqldata.add( (series_id, series_version, media) )
+				sqldata.append( (series_id, series_version, media) )
 		except (KeyError, TypeError, ValueError):
 			return 'Invalid data', 400
 
