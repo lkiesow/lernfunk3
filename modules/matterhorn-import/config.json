@@ -1,0 +1,20 @@
+[
+	"lf-url" : "http://localhost:5000",
+	"username" : "mh-import",
+	"password" : "bX44fFEbZcQqqbYSxcJDKDt5",
+	"rules" : [
+		{
+			"name"          : "import-webm",
+			"comment"       : "Import WebM",
+			"mimetype"      : "video/webm",
+			"tags"          : [ "publish", "web" ],
+			"extension"     : ".webm",
+			"protocol"      : "http",
+			"-tags"         : [ "test" ],
+			"source_system" : "localhost",
+			"lf-type"       : "video/webm",
+			"lf-quality"    : "high",
+			"lf-server-id"  : "localhost"
+		}
+	]
+]
