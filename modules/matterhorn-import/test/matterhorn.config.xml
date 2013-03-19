@@ -1,0 +1,22 @@
+<!-- 
+	Export for Lernfunk 3
+	--------------------------
+	This operation will send a POST request to the Lernfunk-Matterhorn import service. This request should contain a pattern
+-->
+<operation
+	id="post-mediapackage"
+	fail-on-error="false"
+	exception-handler-workflow="error"
+	description="Sending MediaPackage to remote Host">
+	<configurations>
+		<configuration key="url">http://larskiesow.de:5000/</configuration> <!-- target url -->
+		<configuration key="format">json</configuration> <!-- either xml or json -->
+		<configuration key="debug">yes</configuration> <!-- if enabled response body will be written to log -->
+		<configuration key="auth.enabled">no</configuration> <!-- enable authentication (simple/digest will be detected automatically) -->
+		<configuration key="auth.username">virtmm</configuration> <!-- username for authentication -->
+		<configuration key="auth.password">uosmedia</configuration> <!-- password for authentication -->
+		<configuration key="+cmd">adddata</configuration> <!-- fields with keys beginning with + will be added to the message body -->
+		<configuration key="+key">uzl3ek12ex7th1aFR1ja</configuration>
+		<configuration key="+server">http://video2.virtuos.uni-osnabrueck.de:8080/</configuration>  
+	</configurations>
+</operation>
