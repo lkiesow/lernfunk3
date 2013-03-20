@@ -1,8 +1,13 @@
-[
+{
 	"lf-url" : "http://localhost:5000",
 	"username" : "mh-import",
 	"password" : "bX44fFEbZcQqqbYSxcJDKDt5",
-	"rules" : [
+	"delimeter": {
+		"creator"     : ";",
+		"contributor" : ";",
+		"subject"     : ";,"
+	},
+	"trackrules" : [
 		{
 			"name"          : "import-webm",
 			"comment"       : "Import WebM",
@@ -15,6 +20,36 @@
 			"lf-type"       : "video/webm",
 			"lf-quality"    : "high",
 			"lf-server-id"  : "localhost"
+		},{
+			"name"          : "import-hq-mp4",
+			"comment"       : "Import mp4 files tagged with high-quality",
+			"mimetype"      : "video/mp4",
+			"tags"          : [ "publish", "high-quality", "engage" ],
+			"extension"     : ".mp4",
+			"protocol"      : "http",
+			"-tags"         : [ "work" ],
+			"source_system" : "localhost",
+			"type"          : "presenter/delivery",
+			"lf-type"       : "video/mp4",
+			"lf-quality"    : "high-quality",
+			"lf-server-id"  : "video2.virtuos.uos.de"
+		}
+	],
+	"metadatarules" : [
+		{
+			"name"     : "import-episode-dc",
+			"comment"  : "Import DC episode data",
+			"mimetype" : "text/xml",
+			"tags"     : [ "publish" ],
+			"type"     : "dublincore/episode",
+			"use-for"  : "media"
+		}, {
+			"name"     : "import-series-dc",
+			"comment"  : "Import DC series data",
+			"mimetype" : "text/xml",
+			"tags"     : [ "publish" ],
+			"type"     : "dublincore/series",
+			"use-for"  : "series"
 		}
 	]
-]
+}

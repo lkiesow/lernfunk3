@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<mediapackage start="2013-03-20T11:07:00Z" id="2160022b-c959-48f1-bef2-30c42c3165ad" duration="33200">
+	<title>Lernfunk-Import-Test 2</title>
+	<series>506049f3-833c-41b5-a5a0-5310ec3f8019</series>
+	<seriestitle>Testseries</seriestitle>
+	<creators>
+		<creator>Lars Kiesow</creator>
+	</creators>
+	<contributors>
+		<contributor>Mario; Luigi</contributor>
+	</contributors>
+	<subjects>
+		<subject>Import, Test, Lernfunk</subject>
+	</subjects>
+	<language>en</language>
+	<media>
+		<track ref="track:b8f5047a-85cc-452d-bb35-253d5f6950ac" type="presenter/delivery" id="track-9">
+			<mimetype>video/mp4</mimetype>
+			<tags>
+				<tag>atom</tag>
+				<tag>engage</tag>
+				<tag>high-quality</tag>
+				<tag>mobil</tag>
+				<tag>publish</tag>
+				<tag>rss</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/b8f5047a-85cc-452d-bb35-253d5f6950ac/example_with_audio.mp4</url>
+			<checksum type="md5">fab067e06e46b719830811e5e50c42f6</checksum>
+			<duration>33200</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>96000.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>767520.0</bitrate>
+				<framerate>20.0</framerate>
+				<resolution>1024x576</resolution>
+				<scantype type="Progressive"/>
+			</video>
+		</track>
+		<track ref="track:761b7761-3549-41c7-beb6-d23dbaa25536" type="presenter/delivery" id="track-10">
+			<mimetype>video/x-flv</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>low-quality</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/761b7761-3549-41c7-beb6-d23dbaa25536/example_with_audio.flv</url>
+			<checksum type="md5">eeaae11350a22a2b91b9f7d47bc8eaef</checksum>
+			<duration>33166</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>64000.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>386239.0</bitrate>
+				<framerate>12.0</framerate>
+				<resolution>512x288</resolution>
+			</video>
+		</track>
+		<track ref="track:93d1d277-5570-4784-a2f2-38dd2a626cd8" type="presenter/delivery" id="track-11">
+			<mimetype>audio/mp3</mimetype>
+			<tags>
+				<tag>atom</tag>
+				<tag>engage</tag>
+				<tag>publish</tag>
+				<tag>rss</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/93d1d277-5570-4784-a2f2-38dd2a626cd8/example_with_audio.mp3</url>
+			<checksum type="md5">8ed47deeabc15df55531a699d9aed7a8</checksum>
+			<duration>33071</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>128000.0</bitrate>
+			</audio>
+		</track>
+		<track ref="track:be79827b-65ea-4f3e-8277-a9083e204d94" type="presenter/delivery" id="track-12">
+			<mimetype>video/x-flv</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>medium-quality</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/be79827b-65ea-4f3e-8277-a9083e204d94/example_with_audio.flv</url>
+			<checksum type="md5">da5e9f19d6b1e46730aea88b6e6919bf</checksum>
+			<duration>33199</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>96000.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>727013.0</bitrate>
+				<framerate>15.0</framerate>
+				<resolution>640x360</resolution>
+			</video>
+		</track>
+		<track ref="track:64c02141-2f0f-4363-98c5-1b82ec13f59a" type="presenter/delivery" id="track-13">
+			<mimetype>video/mp4</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>hd-quality</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/64c02141-2f0f-4363-98c5-1b82ec13f59a/example_with_audio.mp4</url>
+			<checksum type="md5">4c84d2bc98edf9b29a0ce6dbeb34fb37</checksum>
+			<duration>33160</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>127874.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>1014010.0</bitrate>
+				<framerate>25.0</framerate>
+				<resolution>1280x720</resolution>
+				<scantype type="Progressive"/>
+			</video>
+		</track>
+		<track ref="track:b8f5047a-85cc-452d-bb35-253d5f6950ac" type="presenter/delivery" id="track-14">
+			<mimetype>video/mp4</mimetype>
+			<tags>
+				<tag>atom</tag>
+				<tag>engage</tag>
+				<tag>high-quality</tag>
+				<tag>mobil</tag>
+				<tag>publish</tag>
+				<tag>rss</tag>
+			</tags>
+			<url>rtmp://video2.virtuos.uni-osnabrueck.de/matterhorn-engage/2160022b-c959-48f1-bef2-30c42c3165ad/b8f5047a-85cc-452d-bb35-253d5f6950ac/mp4:example_with_audio.mp4</url>
+			<checksum type="md5">fab067e06e46b719830811e5e50c42f6</checksum>
+			<duration>33200</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>96000.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>767520.0</bitrate>
+				<framerate>20.0</framerate>
+				<resolution>1024x576</resolution>
+				<scantype type="Progressive"/>
+			</video>
+		</track>
+		<track ref="track:761b7761-3549-41c7-beb6-d23dbaa25536" type="presenter/delivery" id="track-15">
+			<mimetype>video/x-flv</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>low-quality</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>rtmp://video2.virtuos.uni-osnabrueck.de/matterhorn-engage/2160022b-c959-48f1-bef2-30c42c3165ad/761b7761-3549-41c7-beb6-d23dbaa25536/example_with_audio.flv</url>
+			<checksum type="md5">eeaae11350a22a2b91b9f7d47bc8eaef</checksum>
+			<duration>33166</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>64000.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>386239.0</bitrate>
+				<framerate>12.0</framerate>
+				<resolution>512x288</resolution>
+			</video>
+		</track>
+		<track ref="track:93d1d277-5570-4784-a2f2-38dd2a626cd8" type="presenter/delivery" id="track-16">
+			<mimetype>audio/mp3</mimetype>
+			<tags>
+				<tag>atom</tag>
+				<tag>engage</tag>
+				<tag>publish</tag>
+				<tag>rss</tag>
+			</tags>
+			<url>rtmp://video2.virtuos.uni-osnabrueck.de/matterhorn-engage/2160022b-c959-48f1-bef2-30c42c3165ad/93d1d277-5570-4784-a2f2-38dd2a626cd8/example_with_audio.mp3</url>
+			<checksum type="md5">8ed47deeabc15df55531a699d9aed7a8</checksum>
+			<duration>33071</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>128000.0</bitrate>
+			</audio>
+		</track>
+		<track ref="track:be79827b-65ea-4f3e-8277-a9083e204d94" type="presenter/delivery" id="track-17">
+			<mimetype>video/x-flv</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>medium-quality</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>rtmp://video2.virtuos.uni-osnabrueck.de/matterhorn-engage/2160022b-c959-48f1-bef2-30c42c3165ad/be79827b-65ea-4f3e-8277-a9083e204d94/example_with_audio.flv</url>
+			<checksum type="md5">da5e9f19d6b1e46730aea88b6e6919bf</checksum>
+			<duration>33199</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>96000.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>727013.0</bitrate>
+				<framerate>15.0</framerate>
+				<resolution>640x360</resolution>
+			</video>
+		</track>
+		<track ref="track:64c02141-2f0f-4363-98c5-1b82ec13f59a" type="presenter/delivery" id="track-18">
+			<mimetype>video/mp4</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>hd-quality</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>rtmp://video2.virtuos.uni-osnabrueck.de/matterhorn-engage/2160022b-c959-48f1-bef2-30c42c3165ad/64c02141-2f0f-4363-98c5-1b82ec13f59a/mp4:example_with_audio.mp4</url>
+			<checksum type="md5">4c84d2bc98edf9b29a0ce6dbeb34fb37</checksum>
+			<duration>33160</duration>
+			<audio id="audio-1">
+				<device/>
+				<encoder/>
+				<channels>2</channels>
+				<bitrate>127874.0</bitrate>
+			</audio>
+			<video id="video-1">
+				<device/>
+				<encoder/>
+				<bitrate>1014010.0</bitrate>
+				<framerate>25.0</framerate>
+				<resolution>1280x720</resolution>
+				<scantype type="Progressive"/>
+			</video>
+		</track>
+	</media>
+	<metadata>
+		<catalog ref="catalog:223d2042-0707-4b9b-88a5-c36911f85c86" type="dublincore/series" id="catalog-3">
+			<mimetype>text/xml</mimetype>
+			<tags>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/223d2042-0707-4b9b-88a5-c36911f85c86/dublincore.xml</url>
+		</catalog>
+		<catalog ref="catalog:bd6fb176-9a88-429f-b144-ff3b742ff033" type="dublincore/episode" id="catalog-4">
+			<mimetype>text/xml</mimetype>
+			<tags>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/bd6fb176-9a88-429f-b144-ff3b742ff033/dublincore.xml</url>
+		</catalog>
+	</metadata>
+	<attachments>
+		<attachment ref="attachment:attachment-2" type="presenter/player+preview" id="attachment-5">
+			<mimetype>image/jpeg</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/attachment-2/example_with_audio.jpg</url>
+		</attachment>
+		<attachment ref="attachment:attachment-3" type="presenter/search+preview" id="attachment-6">
+			<mimetype>image/jpeg</mimetype>
+			<tags>
+				<tag>engage</tag>
+				<tag>publish</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/attachment-3/example_with_audio.jpg</url>
+		</attachment>
+		<attachment ref="attachment:attachment-4" type="presenter/feed+preview" id="attachment-7">
+			<mimetype>image/jpeg</mimetype>
+			<tags>
+				<tag>atom</tag>
+				<tag>publish</tag>
+				<tag>rss</tag>
+			</tags>
+			<url>http://video2.virtuos.uni-osnabrueck.de/static/2160022b-c959-48f1-bef2-30c42c3165ad/attachment-4/example_with_audio.jpg</url>
+		</attachment>
+		<attachment type="security/xacml" id="security-policy">
+			<tags/>
+			<url>http://vm231.rz.uos.de:8080/files/mediapackage/2160022b-c959-48f1-bef2-30c42c3165ad/security-policy/xacml.xml</url>
+		</attachment>
+	</attachments>
+</mediapackage>
