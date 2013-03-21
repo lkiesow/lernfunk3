@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::View
-	~~~~~~~~~~~~~~~
+	Lernfunk3::Core::Login
+	~~~~~~~~~~~~~~~~~~~~~~
 
-	This package provides read and write access to the central Lernfunk
-	database.
-
-	** Login contains the login and logout mechanism for session based logins.
+	Login contains the login and logout mechanism for session based logins.
 
     :copyright: (c) 2012 by Lars Kiesow
+
     :license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
@@ -20,6 +18,21 @@ from flask import session, redirect, url_for, request
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+	'''This method can be used to log into the lernfunk core webservice. Using
+	this mechanism you will get a session id to use for further authentication.
+
+	Authentication can be done either by using HTTP Basic authentication or by
+	form based authentication using the fields *username* and *password*.
+
+	As request type both GET and POST are accepted.
+
+	Example::
+		
+		curl -u user:passwd 'http://example.com/login'
+		curl --data username=john&password=secret 'http://example.com/login'
+
+	'''
+
 	auth = None
 	if request.method == 'POST':
 		auth = Authorization('basic', {
@@ -42,7 +55,8 @@ def login():
 
 @app.route('/logout')
 def logout():
-	'''Remove username and hashec password from session if it's there.'''
+	'''Remove username and hashec password from session if it's there.
+	'''
 	session.pop('username', None)
 	session.pop('password', None)
 	return '', 204

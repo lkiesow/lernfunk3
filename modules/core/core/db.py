@@ -17,8 +17,8 @@ from flask import _app_ctx_stack, abort
 
 
 def get_db():
-	'''Opens a new database connection if there is none yet for the
-	current application context.
+	'''Returns a database connection. If there is none open for the current
+	application context it will create a new connection.
 	'''
 	top = _app_ctx_stack.top
 	if not hasattr(top, 'mysql_db'):
