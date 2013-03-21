@@ -1,5 +1,13 @@
 #!/bin/env python
 # -*- coding: utf-8 -*-
+'''
+	Lernfunk3: Matterhorn Import Service
+	====================================
+
+	:copyright: 2013, Lars Kiesow <lkiesow@uos.de>
+
+	:license: FreeBSD and LGPL, see LICENSE for more details.
+'''
 
 # Set default encoding to UTF-8
 import sys
@@ -14,8 +22,11 @@ from util import xml_get_data
 
 
 def check_rules( ruleset, data ):
-	''' Check rules defined in configuration. Returns False if a rule does not
-	apply, True otherwise.
+	'''Check if every rule of a ruleset applies to the given data. Returns False
+	if a rule does not apply, True otherwise.
+
+	:param ruleset: A normalized set of rules
+	:param data:    The data to check
 	'''
 	if ruleset['-mimetype'] and \
 			ruleset['-mimetype'] == data.get('mimetype'):
@@ -56,6 +67,23 @@ def check_rules( ruleset, data ):
 
 
 def split_vals( vals, delim, stripchars=' ' ):
+	'''This function will split every value of a list *vals* using the character
+	from *delim* als delimeter, strip the new values using *stripchars* and
+	return all values in a new, one dimensional list.
+
+	:param vals:       List of string values to split
+	:param delim:      Delimeter to use for splitting the strings
+	:param stripchars: Character to strip from the new values
+
+	:returns: List of split values
+
+	Example::
+		
+		>>> x = ['val;val2', 'val3; val4, val5']
+		>>> split_vals( x, ';,' )
+		['val', 'val2', 'val3', 'val4', 'val5']
+
+	'''
 	for d in delim:
 		new = []
 		for v in vals:
@@ -68,6 +96,12 @@ def split_vals( vals, delim, stripchars=' ' ):
 
 
 def load_config():
+	'''This method loads the configuration file (config.json) and normalizes all
+	entries. This means that empty entries will be set to None values or entry
+	lists. This way the configuration is easier to handle afterwards.
+
+	:returns: Normalized configuration dictionary
+	'''
 	f = open( 'config.json', 'r')
 	config = json.load(f)
 	f.close()
@@ -76,7 +110,8 @@ def load_config():
 	for key in ['creator', 'contributor', 'subject']:
 		if not key in config['delimeter'].keys():
 			entry[key] = None
-	for entry in config['trackrules'] + config['metadatarules']:
+	for entry in config['trackrules'] + config['metadatarules'] \
+			+ config['attachmentrules']:
 		for key in ['name','comment']:
 			if not key in entry.keys():
 				entry[key] = ''
@@ -93,6 +128,16 @@ def load_config():
 
 
 def import_media( mp ):
+	'''This method takes a Opencast Matterhorn mediapackage as input, parses it
+	and imports the tracks, metadata and attachments according to the
+	configuration.
+
+	The new datasets are send to the Lernfunk core webservice as HTTP POST
+	requests.
+
+	:param mp: String representation of a matterhorn mediapackage
+
+	'''
 	global config
 
 	# This will be a post field:
@@ -149,8 +194,6 @@ def import_media( mp ):
 				pass
 
 
-
-
 	for track in mp.getElementsByTagNameNS('*', 'track'):
 		t = {'source_system' : source_system}
 		t['mimetype'] = xml_get_data(track, 'mimetype')
@@ -167,6 +210,28 @@ def import_media( mp ):
 
 			# Build request
 			pprint(t)
+
+			# Send request
+			# http://docs.python.org/2/library/urllib2.html
+	
+
+	for attachment in mp.getElementsByTagNameNS('*', 'attachment'):
+		a = {'source_system' : source_system}
+		a['mimetype'] = xml_get_data(attachment, 'mimetype')
+		a['type']     = attachment.getAttribute('type')
+		a['id']       = attachment.getAttribute('ref').lstrip('attachment').lstrip(':')
+		a['tags']     = xml_get_data(attachment, 'tag', array='always')
+		a['url']      = xml_get_data(attachment, 'url')
+
+		for r in config['attachmentrules']:
+			# Check rules defined in configuration. If a rule does not apply jump
+			# straight to the next set of rules.
+			print '---'
+			if not check_rules( r, a ):
+				continue
+
+			# Build request
+			pprint(a)
 
 			# Send request
 			# http://docs.python.org/2/library/urllib2.html

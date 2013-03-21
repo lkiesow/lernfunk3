@@ -51,5 +51,14 @@
 			"type"     : "dublincore/series",
 			"use-for"  : "series"
 		}
+	],
+	"attachmentrules" : [
+		{
+			"name"     : "import-preview-image",
+			"comment"  : "Import player preview image",
+			"mimetype" : "image/jpeg",
+			"tags"     : [ "publish", "engage" ],
+			"type"     : "presenter/player+preview"
+		}
 	]
 }

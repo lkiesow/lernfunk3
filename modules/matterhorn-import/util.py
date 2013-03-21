@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Matterhorn-Import::Util
-	~~~~~~~~~~~~~~~
+	Lernfunk3: Matterhorn Import Service Utils
+	==========================================
 
-    :copyright: (c) 2013 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: 2013 by Lars Kiesow
+
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 import uuid
 
 
 def xml_get_data(node, name, raiseError=False, namespace='*', type=None,
 		array='never'):
-	'''Get text from first selected elements. 
-	Return None if there is no text.
+	'''Get text from first selected elements. Return None if there is no text.
 
-	Keyword arguments:
-	node        -- Node to use as root
-	name        -- Name of the node which contains the text
-	raiseError  -- If an error should be raised if element does not exist
-	namespace   -- Namespace to use
-	type        -- Type conversion of the data
-	array       -- One of 'always', 'allowed', 'never' (default)
+	:param node:       Node to use as root
+	:param name:       Name of the node which contains the text
+	:param raiseError: If an error should be raised if element does not exist
+	:param namespace:  Namespace to use
+	:param type:       Type conversion of the data
+	:param array:      One of 'always', 'allowed', 'never' (default)
+
+	:returns: Value of first element or None
 	'''
 
 	# Autodetect namespace:
@@ -74,8 +75,24 @@ def xml_get_data(node, name, raiseError=False, namespace='*', type=None,
 def is_true( val ):
 	'''Check if a string is some kind of representation for True.
 
-	Keyword arguments:
-	val -- Value to check
+	:param val: Value to check
+
+	:returns: True or False
+
+	Example::
+
+		>>> is_true( 'yes' )
+		True
+		>>> is_true( 'YeS' )
+		true
+		>>> is_true( 'no' )
+		False
+		>>> is_true( 'true' )
+		True
+		>>> is_true( 1 )
+		True
+		>>> is_true( 0 )
+		False
 	'''
 	if isinstance(val, basestring):
 		return val.lower() in ('1', 'yes', 'true')
