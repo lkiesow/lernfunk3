@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Admin
-	~~~~~~~~~~~~~~~
+	core.admin.delete
+	~~~~~~~~~~~~~~~~~
 
 	This module provides read and write access to the central Lernfunk database.
+	Admin contains the administrative REST endpoint for the Lernfunk database.
+	It will let you retrieve, modify and edit all data.
 
-	** Admin contains the administrative REST endpoint for the Lernfunk
-	** database. It will let you retrieve, modify and edit all data.
-
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: 2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app
@@ -30,10 +29,9 @@ def admin_media_delete(media_id=None, version=None, lang=None):
 	'''This method provides you with the functionality to delete media objects.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	media_id -- UUID of a specific media object.
-	version  -- Specific version of the media
-	lang     -- Language filter for the mediaobjects.
+	:param media_id: UUID of a specific media object.
+	:param version:  Specific version of the media
+	:param lang:     Language filter for the mediaobjects.
 	'''
 
 	# Check authentication. 
@@ -94,10 +92,9 @@ def admin_series_delete(series_id=None, version=None, lang=None):
 	'''This method provides you with the functionality to delete series.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	series_id -- UUID of a specific series.
-	version   -- Specific version of the series.
-	lang      -- Language filter for the series.
+	:param series_id: UUID of a specific series.
+	:param version:   Specific version of the series.
+	:param lang:      Language filter for the series.
 	'''
 
 	# Check authentication. 
@@ -155,9 +152,8 @@ def admin_server_delete(server_id=None, format=None):
 	'''This method provides you with the functionality to delete server.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	server_id -- Id of a specific server.
-	format    -- Format for a specific URI pattern.
+	:param server_id: Id of a specific server.
+	:param format:    Format for a specific URI pattern.
 	'''
 
 	# Check authentication. 
@@ -218,9 +214,8 @@ def admin_subject_delete(subject_id=None, lang=None):
 	'''This method provides you with the functionality to delete subjects.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	subject_id -- UUID of a specific series.
-	lang       -- Language filter for the subjects.
+	:param subject_id: UUID of a specific series.
+	:param lang:       Language filter for the subjects.
 	'''
 
 	# Check authentication. 
@@ -279,8 +274,7 @@ def admin_file_delete(file_id=None):
 	'''This method provides you with the functionality to delete file objects.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	file_id -- UUID of a specific file object.
+	:param file_id: UUID of a specific file object.
 	'''
 
 	# Check authentication. 
@@ -326,8 +320,7 @@ def admin_organization_delete(organization_id=None):
 	'''This method provides you with the functionality to delete organizations.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	organization_id -- Identifier of a specific organization.
+	:param organization_id: Identifier of a specific organization.
 	'''
 
 	# Check authentication. 
@@ -377,8 +370,7 @@ def admin_group_delete(group_id=None):
 	'''This method provides you with the functionality to delete groups.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	group_id -- Identifier of a specific group.
+	:param group_id: Identifier of a specific group.
 	'''
 
 	# Check authentication. 
@@ -431,9 +423,8 @@ def admin_user_delete(user_id=None, name=None):
 	'''This method provides you with the functionality to delete user.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	user_id -- Identifier of a specific user.
-	name    -- Name of a specific user.
+	:param user_id: Identifier of a specific user.
+	:param name:    Name of a specific user.
 	'''
 
 	# Check authentication. 
@@ -514,11 +505,10 @@ def admin_access_delete(media_id=None, series_id=None, user_id=None, group_id=No
 	'''This method provides the functionality to delete access rights.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	group_id  -- Identifier of a specific group.
-	media_id  -- Identifier of a specific mediaobject.
-	series_id -- Identifier of a specific series.
-	user_id   -- Identifier of a specific user.
+	:param group_id:  Identifier of a specific group.
+	:param media_id:  Identifier of a specific mediaobject.
+	:param series_id: Identifier of a specific series.
+	:param user_id:   Identifier of a specific user.
 	'''
 
 	user_access   = '/user/'   in request.path
@@ -598,10 +588,9 @@ def admin_media_contributor_delete(media_id=None, user_id=None, version=None):
 	'''This method provides the functionality to delete contributor.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	media_id -- Identifies a specific mediaobject.
-	version  -- Identifies a specific version of the mediaobject.
-	user_id  -- Identifies a specific user.
+	:param media_id: Identifies a specific mediaobject.
+	:param version:  Identifies a specific version of the mediaobject.
+	:param user_id:  Identifies a specific user.
 	'''
 
 	# Check authentication. 
@@ -660,9 +649,8 @@ def admin_media_creator_delete(media_id=None, user_id=None, version=None):
 	'''This method provides the functionality to delete creators.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	media_id -- Identifies a specific mediaobject.
-	user_id  -- Identifies a specific user.
+	:param media_id: Identifies a specific mediaobject.
+	:param user_id:  Identifies a specific user.
 	'''
 
 	# Check authentication. 
@@ -721,10 +709,9 @@ def admin_media_publisher_delete(media_id=None, org_id=None, version=None):
 	'''This method provides the functionality to delete contributor.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	media_id -- Identifies a specific mediaobject.
-	version  -- Identifies a specific version of a mediaobject.
-	org_id   -- Identifies a specific organization.
+	:param media_id: Identifies a specific mediaobject.
+	:param version:  Identifies a specific version of a mediaobject.
+	:param org_id:   Identifies a specific organization.
 	'''
 
 	# Check authentication. 
@@ -780,9 +767,8 @@ def admin_media_subject_delete(media_id=None, subject_id=None):
 	'''This method provides the functionality to delete subjects.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	media_id   -- Identifies a specific mediaobject.
-	subject_id -- Identifies a specific subject.
+	:param media_id:   Identifies a specific mediaobject.
+	:param subject_id: Identifies a specific subject.
 	'''
 
 	# Check authentication. 
@@ -846,10 +832,9 @@ def admin_media_series_delete(media_id=None, series_id=None, series_version=None
 	'''This method provides the functionality to delete media from series.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	media_id       -- Identifies a specific mediaobject.
-	series_id      -- Identifies a specific series.
-	series_version -- Identifies a specific version of a series.
+	:param media_id:       Identifies a specific mediaobject.
+	:param series_id:      Identifies a specific series.
+	:param series_version: Identifies a specific version of a series.
 	'''
 
 	# Check authentication. 
@@ -908,10 +893,9 @@ def admin_series_creator_delete(series_id=None, user_id=None, version=None):
 	'''This method provides the functionality to delete creators from series.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	series_id -- Identifies a specific series.
-	version   -- Identifies a specific version of a series.
-	user_id   -- Identifies a specific user.
+	:param series_id: Identifies a specific series.
+	:param version:   Identifies a specific version of a series.
+	:param user_id:   Identifies a specific user.
 	'''
 
 	# Check authentication. 
@@ -970,10 +954,9 @@ def admin_series_publisher_delete(series_id=None, org_id=None, version=None):
 	'''This method provides the functionality to delete contributor.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	series_id -- Identifies a specific seriesobject.
-	version   -- Identifies a specific version of a seriesobject.
-	org_id    -- Identifies a specific organization.
+	:param series_id: Identifies a specific seriesobject.
+	:param version:   Identifies a specific version of a seriesobject.
+	:param org_id:    Identifies a specific organization.
 	'''
 
 	# Check authentication. 
@@ -1029,9 +1012,8 @@ def admin_series_subject_delete(series_id=None, subject_id=None):
 	'''This method provides the functionality to delete subjects.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	series_id   -- Identifies a specific seriesobject.
-	subject_id -- Identifies a specific subject.
+	:param series_id:   Identifies a specific seriesobject.
+	:param subject_id: Identifies a specific subject.
 	'''
 
 	# Check authentication. 
@@ -1085,9 +1067,8 @@ def admin_user_group_delete(user_id=None, group_id=None):
 	'''This method provides the functionality to delete user from groups.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	user_id  -- Identifies a specific user.
-	group_id -- Identifies a specific group.
+	:param user_id:  Identifies a specific user.
+	:param group_id: Identifies a specific group.
 	'''
 
 	# Check authentication. 
@@ -1152,9 +1133,8 @@ def admin_series_subject_delete(user_id=None, organization_id=None):
 	'''This method provides the functionality to delete user from organizations.
 	Only administrators are allowed to delete data.
 
-	Keyword arguments:
-	user_id         -- Identifies a specific user.
-	organization_id -- Identifies a specific organization.
+	:param user_id:         Identifies a specific user.
+	:param organization_id: Identifies a specific organization.
 	'''
 
 	# Check authentication. 

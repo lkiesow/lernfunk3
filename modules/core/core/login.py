@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Login
-	~~~~~~~~~~~~~~~~~~~~~~
+	core.login
+	~~~~~~~~~~
 
 	Login contains the login and logout mechanism for session based logins.
 
-    :copyright: (c) 2012 by Lars Kiesow
+	:copyright: (c) 2012 by Lars Kiesow
 
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app

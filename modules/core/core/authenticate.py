@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-"""
-	Lernfunk3::Core::Authenticate
-	~~~~~~~~~~~~~~~
+'''
+	corer.authenticate
+	~~~~~~~~~~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
-	
-	** Authenticate contains methods for authentication and authorization
-	** handling.
+	Authenticate contains methods for authentication and authorization handling
+	as well as user handling.
 
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
-"""
+	:copyright: 2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
+'''
 
 from hashlib   import sha512
 from base64    import b64encode, b64decode

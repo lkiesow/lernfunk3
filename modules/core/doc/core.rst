@@ -16,3 +16,4 @@ Lernfunk::Core
 
 .. automodule:: core
    :members:
+

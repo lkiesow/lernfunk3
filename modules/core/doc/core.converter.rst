@@ -1,5 +1,5 @@
 Lernfunk::Core::Converter
-=====================
+=========================
 
 Contents:
 

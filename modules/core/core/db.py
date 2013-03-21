@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 '''
-	Lernfunk3::Core::db
-	~~~~~~~~~~~~~~~
+	core.db
+	~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
-	
-	** Db contains database handline
+	This module contains database functions for database handling.
 
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: (c) 2012 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 '''
 
 from core import app

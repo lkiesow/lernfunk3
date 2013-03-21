@@ -1,5 +1,5 @@
-Lernfunk::Core::Database
-========================
+Core Database Access
+====================
 
 Contents:
 

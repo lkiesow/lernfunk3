@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-"""
-	Lernfunk3::Core::Converte
-	~~~~~~~~~~~~~~~
+'''
+	core.converte
+	~~~~~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
-	
-	** Converter contains special converter for URL routing.
+	This module contains special converter for URL routing.
 
-    :copyright: (c) 2013 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
-"""
+	:copyright: (c) 2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
+'''
 
 from werkzeug.routing import BaseConverter, ValidationError
 from core.util import username_regex_str, lang_regex_str

@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Admin
+	core.admin.put
 	~~~~~~~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
+	This module provides write access to the central Lernfunk database. It is
+	the administrative REST endpoint for the Lernfunk database. It will let you
+	modify and create all data.
 
-	** Admin contains the administrative REST endpoint for the Lernfunk
-	** database. It will let you retrieve, modify and edit all data.
-
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: 2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app
@@ -39,49 +38,48 @@ def admin_media_put():
 	already exists.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:media": [
-		{
-			"lf:source_key": "123456789", 
-			"dc:type": "Image", 
-			"dc:title": "test", 
-			"dc:language": "de", 
-			"lf:visible": 1, 
-			"dc:source": null, 
-			"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
-			"lf:published": 0, 
-			"dc:date": "2013-01-30 13:58:22", 
-			"dc:description": "some text\u2026", 
-			"dc:rights": "cc-by", 
-			"lf:owner": 3, 
-			"lf:last_edit": "2013-01-30 13:58:22", 
-			"lf:parent_version": null, 
-			"lf:source_system": null
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
-			xmlns:lf="http://lernfunk.de/terms">
-		<!-- TODO -->
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:media": [
+			{
+				"lf:source_key": "123456789", 
+				"dc:type": "Image", 
+				"dc:title": "test", 
+				"dc:language": "de", 
+				"lf:visible": 1, 
+				"dc:source": null, 
+				"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
+				"lf:published": 0, 
+				"dc:date": "2013-01-30 13:58:22", 
+				"dc:description": "some text\u2026", 
+				"dc:rights": "cc-by", 
+				"lf:owner": 3, 
+				"lf:last_edit": "2013-01-30 13:58:22", 
+				"lf:parent_version": null, 
+				"lf:source_system": null
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+				xmlns:lf="http://lernfunk.de/terms">
+			<!-- TODO -->
+		</data>
 
 	NOTICES:
 	 * If the identifier is ommittet a new id is generated automatically. 
 	 * Only administrators and editors can change the ownership of a media.
 	 * You need to have write access to a series to add this edia to a series.
 	 * You cannot modify a specific version. Insted a new version is created
-		automatically. If you really want to get rid of a specific version: Be
-		admin, delete the old one and create a new version. If you are no admin:
-		Create a new version based on an old one and ask someone who is admin to
-		delete this one.
+	   automatically. If you really want to get rid of a specific version: Be
+	   admin, delete the old one and create a new version. If you are no admin:
+	   Create a new version based on an old one and ask someone who is admin to
+	   delete this one.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -452,48 +450,48 @@ def admin_series_put():
 	identifier already exists.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-{
-	"lf:series": [
-	{
-		"lf:parent_version": null, 
-		"dc:source": null, 
-		"lf:version": 0, 
-		"lf:source_key": null, 
-		"lf:editor": 3, 
-		"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
-		"lf:owner": 3, 
-		"dc:title": "testseries", 
-		"dc:language": "de", 
-		"lf:published": 1, 
-		"dc:date": "2013-01-30 13:58:22", 
-		"lf:source_system": null, 
-		"lf:visible": 1, 
-		"lf:last_edit": "2013-01-30 13:58:22", 
-		"dc:description": "some text\u2026", 
-	}
-	]
-}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
-			xmlns:lf="http://lernfunk.de/terms">
-		<!-- TODO -->
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:series": [
+			{
+				"lf:parent_version": null, 
+				"dc:source": null, 
+				"lf:version": 0, 
+				"lf:source_key": null, 
+				"lf:editor": 3, 
+				"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
+				"lf:owner": 3, 
+				"dc:title": "testseries", 
+				"dc:language": "de", 
+				"lf:published": 1, 
+				"dc:date": "2013-01-30 13:58:22", 
+				"lf:source_system": null, 
+				"lf:visible": 1, 
+				"lf:last_edit": "2013-01-30 13:58:22", 
+				"dc:description": "some text\u2026", 
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+				xmlns:lf="http://lernfunk.de/terms">
+			<!-- TODO -->
+		</data>
+
 
 	NOTICES:
 	 * If the identifier is ommittet a new id is generated automatically. 
 	 * Only administrators and editors can change the ownership of a series.
 	 * You cannot modify a specific version. Insted a new version is created
-		automatically. If you really want to get rid of a specific version: Be
-		admin, delete the old one and create a new version. If you are no admin:
-		Create a new version based on an old one and ask someone who is admin to
-		delete the old one.
+	   automatically. If you really want to get rid of a specific version: Be
+	   admin, delete the old one and create a new version. If you are no admin:
+	   Create a new version based on an old one and ask someone who is admin to
+	   delete the old one.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -844,41 +842,43 @@ def admin_server_put():
 	Only administrators are allowed to add/modify server data.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:server": [
-			{
-				"lf:format": "video/mpeg", 
-				"lf:id": "myserver", 
-				"lf:uri_pattern": "http://myserver.com/{source_key}.mpg"
-			}, 
-			{ ... }
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:server>
-			<lf:format>video/mpeg</lf:format>
-			<lf:id>myserver</lf:id>
-			<lf:uri_pattern>http://myserver.com/{source_key}.mpg</lf:uri_pattern>
-		</lf:server>
-		...
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
 
-	-- URI PATTERN ----------
+		{
+			"lf:server": [
+				{
+					"lf:format": "video/mpeg", 
+					"lf:id": "myserver", 
+					"lf:uri_pattern": "http://myserver.com/{source_key}.mpg"
+				}, 
+				{ ... }
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:server>
+				<lf:format>video/mpeg</lf:format>
+				<lf:id>myserver</lf:id>
+				<lf:uri_pattern>http://myserver.com/{source_key}.mpg</lf:uri_pattern>
+			</lf:server>
+			...
+		</data>
+
+	** URI PATTERN **
+
 	You can use the following placeholders in the URI pattern:
-	  {file_id}          -- Fill in file identifier
-	  {format}           -- Fill in file format
-	  {media_id}         -- Fill in media identifier
-	  {source_key}       -- Fill in file source key
-	  {media_source_key} -- Fill in media source key
+	  =================== ========================
+	  {file_id}           Fill in file identifier
+	  {format}            Fill in file format
+	  {media_id}          Fill in media identifier
+	  {source_key}        Fill in file source key
+	  {media_source_key}  Fill in media source key
+	  =================== ========================
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -983,33 +983,32 @@ def admin_subject_put():
 	Only administrators and editors are allowed to add/modify subject data.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:subject": [
-		{
-			"lf:name": "Computer Science", 
-			"dc:language": "en", 
-			"lf:id": 1
-		}, 
-		{ ... }
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:subject>
-			<lf:name>Computer Science</lf:name>
-			<dc:language>en</dc:language>
-			<lf:id>1</lf:id>
-		</lf:subject>
-		...
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:subject": [
+			{
+				"lf:name": "Computer Science", 
+				"dc:language": "en", 
+				"lf:id": 1
+			}, 
+			{ ... }
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:subject>
+				<lf:name>Computer Science</lf:name>
+				<dc:language>en</dc:language>
+				<lf:id>1</lf:id>
+			</lf:subject>
+			...
+		</data>
 
 	The id can be ommittet. In that case a new id is generated automatically.
 
@@ -1122,40 +1121,37 @@ def admin_file_put():
 	Only administrators and editors are allowed to add/modify file data.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-{
-	"lf:file": [
-		{
-			"lf:source_system": "matterhorn13@uos", 
-			"lf:source_key": "ba8b331d-6adc-11e2-8b4e-047d7b0f869a", 
-			"dc:identifier": "ba8b380b-6adc-11e2-8b4e-047d7b0f869a", 
-			"lf:quality": "high-quality",
-			"dc:format": "application/matterhorn13", 
-			"lf:source": "http://video.example.com/",
-			"lf:type": "vga", 
-			"lf:media_id": "BA8488D1-6ADC-11E2-8B4E-047D7B0F869A", 
-			"lf:uri": "http://video.example.com/watch/ba8b331d-6adc-11e2-8b4e-047d7b0f869a/"
-			"lf:server_id": "exampleserver"
-		}
-	]
-}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:file>
-			<lf:source_key>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:source_key>
-			<dc:identifier>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</dc:identifier>
-			<dc:format>video/mpeg</dc:format>
-			<lf:media_id>BA8488D1-6ADC-11E2-8B4E-047D7B0F869A</lf:media_id>
-			<lf:server_id>exampleserver<lf:server_id>
-		</lf:file>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:file": [{
+				"lf:source_system": "matterhorn13@uos", 
+				"lf:source_key": "ba8b331d-6adc-11e2-8b4e-047d7b0f869a", 
+				"dc:identifier": "ba8b380b-6adc-11e2-8b4e-047d7b0f869a", 
+				"lf:quality": "high-quality",
+				"dc:format": "application/matterhorn13", 
+				"lf:source": "http://video.example.com/",
+				"lf:type": "vga", 
+				"lf:media_id": "BA8488D1-6ADC-11E2-8B4E-047D7B0F869A", 
+				"lf:uri": "http://video.example.com/watch/ba8b331d-6adc-11e2-8b4e-047d7b0f869a/"
+				"lf:server_id": "exampleserver"
+			}]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:file>
+				<lf:source_key>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:source_key>
+				<dc:identifier>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</dc:identifier>
+				<dc:format>video/mpeg</dc:format>
+				<lf:media_id>BA8488D1-6ADC-11E2-8B4E-047D7B0F869A</lf:media_id>
+				<lf:server_id>exampleserver<lf:server_id>
+			</lf:file>
+		</data>
 	
 	IMPORTANT NOTICE:
 	 | There should be either a uri or a server, not both. If both fields are
@@ -1309,31 +1305,30 @@ def admin_organization_put():
 	Only administrators and editors are allowed to add/modify subject data.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:organization": [
-		{
-			"lf:name": "Universit\u00e4t Osnabr\u00fcck", 
-			"lf:parent_organization_id": null, 
-			"vcard_uri": null, 
-			"dc:identifier": 1
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:organization>
-			<lf:name>Universität Osnabrück</lf:name>
-			<dc:identifier>1</dc:identifier>
-		</lf:organization>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:organization": [
+			{
+				"lf:name": "Universit\u00e4t Osnabr\u00fcck", 
+				"lf:parent_organization_id": null, 
+				"vcard_uri": null, 
+				"dc:identifier": 1
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:organization>
+				<lf:name>Universität Osnabrück</lf:name>
+				<dc:identifier>1</dc:identifier>
+			</lf:organization>
+		</data>
 
 	The id can be omitted. In that case a new id is generated automatically.
 
@@ -1441,28 +1436,27 @@ def admin_group_put():
 	Only administrators are allowed to add/modify groups.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:group": [
-		{
-			"lf:name": "test", 
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:group>
-			<lf:name>test</lf:name>
-			<dc:identifier>42</dc:identifier>
-		</lf:group>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:group": [
+			{
+				"lf:name": "test", 
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:group>
+				<lf:name>test</lf:name>
+				<dc:identifier>42</dc:identifier>
+			</lf:group>
+		</data>
 
 	The id can be omitted. In that case a new id is generated automatically.
 
@@ -1574,39 +1568,39 @@ def admin_user_put():
 	modify their own data.
 
 	The data can either be JSON or XML.
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	{
-		"lf:user": [
-		{
-			"dc:identifier": 42,
-			"lf:name": "testuser",
-			"lf:access": "administrators only",
-			"lf:realname": null,
-			"lf:email": null,
-			"lf:vcard_uri": null
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:group>
-			<lf:name>test</lf:name>
-			<dc:identifier>42</dc:identifier>
-		</lf:group>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	JSON example::
+
+		{
+			"lf:user": [
+			{
+				"dc:identifier": 42,
+				"lf:name": "testuser",
+				"lf:access": "administrators only",
+				"lf:realname": null,
+				"lf:email": null,
+				"lf:vcard_uri": null
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:group>
+				<lf:name>test</lf:name>
+				<dc:identifier>42</dc:identifier>
+			</lf:group>
+		</data>
 
 	The id can be omitted. In that case a new id is generated automatically.
 
 	The access data can be given either as integer or as their string
 	representation. The latter is automatically converted to an integer.
-	Possible values for the access field are:
+	Possible values for the access field are::
+
 		1 : 'public'
 		2 : 'login required'
 		3 : 'editors only'
@@ -1796,29 +1790,28 @@ def admin_user_passwd_put():
 	modify their own data.
 
 	The data can either be JSON or XML.
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	{
-		"lf:user_password": [
-		{
-			"lf:user_id": 42,
-			"lf:password": "SECRET_PASSWORD"
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:user_password>
-			<lf:user_id>42</lf:user_id>
-			<lf:password>SECRET_PASSWORD</lf:password>
-		</lf:group>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	JSON example::
+
+		{
+			"lf:user_password": [
+			{
+				"lf:user_id": 42,
+				"lf:password": "SECRET_PASSWORD"
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:user_password>
+				<lf:user_id>42</lf:user_id>
+				<lf:password>SECRET_PASSWORD</lf:password>
+			</lf:group>
+		</data>
 
 	The data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -1949,31 +1942,30 @@ def admin_access_put():
 	Only administrators are allowed to add/modify access rights.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:access": [
-		{
-			"lf:media_id"     : "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A",
-			"lf:series_id"    : null,
-			"lf:group_id"     : null,
-			"lf:user_id"      : 1,
-			"lf:read_access"  : 1,
-			"lf:write_access" : 0
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
-		<lf:access>
-			…
-		</lf:access>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:access": [
+			{
+				"lf:media_id"     : "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A",
+				"lf:series_id"    : null,
+				"lf:group_id"     : null,
+				"lf:user_id"      : 1,
+				"lf:read_access"  : 1,
+				"lf:write_access" : 0
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:lf="http://lernfunk.de/terms">
+			<lf:access>
+				…
+			</lf:access>
+		</data>
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -2094,30 +2086,29 @@ def admin_series_media_put():
 	series version is created.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:series_media": [{
-		"lf:series_id": "AAAAAAAA-7F69-11E2-9DE9-047D7B0F869A",
-		"lf:series_version": 2,
-		"lf:media_id": [ "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A" ]
-		}]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:series_media>
-			<lf:series_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:series_id>
-			<lf:series_version>1</lf:series_version>
-			<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
-			<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
-		</lf:series_media>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:series_media": [{
+			"lf:series_id": "AAAAAAAA-7F69-11E2-9DE9-047D7B0F869A",
+			"lf:series_version": 2,
+			"lf:media_id": [ "6EB7CD04-7F69-11E2-9DE9-047D7B0F869A" ]
+			}]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:series_media>
+				<lf:series_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:series_id>
+				<lf:series_version>1</lf:series_version>
+				<lf:media_id>aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa</lf:media_id>
+				<lf:media_id>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</lf:media_id>
+			</lf:series_media>
+		</data>
 
 	IMPORTANT NOTICE: If you send JSON/XML data to set up new series media
 	 | connections, the old ones will not be cloned. Thus they should be
@@ -2266,50 +2257,44 @@ def admin_user_group_put():
 	groups. Only administrators are allowed to do this.
 
 	The data can either be JSON or XML. 
-	JSON examples:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:user_group": [{
-			"lf:user_id" : 42,
-			"lf:group_id" : 42
-		}]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON examples::
 
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:user_group": [{
-			"lf:user_id" : [ 42, 23, 123 ],
-			"lf:group_id" : [ 42, 11 ]
-		}]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+		{
+			"lf:user_group": [{
+				"lf:user_id" : 42,
+				"lf:group_id" : 42
+			}]
+		}
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:user_group>
-			<lf:user_id>42</lf:user_id>
-			<lf:group_id>42</lf:group_id>
-		</lf:user_group>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+		{
+			"lf:user_group": [{
+				"lf:user_id" : [ 42, 23, 123 ],
+				"lf:group_id" : [ 42, 11 ]
+			}]
+		}
 
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:user_group>
-			<lf:user_id>42</lf:user_id>
-			<lf:user_id>23</lf:user_id>
-			<lf:group_id>42</lf:group_id>
-			<lf:group_id>4</lf:group_id>
-			<lf:group_id>2</lf:group_id>
-		</lf:user_group>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:user_group>
+				<lf:user_id>42</lf:user_id>
+				<lf:group_id>42</lf:group_id>
+			</lf:user_group>
+		</data>
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:user_group>
+				<lf:user_id>42</lf:user_id>
+				<lf:user_id>23</lf:user_id>
+				<lf:group_id>42</lf:group_id>
+				<lf:group_id>4</lf:group_id>
+				<lf:group_id>2</lf:group_id>
+			</lf:user_group>
+		</data>
 
 	NOTICE: user_group can hold more than one user or group id. If more than one
 	 | user or group id is specified each user will be connected to each group.
@@ -2405,27 +2390,26 @@ def admin_user_organization_put():
 	organizations. Only administrators are allowed to do this.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:user_organization": [{
-			"lf:user_id" : 42,
-			"lf:organization_id" : 42
-		}]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:user_organization>
-			<lf:user_id>42</lf:user_id>
-			<lf:organization_id>42</lf:organization_id>
-		</lf:user_organization>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:user_organization": [{
+				"lf:user_id" : 42,
+				"lf:organization_id" : 42
+			}]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:user_organization>
+				<lf:user_id>42</lf:user_id>
+				<lf:organization_id>42</lf:organization_id>
+			</lf:user_organization>
+		</data>
 
 	NOTICE: Like with user_groups you can have more than one user id or
 	 | organization id in  user_organization.
@@ -2522,29 +2506,28 @@ def admin_media_subject_put():
 	media.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:media_subject": [{
-			"lf:media_id"  : "aaaaaaaa-6adc-11e2-8b4e-047d7b0f8",
-			"lf:subject_id": 42,
-			"lf:subject"   : "Computer Science",
-			"dc:language"  : "en"
-		}]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:media_subject>
-			<lf:media_id>aaaaaaaa-6adc-11e2-8b4e-047d7b0f8</lf:media_id>
-			<lf:subject_id>42</lf:subject_id>
-		</lf:media_subject>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:media_subject": [{
+				"lf:media_id"  : "aaaaaaaa-6adc-11e2-8b4e-047d7b0f8",
+				"lf:subject_id": 42,
+				"lf:subject"   : "Computer Science",
+				"dc:language"  : "en"
+			}]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:media_subject>
+				<lf:media_id>aaaaaaaa-6adc-11e2-8b4e-047d7b0f8</lf:media_id>
+				<lf:subject_id>42</lf:subject_id>
+			</lf:media_subject>
+		</data>
 
 	IMPORTANT NOTICE: Either lf:subject_id or lf:subject can be used. Not both.
 	 | If both fields are present lf:subject will be ignored. That is, because
@@ -2679,29 +2662,28 @@ def admin_series_subject_put():
 	'''This method allows you to assign subjects to series.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:series_subject": [{
-			"lf:series_id"  : "aaaaaaaa-6adc-11e2-8b4e-047d7b0f8",
-			"lf:subject_id": 42,
-			"lf:subject"   : "Computer Science",
-			"dc:language"  : "en"
-		}]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:series_subject>
-			<lf:series_id>aaaaaaaa-6adc-11e2-8b4e-047d7b0f8</lf:series_id>
-			<lf:subject_id>42</lf:subject_id>
-		</lf:series_subject>
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:series_subject": [{
+				"lf:series_id"  : "aaaaaaaa-6adc-11e2-8b4e-047d7b0f8",
+				"lf:subject_id": 42,
+				"lf:subject"   : "Computer Science",
+				"dc:language"  : "en"
+			}]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:series_subject>
+				<lf:series_id>aaaaaaaa-6adc-11e2-8b4e-047d7b0f8</lf:series_id>
+				<lf:subject_id>42</lf:subject_id>
+			</lf:series_subject>
+		</data>
 
 	IMPORTANT NOTICE: Either lf:subject_id or lf:subject can be used. Not both.
 	 | If both fields are present lf:subject will be ignored. That is, because

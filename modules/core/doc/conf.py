@@ -244,3 +244,25 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
+
+
+# Ugly way of setting tabsize
+import re
+
+def process_docstring(app, what, name, obj, options, lines):
+	'''
+	spaces_pat = re.compile(r"(?<=        )( {8})")
+	ll = []
+	for l in lines:
+		ll.append(spaces_pat.sub("   ",l))
+	'''
+	spaces_pat = re.compile(r"^ *")
+	ll = []
+	for l in lines:
+		spacelen = len(spaces_pat.search(l).group(0))
+		newlen = (spacelen % 8) + (spacelen / 8 * 4)
+		ll.append( (' '*newlen) + l.lstrip(' ') )
+	lines[:] = ll
+
+def setup(app):
+	app.connect('autodoc-process-docstring', process_docstring)
