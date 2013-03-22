@@ -49,7 +49,7 @@ def admin_media(media_id=None, version=None, lang=None):
 		only_published    Return only published version            disabled
 		limit             Maximum amount of results to return      10
 		offset            Offset of results to return              0
-		with_nothing      Disable all with_... options by default
+		with_nothing      Disable all with_… options by default
 		order             Order results by field (ascending)
 		rorder            Order results by field (descending)
 		q                 Search/filter query
@@ -69,11 +69,24 @@ def admin_media(media_id=None, version=None, lang=None):
 		last_edit      time  timestamp_edit
 		lang           lang  language
 		=============  ====  =================
-
+	
 	Search example::
 
 		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
 		.../q=gt:version:5
+	
+	Order options:
+
+		* id
+		* language
+		* title
+		* timestamp_edit
+		* timestamp_created
+		* source_key
+
+	Order example:
+
+		...?order=id
 
 	'''
 
@@ -324,7 +337,7 @@ def admin_series(series_id=None, lang=None):
 		with_creator      Also return the creators (default: enabled)
 		with_publisher    Also return the publishers (default: enabled)
 		with_subject      Also return all subjects (default: enabled)
-		with_nothing      Disable all with_... options by default
+		with_nothing      Disable all with_… options by default
 		with_read_access  Also series without write access (default: disabled)
 		only_latest       Return only latest version (default: disabled)
 		only_published    Return only published version (default: disabled)
@@ -622,18 +635,41 @@ def admin_server(server_id=None):
 def admin_subject(subject_id=None, lang=None):
 	'''This method provides access to all subject in the Lernfunk database.
 	
-	KeyError argument:
-	subject_id -- Id of a specific subject.
-	lang       -- Language filter for the subjects.
+	:param subject_id: Id of a specific subject.
+	:param lang:       Language filter for the subjects.
 
 	GET parameter:
-	with_read_access -- Also return series without write access (default: disabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset for results to return (default: 0)
+
+		================  =======================================  ========
+		Parameter         Description                              Default
+		================  =======================================  ========
+		with_read_access  Also return series without write access  disabled
+		limit             Maximum amount of results to return      10
+		offset            Offset for results to return             0
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		====  ====  ========
+		id    int   id
+		name  str   name
+		lang  lang  language
+		====  ====  ========
+
+	Search example::
+
+		...?q=eq:id:5
+
 	'''
 	with_read_access = is_true(request.args.get('with_read_access', '0'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	user = None
 	try:
@@ -662,8 +698,32 @@ def admin_subject(subject_id=None, lang=None):
 		query_condition += ( 'and language = "%s" ' \
 				if query_condition \
 				else 'where language = "%s" ' ) % lang
+	
+	if search:
+		try:
+			allowed = {
+					'id'        : ('int','id'),
+					'name'      : ('str','name'),
+					'lang'      : ('lang','language')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'name']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 	
 
 	# Add limit and offset
@@ -698,20 +758,64 @@ def admin_subject(subject_id=None, lang=None):
 def admin_file(file_id=None):
 	'''This method provides access to the files datasets in the Lernfunk
 	database. Access rights for this are taken from the media object the files
-	belong to.
+	belong to. This basically means that if you can access the media, you can
+	access the files assigned to the media.
 
-	Keyword arguments:
-	file_id -- UUID of a specific file.
+	:param file_id: UUID of a specific file.
 
 	GET parameter:
-	wsith_read_access -- Also return series without write access (default: disabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
+
+		=================  =======================================  ========
+		Parameter          Description                              Default
+		=================  =======================================  ========
+		wsith_read_access  Also return series without write access  disabled
+		limit              Maximum amount of results to return       10
+		offset             Offset of results to return               0
+		order              Order results by field (ascending)
+		rorder             Order results by field (descending)
+		q                  Search/filter query
+		=================  =======================================  ========
+
+	Search arguments:
+
+		=============  ====  =============
+		Argument       Type  Db field
+		=============  ====  =============
+		identifier     uuid  id
+		media_id       uuid  media_id
+		format         str   format
+		type           str   type
+		quality        str   quality
+		uri            str   uri
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		=============  ====  =============
+
+	Search example::
+
+		...?q=eq:media_id:721DC300-8667-11E2-A172-047D7B0F869A
+
+	Order options:
+	
+		* id
+		* format
+		* uri
+		* media_id
+		* source_key
+
+	Order example::
+
+		...?order=id
+
 	'''
 
 	with_read_access = is_true(request.args.get('with_read_access', '0'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	user = None
 	try:
@@ -753,8 +857,38 @@ def admin_file(file_id=None):
 	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
 		query += "where f.id = x'%s' " % file_id.hex
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'    : ('uuid','f.id'),
+					'media_id'      : ('uuid','f.media_id'),
+					'format'        : ('str','f.format'),
+					'type'          : ('str','f.type'),
+					'quality'       : ('str','f.quality'),
+					'uri'           : ('str','f.uri'),
+					'source'        : ('str','f.source'),
+					'source_key'    : ('str','f.source_key'),
+					'source_system' : ('str','f.source_system')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'format', 'uri', 'media_id', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -799,13 +933,43 @@ def admin_organization(organization_id=None):
 	'''This method provides access to all orginization datasets in the Lernfunk
 	database.
 
-	Keyword arguments:
-	organization_id -- Id of a specific organization.
+	:param organization_id: Id of a specific organization.
 
 	GET parameter:
-	with_read_access -- Also return series without write access (default: disabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
+
+		================  =======================================  ========
+		Parameter         Description                              Defaul
+		================  =======================================  ========
+		with_read_access  Also return series without write access  disabled
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		========  ====  ========
+		Argument  Type  Db field
+		========  ====  ========
+		id        int   id
+		name      str   name
+		========  ====  ========
+
+	Search example::
+
+		...?q=eq:id:5
+
+	Order options:
+
+		* id
+		* name
+	
+	Order example::
+
+		...?order=id
+
 	'''
 
 	with_read_access = is_true(request.args.get('with_read_access', '0'))
@@ -831,9 +995,39 @@ def admin_organization(organization_id=None):
 	query = '''select id, name, vcard_uri, parent_organization 
 			from lf_organization '''
 	count_query = '''select count(id) from lf_organization '''
-	if organization_id:
-		query += 'where id = %s ' % int(organization_id)
-		count_query += 'where id = %s ' % int(organization_id)
+	query_condition = ''
+	if organization_id != None:
+		# abort with 400 Bad Request if organization_id is not valid
+		try:
+			query_condition += 'where id = %s ' % int(organization_id)
+		except ValueError:
+			return 'Invalid organization_id', 400
+	
+	if search:
+		try:
+			allowed = {
+					'id'   : ('int','id'),
+					'name' : ('str','name')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
+	query += query_condition
+	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'name']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -871,12 +1065,42 @@ def admin_group(group_id=None):
 	database. You have to authenticate yourself as an administrator to access
 	these data.
 
-	Keyword arguments:
-	group_id -- Id of a specific group.
+	:param group_id: Id of a specific group
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
+	
+		=========  ===================================  =====
+		Parameter  Description	Default
+		=========  ===================================  =====
+		limit      Maximum amount of results to return  10
+		offset     Offset of results to return          0
+		order      Order results by field (ascending)
+		rorder     Order results by field (descending)
+		q          Search/filter query
+		=========  ===================================  =====
+
+	Search arguments:
+
+		========  ====  ========
+		Argument  Type  Db field
+		========  ====  ========
+		id        int   id
+		name      str   name
+		========  ====  ========
+
+	Search example::
+
+		...?q=eq:id:5
+
+	Order options:
+
+		* id
+		* name
+	
+	Order example::
+
+		...?order=id
+
 	'''
 
 	# Check for authentication as admin.
@@ -889,14 +1113,47 @@ def admin_group(group_id=None):
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	db = get_db()
 	cur = db.cursor()
 	query = '''select id, name from lf_group '''
 	count_query = 'select count(id) from lf_group '
-	if group_id:
-		query += 'where id = %s ' % int(group_id)
-		count_query += 'where id = %s ' % int(group_id)
+	query_condition = ''
+	if group_id != None:
+		# abort with 400 Bad Request if id is not valid
+		try:
+			query_condition += 'where id = %s ' % int(group_id)
+		except ValueError:
+			return 'Invalid group_id', 400
+	
+	if search:
+		try:
+			allowed = {
+					'id'   : ('int','id'),
+					'name' : ('str','name')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
+	query += query_condition
+	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'name']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -930,12 +1187,46 @@ def admin_user(user_id=None):
 	'''This method provides access to the user data from the lernfunk database.
 	Use HTTP Basic authentication to get access to more data.
 
-	Keyword arguments:
-	user_id -- Id of a specific user.
+	:param user_id: Id of a specific user.
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
+
+		=========  ===================================  =======
+		Parameter  Description                          Default
+		=========  ===================================  =======
+		limit      Maximum amount of results to return  10
+		offset     Offset of results to return          0
+		order      Order results by field (ascending)
+		rorder     Order results by field (descending)
+		q          Search/filter query
+		=========  ===================================  =======
+
+	Search arguments:
+
+		========  ====  ========
+		Argument  Type  Db field
+		========  ====  ========
+		id        int   id
+		name      str   name
+		realname  str   realname
+		email     str   email
+		========  ====  ========
+
+	Search example:
+
+		...?q=eq:id:5
+
+	Order options:
+
+		* id
+		* name
+		* realname
+		* access
+
+	Order example:
+
+		...?order=id
+
 	'''
 
 	user = None
@@ -961,6 +1252,23 @@ def admin_user(user_id=None):
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'id'       : ('int','u.id'),
+					'realname' : ('str','u.realname'),
+					'email'    : ('str','u.email'),
+					'name'     : ('str','u.name')}
+			query_condition += ('and ' if query_condition else 'where ') + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	db = get_db()
 	cur = db.cursor()
@@ -972,6 +1280,17 @@ def admin_user(user_id=None):
 				'id = %s ' % int(user_id)
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'name', 'realname', 'access']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -1021,7 +1340,7 @@ def admin_user(user_id=None):
 @app.route('/admin/access/series/')
 @app.route('/admin/access/media/<uuid:media_id>')
 @app.route('/admin/access/series/<uuid:series_id>')
-def admin_group(media_id=None, series_id=None):
+def admin_access(media_id=None, series_id=None):
 	'''This method provides access to all defined access rights, defined in the
 	Lernfunk database. You have to authenticate yourself as an administrator to
 	access this data.

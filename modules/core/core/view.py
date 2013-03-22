@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::View
-	~~~~~~~~~~~~~~~
+	core.view
+	~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
+	The view module contains the liveview REST endpoint
 
-	** View contains the liveview REST endpoint
-
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: 2012-2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app
@@ -30,22 +28,61 @@ def view_media(media_id=None, lang=None, series_id=None):
 	access. If you don't then you will be ranked as “public” user and will only
 	see what is public available.
 
-	Keyword arguments:
-	media_id -- UUID of a specific media object.
-	lang     -- Language filter for the mediaobjects.
+	:param media_id: UUID of a specific media object.
+	:param lang:     Language filter for the mediaobjects.
 
 	GET parameter:
-	with_series      -- Also return the series (default: enabled)
-	with_contributor -- Also return the contributors (default: enabled)
-	with_creator     -- Also return the creators (default: enabled)
-	with_publisher   -- Also return the publishers (default: enabled)
-	with_file        -- Also return all files (default: disabled)
-	with_subject     -- Also return all subjects (default: enabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
-	order            -- Order results by field (ascending)
-	rorder           -- Order results by field (descending)
-	q                -- Search/filter query
+
+		================  =======================================  ========
+		Parameter         Description                              Default
+		================  =======================================  ========
+		with_series       Also return the series                   enabled
+		with_contributor  Also return the contributors             enabled
+		with_creator      Also return the creators                 enabled
+		with_publisher    Also return the publishers               enabled
+		with_file         Also return all files                    disabled
+		with_subject      Also return all subjects                 enabled
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		with_nothing      Disable all with_… options by default
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		=============  ====  =================
+		identifier     uuid  id
+		version        int   version
+		description    str   description
+		title          str   title
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		date           time  timestamp_created
+		last_edit      time  timestamp_edit
+		lang           lang  language
+		=============  ====  =================
+	
+	Search example::
+
+		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:version:5
+	
+	Order options:
+
+		* id
+		* language
+		* title
+		* timestamp_edit
+		* timestamp_created
+		* source_key
+
+	Order example:
+
+		...?order=id
+
 	'''
 
 	user = None
@@ -83,12 +120,13 @@ def view_media(media_id=None, lang=None, series_id=None):
 
 
 	# Check flags for additional data
-	with_series      = is_true(request.args.get('with_series',      '1'))
-	with_contributor = is_true(request.args.get('with_contributor', '1'))
-	with_creator     = is_true(request.args.get('with_creator',     '1'))
-	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
+	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
+	with_series      = is_true(request.args.get('with_series',      default))
+	with_contributor = is_true(request.args.get('with_contributor', default))
+	with_creator     = is_true(request.args.get('with_creator',     default))
+	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_file        = is_true(request.args.get('with_file',        '0'))
-	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	with_subject     = is_true(request.args.get('with_subject',     default))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
@@ -741,16 +779,33 @@ def view_series(series_id=None, lang=None):
 def view_subject(subject_id=None, lang=None):
 	'''This method provides access to all subject in the Lernfunk database.
 	
-	KeyError argument:
-	subject_id -- Id of a specific subject.
-	lang       -- Language filter for the subjects.
+	:param subject_id: Id of a specific subject.
+	:param lang:       Language filter for the subjects.
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset for results to return (default: 0)
-	order            -- Order results by field (ascending)
-	rorder           -- Order results by field (descending)
-	q                -- Search/filter query
+
+		=========  =======================================  ========
+		Parameter  Description                              Default
+		=========  =======================================  ========
+		limit      Maximum amount of results to return      10
+		offset     Offset for results to return             0
+		order      Order results by field (ascending)
+		rorder     Order results by field (descending)
+		q          Search/filter query
+		=========  =======================================  ========
+
+	Search arguments:
+
+		====  ====  ========
+		id    int   id
+		name  str   name
+		lang  lang  language
+		====  ====  ========
+
+	Search example::
+
+		...?q=eq:id:5
+
 	'''
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
@@ -845,15 +900,52 @@ def view_file(file_id=None):
 	database. Access rights for this are taken from the media object the files
 	belong to.
 
-	Keyword arguments:
-	file_id -- UUID of a specific file.
+	:param file_id: UUID of a specific file.
 
 	GET parameter:
-	limit   -- Maximum amount of results to return (default: 10)
-	offset  -- Offset of results to return (default: 0)
-	order   -- Order results by field (ascending)
-	rorder  -- Order results by field (descending)
-	q       -- Search/filter query
+
+		=========  =======================================  ========
+		Parameter  Description                              Default
+		=========  =======================================  ========
+		limit      Maximum amount of results to return       10
+		offset     Offset of results to return               0
+		order      Order results by field (ascending)
+		rorder     Order results by field (descending)
+		q          Search/filter query
+		=========  =======================================  ========
+
+	Search arguments:
+
+		=============  ====  =============
+		Argument       Type  Db field
+		=============  ====  =============
+		identifier     uuid  id
+		media_id       uuid  media_id
+		format         str   format
+		type           str   type
+		quality        str   quality
+		uri            str   uri
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		=============  ====  =============
+
+	Search example::
+
+		...?q=eq:media_id:721DC300-8667-11E2-A172-047D7B0F869A
+
+	Order options:
+	
+		* id
+		* format
+		* uri
+		* media_id
+		* source_key
+
+	Order example::
+
+		...?order=id
+
 	'''
 
 	user = None
@@ -978,15 +1070,42 @@ def view_organization(organization_id=None):
 	'''This method provides access to all orginization datasets in the Lernfunk
 	database.
 
-	Keyword arguments:
-	organization_id -- Id of a specific organization.
+	:param organization_id: Id of a specific organization.
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
-	order  -- Order results by field (ascending)
-	rorder -- Order results by field (descending)
-	q      -- Search/filter query
+
+		================  =======================================  ========
+		Parameter         Description                              Defaul
+		================  =======================================  ========
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		========  ====  ========
+		Argument  Type  Db field
+		========  ====  ========
+		id        int   id
+		name      str   name
+		========  ====  ========
+
+	Search example::
+
+		...?q=eq:id:5
+
+	Order options:
+
+		* id
+		* name
+	
+	Order example::
+
+		...?order=id
+
 	'''
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
@@ -1070,15 +1189,42 @@ def view_group(group_id=None):
 	database. You have to authenticate yourself as an administrator to access
 	these data.
 
-	Keyword arguments:
-	group_id -- Id of a specific group.
+	:param group_id: Id of a specific group
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
-	order  -- Order results by field (ascending)
-	rorder -- Order results by field (descending)
-	q      -- Search/filter query
+	
+		=========  ===================================  =====
+		Parameter  Description	Default
+		=========  ===================================  =====
+		limit      Maximum amount of results to return  10
+		offset     Offset of results to return          0
+		order      Order results by field (ascending)
+		rorder     Order results by field (descending)
+		q          Search/filter query
+		=========  ===================================  =====
+
+	Search arguments:
+
+		========  ====  ========
+		Argument  Type  Db field
+		========  ====  ========
+		id        int   id
+		name      str   name
+		========  ====  ========
+
+	Search example::
+
+		...?q=eq:id:5
+
+	Order options:
+
+		* id
+		* name
+	
+	Order example::
+
+		...?order=id
+
 	'''
 
 	# Check for authentication as admin
@@ -1165,15 +1311,46 @@ def view_user(user_id=None):
 	'''This method provides access to the user data from the lernfunk database.
 	Use HTTP Basic authentication to get access to more data.
 
-	Keyword arguments:
-	user_id -- Id of a specific user.
+	:param user_id: Id of a specific user.
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
-	order  -- Order results by field (ascending)
-	rorder -- Order results by field (descending)
-	q      -- Search/filter query
+
+		=========  ===================================  =======
+		Parameter  Description                          Default
+		=========  ===================================  =======
+		limit      Maximum amount of results to return  10
+		offset     Offset of results to return          0
+		order      Order results by field (ascending)
+		rorder     Order results by field (descending)
+		q          Search/filter query
+		=========  ===================================  =======
+
+	Search arguments:
+
+		========  ====  ========
+		Argument  Type  Db field
+		========  ====  ========
+		id        int   id
+		name      str   name
+		realname  str   realname
+		email     str   email
+		========  ====  ========
+
+	Search example:
+
+		...?q=eq:id:5
+
+	Order options:
+
+		* id
+		* name
+		* realname
+		* access
+
+	Order example:
+
+		...?order=id
+
 	'''
 
 	user = None
