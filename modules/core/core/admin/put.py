@@ -869,9 +869,8 @@ def admin_server_put():
 			...
 		</data>
 
-	** URI PATTERN **
 
-	You can use the following placeholders in the URI pattern:
+	**URI PATTERN**: You can use the following placeholders in the URI pattern:
 	  =================== ========================
 	  {file_id}           Fill in file identifier
 	  {format}            Fill in file format
@@ -1599,12 +1598,12 @@ def admin_user_put():
 
 	The access data can be given either as integer or as their string
 	representation. The latter is automatically converted to an integer.
-	Possible values for the access field are::
+	Possible values for the access field are:
 
-		1 : 'public'
-		2 : 'login required'
-		3 : 'editors only'
-		4 : 'administrators only'
+		1. 'public'
+		2. 'login required'
+		3. 'editors only'
+		4. 'administrators only'
 
 	IMPORTANT NOTICE (Passwords):
 	 | Although a password is part of a users data it cannot be set along with
