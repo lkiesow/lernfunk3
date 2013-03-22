@@ -19,6 +19,7 @@ import urllib2
 from xml.dom.minidom import parseString
 from pprint import pprint
 from util import xml_get_data
+from base64 import urlsafe_b64encode
 
 
 def check_rules( ruleset, data ):
@@ -124,6 +125,12 @@ def load_config():
 			if not key in entry.keys():
 				entry[key] = []
 
+	# Make shure URL ends with /
+	config['lf-url'] = config['lf-url'].rstrip('/') + '/'
+
+	# Create a HTTP Basic Auth header from credentials
+	config['auth'] = urlsafe_b64encode("%s:%s" % \
+			( config['username'], config['password'] ))
 	return config
 
 
@@ -192,6 +199,14 @@ def import_media( mp ):
 					s['contributor'] = xml_get_data(dcdata, 'contributor', namespace=ns)
 			except urllib2.URLError:
 				pass
+	
+	req = urllib2.Request('%s/admin/series/' % config['lf-url'])
+	req.add_data(urllib.urlencode())
+	req.add_header('Authorization', config['auth'])
+	urllib2.urlopen(req)
+
+	# Send data to Lernfunk3 Core Webservice
+	urllib2.urlopen('http://www.example.com/login.html')
 
 
 	for track in mp.getElementsByTagNameNS('*', 'track'):
@@ -226,7 +241,6 @@ def import_media( mp ):
 		for r in config['attachmentrules']:
 			# Check rules defined in configuration. If a rule does not apply jump
 			# straight to the next set of rules.
-			print '---'
 			if not check_rules( r, a ):
 				continue
 
@@ -235,6 +249,19 @@ def import_media( mp ):
 
 			# Send request
 			# http://docs.python.org/2/library/urllib2.html
+
+			'''
+			# Create an OpenerDirector with support for Basic HTTP Authentication...
+			auth_handler = urllib2.HTTPBasicAuthHandler()
+			auth_handler.add_password(realm='PDQ Application',
+					uri='https://mahler:8092/site-updates.py',
+					user='klem',
+					passwd='kadidd!ehopper')
+			opener = urllib2.build_opener(auth_handler)
+			# ...and install it globally so it can be used with urlopen.
+			urllib2.install_opener(opener)
+			urllib2.urlopen('http://www.example.com/login.html')
+			'''
 	
 	pprint(m)
 	pprint(s)
