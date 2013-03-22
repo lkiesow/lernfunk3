@@ -200,13 +200,11 @@ def import_media( mp ):
 			except urllib2.URLError:
 				pass
 	
+	# Send data to Lernfunk3 Core Webservice
 	req = urllib2.Request('%s/admin/series/' % config['lf-url'])
 	req.add_data(urllib.urlencode())
 	req.add_header('Authorization', config['auth'])
 	urllib2.urlopen(req)
-
-	# Send data to Lernfunk3 Core Webservice
-	urllib2.urlopen('http://www.example.com/login.html')
 
 
 	for track in mp.getElementsByTagNameNS('*', 'track'):
