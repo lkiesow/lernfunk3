@@ -620,7 +620,7 @@ def admin_series_post():
 				s['creator']        = series.get('lf:creator')
 				s['media']          = series.get('lf:media_id')
 
-				sqldata.append( m )
+				sqldata.append( s )
 			except KeyError:
 				return 'Invalid server data', 400
 
@@ -687,8 +687,8 @@ def admin_series_post():
 						series.get('source_key') ) )
 
 				# Add relations
-				if series.get('published'):
-					for pub in series['published']:
+				if series.get('publisher'):
+					for pub in series['publisher']:
 						cur.execute('''insert into lf_series_publisher
 							(series_id, organization_id, series_version)
 							values (%s, %s, %s) ''',

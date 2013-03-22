@@ -515,20 +515,43 @@ def view_series(series_id=None, lang=None):
 	in the Lernfunk database. Use HTTP Basic authentication to get access to
 	more series. If you don't do that you will be ranked as “public” user.
 
-	Keyword arguments:
-	series_id -- UUID of a specific series.
-	lang      -- Language filter for the series.
+	:param series_id: UUID of a specific series.
+	:param lang:      Language filter for the series.
 
 	GET parameter:
-	with_media       -- Also return the media (default: enabled)
-	with_creator     -- Also return the creators (default: enabled)
-	with_publisher   -- Also return the publishers (default: enabled)
-	with_subject     -- Also return all subjects (default: enabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
-	order            -- Order results by field (ascending)
-	rorder           -- Order results by field (descending)
-	q                -- Search/filter query
+
+		==============  =================================================
+		with_media      Also return the media (default: enabled)
+		with_creator    Also return the creators (default: enabled)
+		with_publisher  Also return the publishers (default: enabled)
+		with_subject    Also return all subjects (default: enabled)
+		limit           Maximum amount of results to return (default: 10)
+		offset          Offset of results to return (default: 0)
+		order           Order results by field (ascending)
+		rorder          Order results by field (descending)
+		q               Search/filter query
+		==============  =================================================
+
+	Search arguments:
+
+		=============  ====  =================
+		identifier     uuid  id
+		version        int   version
+		description    str   description
+		title          str   title
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		date           time  timestamp_created
+		last_edit      time  timestamp_edit
+		lang           lang  language
+		=============  ====  =================
+
+	Search example::
+
+		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:version:5
+
 	'''
 
 	user = None
@@ -578,13 +601,16 @@ def view_series(series_id=None, lang=None):
 	if search:
 		try:
 			allowed = {
-					'identifier'  : ('uuid','s.id'),
-					'version'     : ('int','s.version'),
-					'description' : ('str','s.description'),
-					'title'       : ('str','s.title'),
-					'date'        : ('time','s.timestamp_created'),
-					'last_edit'   : ('time','s.timestamp_edit'),
-					'lang'        : ('lang','s.language')}
+					'identifier'    : ('uuid','s.id'),
+					'version'       : ('int','s.version'),
+					'description'   : ('str','s.description'),
+					'title'         : ('str','s.title'),
+					'source'        : ('str','s.source'),
+					'source_key'    : ('str','s.source_key'),
+					'source_system' : ('str','s.source_system'),
+					'date'          : ('time','s.timestamp_created'),
+					'last_edit'     : ('time','s.timestamp_edit'),
+					'lang'          : ('lang','s.language')}
 			query_condition += 'and (%s) ' % search_query( search, allowed )
 		except ValueError as e:
 			return e.message, 400

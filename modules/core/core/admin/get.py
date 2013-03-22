@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Admin
-	~~~~~~~~~~~~~~~
+	core.admin.get
+	~~~~~~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
+	This module provides administrative read access to the central Lernfunk
+	database.
 
-	** Admin contains the administrative REST endpoint for the Lernfunk
-	** database. It will let you retrieve, modify and edit all data.
-
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: 2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app
@@ -32,22 +30,51 @@ def admin_media(media_id=None, version=None, lang=None):
 	access. If you don't then you will be ranked as “public” user and will only
 	see what is public available.
 
-	Keyword arguments:
-	media_id -- UUID of a specific media object.
-	lang     -- Language filter for the mediaobjects.
+	:param media_id: UUID of a specific media object.
+	:param lang:     Language filter for the mediaobjects.
 
 	GET parameter:
-	with_series      -- Also return the series (default: enabled)
-	with_contributor -- Also return the contributors (default: enabled)
-	with_creator     -- Also return the creators (default: enabled)
-	with_publisher   -- Also return the publishers (default: enabled)
-	with_file        -- Also return all files (default: disabled)
-	with_subject     -- Also return all subjects (default: enabled)
-	with_read_access -- Also return media without write access (default: disabled)
-	only_latest      -- Return only latest version (default: disabled)
-	only_published   -- Return only published version (default: disabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
+
+		================  =======================================  ========
+		Parameter         Description                              Default
+		================  =======================================  ========
+		with_series       Also return the series                   enabled
+		with_contributor  Also return the contributors             enabled
+		with_creator      Also return the creators                 enabled
+		with_publisher    Also return the publishers               enabled
+		with_file         Also return all files                    disabled
+		with_subject      Also return all subjects                 enabled
+		with_read_access  Also media without write access          disabled
+		only_latest       Return only latest version               disabled
+		only_published    Return only published version            disabled
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		with_nothing      Disable all with_... options by default
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		=============  ====  =================
+		identifier     uuid  id
+		version        int   version
+		description    str   description
+		title          str   title
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		date           time  timestamp_created
+		last_edit      time  timestamp_edit
+		lang           lang  language
+		=============  ====  =================
+
+	Search example::
+
+		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:version:5
+
 	'''
 
 	try:
@@ -62,17 +89,21 @@ def admin_media(media_id=None, version=None, lang=None):
 
 
 	# Check flags for additional data
-	with_series      = is_true(request.args.get('with_series',      '1'))
-	with_contributor = is_true(request.args.get('with_contributor', '1'))
-	with_creator     = is_true(request.args.get('with_creator',     '1'))
-	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
+	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
+	with_series      = is_true(request.args.get('with_series',      default))
+	with_contributor = is_true(request.args.get('with_contributor', default))
+	with_creator     = is_true(request.args.get('with_creator',     default))
+	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_file        = is_true(request.args.get('with_file',        '0'))
-	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	with_subject     = is_true(request.args.get('with_subject',     default))
 	with_read_access = is_true(request.args.get('with_read_access', '0'))
 	only_latest      = is_true(request.args.get('only_latest',      '0'))
 	only_published   = is_true(request.args.get('only_published',   '0'))
 	limit            = to_int( request.args.get('limit',  '10'), 10)
 	offset           = to_int( request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 
 	query_condition = ''
@@ -120,8 +151,41 @@ def admin_media(media_id=None, version=None, lang=None):
 	if lang:
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				'm.language = "%s" ' % lang
+
+	if search:
+		try:
+			allowed = {
+					'identifier'    : ('uuid','m.id'),
+					'version'       : ('int','m.version'),
+					'description'   : ('str','m.description'),
+					'title'         : ('str','m.title'),
+					'source'        : ('str','m.source'),
+					'source_key'    : ('str','m.source_key'),
+					'source_system' : ('str','m.source_system'),
+					'date'          : ('time','m.timestamp_created'),
+					'last_edit'     : ('time','m.timestamp_edit'),
+					'lang'          : ('lang','m.language')}
+			query_condition += ( 'and ' if query_condition else 'where ' ) + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -250,20 +314,47 @@ def admin_series(series_id=None, lang=None):
 	in the Lernfunk database. Use HTTP Basic authentication to get access to
 	more series. If you don't do that you will be ranked as “public” user.
 
-	Keyword arguments:
-	series_id -- UUID of a specific series.
-	lang      -- Language filter for the series.
+	:param series_id: UUID of a specific series.
+	:param lang:      Language filter for the series.
 
 	GET parameter:
-	with_media       -- Also return the media (default: enabled)
-	with_creator     -- Also return the creators (default: enabled)
-	with_publisher   -- Also return the publishers (default: enabled)
-	with_subject     -- Also return all subjects (default: enabled)
-	with_read_access -- Also return series without write access (default: disabled)
-	only_latest      -- Return only latest version (default: disabled)
-	only_published   -- Return only published version (default: disabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
+
+		================  ====================================================
+		with_media        Also return the media (default: enabled)
+		with_creator      Also return the creators (default: enabled)
+		with_publisher    Also return the publishers (default: enabled)
+		with_subject      Also return all subjects (default: enabled)
+		with_nothing      Disable all with_... options by default
+		with_read_access  Also series without write access (default: disabled)
+		only_latest       Return only latest version (default: disabled)
+		only_published    Return only published version (default: disabled)
+		limit             Maximum amount of results to return (default: 10)
+		offset            Offset of results to return (default: 0)
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  ====================================================
+
+	Search arguments:
+
+		=============  ====  =================
+		identifier     uuid  id
+		version        int   version
+		description    str   description
+		title          str   title
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		date           time  timestamp_created
+		last_edit      time  timestamp_edit
+		lang           lang  language
+		=============  ====  =================
+
+	Search example::
+
+		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:version:5
+
 	'''
 
 	user = None
@@ -281,15 +372,19 @@ def admin_series(series_id=None, lang=None):
 
 
 	# Check flags for additional data
-	with_media       = is_true(request.args.get('with_media',       '1'))
-	with_creator     = is_true(request.args.get('with_creator',     '1'))
-	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
-	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
+	with_media       = is_true(request.args.get('with_media',       default))
+	with_creator     = is_true(request.args.get('with_creator',     default))
+	with_publisher   = is_true(request.args.get('with_publisher',   default))
+	with_subject     = is_true(request.args.get('with_subject',     default))
 	with_read_access = is_true(request.args.get('with_read_access', '0'))
 	only_latest      = is_true(request.args.get('only_latest',      '0'))
 	only_published   = is_true(request.args.get('only_published',   '0'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 
 	query_condition = ''
@@ -336,8 +431,41 @@ def admin_series(series_id=None, lang=None):
 	if lang:
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
 				's.language = "%s" ' % lang
+
+	if search:
+		try:
+			allowed = {
+					'identifier'    : ('uuid','s.id'),
+					'version'       : ('int','s.version'),
+					'description'   : ('str','s.description'),
+					'title'         : ('str','s.title'),
+					'source'        : ('str','s.source'),
+					'source_key'    : ('str','s.source_key'),
+					'source_system' : ('str','s.source_system'),
+					'date'          : ('time','s.timestamp_created'),
+					'last_edit'     : ('time','s.timestamp_edit'),
+					'lang'          : ('lang','s.language')}
+			query_condition += ( 'and ' if query_condition else 'where ' ) + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
 	query += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+			'timestamp_created', 'source_key']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
