@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Util
-	~~~~~~~~~~~~~~~
+	core.util
+	~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
-	
-	** Util contains general helper functions, …
+	Util contains general helper functions, …
 
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: (c) 2012 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app

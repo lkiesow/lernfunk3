@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Admin
-	~~~~~~~~~~~~~~~
+	core.admin
+	~~~~~~~~~~
 
 	This module provides read and write access to the central Lernfunk database.
 
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: (c) 2012 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 # Set default encoding to UTF-8

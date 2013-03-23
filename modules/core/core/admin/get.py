@@ -571,15 +571,48 @@ def admin_series(series_id=None, lang=None):
 def admin_server(server_id=None):
 	'''This method provides access to all server in the Lernfunk database.
 	
-	KeyError argument:
-	server_id -- Id of a specific server
+	:param server_id: Id of a specific server
 
 	GET parameter:
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset for results to return (default: 0)
+
+		================  =======================================  ========
+		Parameter         Description                              Default
+		================  =======================================  ========
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		=============  ====  =================
+		id             str   id
+		format         str   format
+		uri_pattern    str   uri_pattern
+		=============  ====  =================
+	
+	Search example::
+
+		...?q=eq:id:video2.example.com
+	
+	Order options:
+
+		* id
+		* format
+		* uri_pattern
+
+	Order example:
+
+		...?order=id
+
 	'''
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	# Check for authentication as admin.
 	# Neither normal user nor editors have access to server.
@@ -594,12 +627,35 @@ def admin_server(server_id=None):
 	query = '''select id, format, uri_pattern from lf_server '''
 	count_query = '''select count(id) from lf_server '''
 	query_condition = ''
-	if server_id:
+	if not server_id is None:
 		query_condition += 'where id = "%s" ' % db.escape_string(server_id)
+
+	if search:
+		try:
+			allowed = {
+					'id'            : ('str','id'),
+					'format'        : ('str','format'),
+					'uri_pattern'   : ('str','uri_pattern')}
+			query_condition += ( 'and ' if query_condition else 'where ' ) + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	query += query_condition
 	count_query += query_condition
-	
+
+	# Sort by column
+	order_opts = ['id', 'format', 'uri_pattern']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )
@@ -1345,13 +1401,48 @@ def admin_access(media_id=None, series_id=None):
 	Lernfunk database. You have to authenticate yourself as an administrator to
 	access this data.
 
-	Keyword arguments:
-	media_id  -- Show access to a specific media.
-	series_id -- Show access to a specific series.
+	:param media_id:  Show access to a specific media.
+	:param series_id: Show access to a specific series.
 
 	GET parameter:
-	limit  -- Maximum amount of results to return (default: 10)
-	offset -- Offset of results to return (default: 0)
+
+		================  =======================================  ========
+		Parameter         Description                              Default
+		================  =======================================  ========
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		=========  ====  =================
+		id         uuid  id
+		media_id   uuid  media_id
+		series_id  uuid  series_id
+		group_id   int   group_id
+		user_id    int   user_id
+		=========  ====  =================
+	
+	Search example::
+
+		...?q=eq:media_id:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:group_id:5
+	
+	Order options:
+
+		* id
+		* media_id
+		* series_id
+		* group_id
+		* user_id
+
+	Order example:
+
+		...?order=id
+
 	'''
 
 	# Check for authentication as admin.
@@ -1364,6 +1455,9 @@ def admin_access(media_id=None, series_id=None):
 
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
+	order            = request.args.get( 'order', None)
+	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
 
 	db = get_db()
 	cur = db.cursor()
@@ -1382,8 +1476,34 @@ def admin_access(media_id=None, series_id=None):
 	elif 'series' in request.path:
 		query_condition = 'where not isnull(series_id) '
 
+	if search:
+		try:
+			allowed = {
+					'id'        : ('uuid','id'),
+					'media_id'  : ('uuid','media_id'),
+					'series_id' : ('uuid','series_id'),
+					'group_id'  : ('int','group_id'),
+					'user_id'   : ('int','user_id')}
+			query_condition += ( 'and ' if query_condition else 'where ' ) + \
+					'(%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
+
 	query       += query_condition
 	count_query += query_condition
+
+	# Sort by column
+	order_opts = ['id', 'media_id', 'series_id', 'group_id', 'user_id']
+	if order:
+		if not order in order_opts:
+			return 'Cannot order by %s' % order, 400
+		query += 'order by %s asc ' % order
+	elif rorder:
+		if not rorder in order_opts:
+			return 'Cannot order by %s' % rorder, 400
+		query += 'order by %s desc ' % rorder
 
 	# Add limit and offset
 	query += 'limit %s, %s ' % ( offset, limit )

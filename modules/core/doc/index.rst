@@ -1,12 +1,13 @@
 Welcome to Lernfunk3's documentation!
 =====================================
 
+
 Contents:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
 
-   core
+   core/index
 
 Indices and tables
 ==================

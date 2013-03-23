@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-	core.converte
-	~~~~~~~~~~~~~
+	core.converter
+	~~~~~~~~~~~~~~
 
 	This module contains special converter for URL routing.
 
-	:copyright: (c) 2013 by Lars Kiesow
+	:copyright: 2013 by Lars Kiesow
 	:license: FreeBSD and LGPL, see LICENSE for more details.
 '''
 

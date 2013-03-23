@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Archive
-	~~~~~~~~~~~~~~~
+	core.archive
+	~~~~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
+	Archive contains the archive REST endpoint which grants access to old
+	versions of media objects and series.
 
-	** Archive contains the archive REST endpoint which grants access 
-	** to old versions of media objects and series.
-
-    :copyright: (c) 2013 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
+	:copyright: 2013 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app
@@ -32,22 +30,62 @@ def archive_media(media_id=None, version=None, lang=None):
 	access. If you don't then you will be ranked as “public” user and will only
 	see what is public available.
 
-	Keyword arguments:
-	media_id -- UUID of a specific media object.
-	version  -- Version of media object to get.
-	lang     -- Language filter for the mediaobjects.
+	:param media_id: UUID of a specific media object.
+	:param version:  Version of media object to get.
+	:param lang:     Language filter for the mediaobjects.
 
 	GET parameter:
-	with_series      -- Also return the series (default: enabled)
-	with_contributor -- Also return the contributors (default: enabled)
-	with_creator     -- Also return the creators (default: enabled)
-	with_publisher   -- Also return the publishers (default: enabled)
-	with_file        -- Also return all files (default: disabled)
-	with_subject     -- Also return all subjects (default: enabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
-	order            -- Order results by field (ascending)
-	rorder           -- Order results by field (descending)
+
+		================  =======================================  ========
+		Parameter         Description                              Default
+		================  =======================================  ========
+		with_series       Also return the series                   enabled
+		with_contributor  Also return the contributors             enabled
+		with_creator      Also return the creators                 enabled
+		with_publisher    Also return the publishers               enabled
+		with_file         Also return all files                    disabled
+		with_subject      Also return all subjects                 enabled
+		limit             Maximum amount of results to return      10
+		offset            Offset of results to return              0
+		with_nothing      Disable all with_… options by default
+		order             Order results by field (ascending)
+		rorder            Order results by field (descending)
+		q                 Search/filter query
+		================  =======================================  ========
+
+	Search arguments:
+
+		=============  ====  =================
+		identifier     uuid  id
+		version        int   version
+		description    str   description
+		title          str   title
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		date           time  timestamp_created
+		last_edit      time  timestamp_edit
+		lang           lang  language
+		=============  ====  =================
+	
+	Search example::
+
+		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:version:5
+	
+	Order options:
+
+		* id
+		* language
+		* title
+		* timestamp_edit
+		* timestamp_created
+		* source_key
+
+	Order example:
+
+		...?order=id
+
 	'''
 
 	user = None
@@ -84,12 +122,13 @@ def archive_media(media_id=None, version=None, lang=None):
 
 
 	# Check flags for additional data
-	with_series      = is_true(request.args.get('with_series',      '1'))
-	with_contributor = is_true(request.args.get('with_contributor', '1'))
-	with_creator     = is_true(request.args.get('with_creator',     '1'))
-	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
+	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
+	with_series      = is_true(request.args.get('with_series',      default))
+	with_contributor = is_true(request.args.get('with_contributor', default))
+	with_creator     = is_true(request.args.get('with_creator',     default))
+	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_file        = is_true(request.args.get('with_file',        '0'))
-	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	with_subject     = is_true(request.args.get('with_subject',     default))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
@@ -263,20 +302,47 @@ def archive_series(series_id=None, version=None, lang=None):
 	in the Lernfunk database. Use HTTP Basic authentication to get access to
 	more series. If you don't do that you will be ranked as “public” user.
 
-	Keyword arguments:
-	series_id -- UUID of a specific series.
-	version   -- Version of series to get.
-	lang      -- Language filter for the series.
+	:param series_id: UUID of a specific series.
+	:param version:   Version of series to get.
+	:param lang:      Language filter for the series.
 
 	GET parameter:
-	with_media       -- Also return the media (default: enabled)
-	with_creator     -- Also return the creators (default: enabled)
-	with_publisher   -- Also return the publishers (default: enabled)
-	with_subject     -- Also return all subjects (default: enabled)
-	limit            -- Maximum amount of results to return (default: 10)
-	offset           -- Offset of results to return (default: 0)
-	order            -- Order results by field (ascending)
-	rorder           -- Order results by field (descending)
+
+		==============  =====================================  =======
+		Parameter       Description                            Default
+		==============  =====================================  =======
+		with_media      Also return the media                  enabled
+		with_creator    Also return the creators               enabled
+		with_publisher  Also return the publishers             enabled
+		with_subject    Also return all subjects               enabled
+		limit           Maximum amount of results to return    10
+		offset          Offset of results to return            0
+		with_nothing    Disable all with_… options by default
+		order           Order results by field (ascending)
+		rorder          Order results by field (descending)
+		q               Search/filter query
+		==============  =====================================  =======
+
+	Search arguments:
+
+		=============  ====  =================
+		identifier     uuid  id
+		version        int   version
+		description    str   description
+		title          str   title
+		source         str   source
+		source_key     str   source_key
+		source_system  str   source_system
+		date           time  timestamp_created
+		last_edit      time  timestamp_edit
+		lang           lang  language
+		=============  ====  =================
+
+	Search example::
+
+		...?q=eq:source_key:721e6fcd-8667-11e2-a172-047d7b0f869a
+		.../q=gt:version:5
+
 	'''
 
 	user = None
@@ -313,10 +379,11 @@ def archive_series(series_id=None, version=None, lang=None):
 	query_condition += 'and visible ' if query_condition else 'where visible '
 
 	# Check flags for additional data
-	with_media       = is_true(request.args.get('with_media',       '1'))
-	with_creator     = is_true(request.args.get('with_creator',     '1'))
-	with_publisher   = is_true(request.args.get('with_publisher',   '1'))
-	with_subject     = is_true(request.args.get('with_subject',     '1'))
+	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
+	with_media       = is_true(request.args.get('with_media',       default))
+	with_creator     = is_true(request.args.get('with_creator',     default))
+	with_publisher   = is_true(request.args.get('with_publisher',   default))
+	with_subject     = is_true(request.args.get('with_subject',     default))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
