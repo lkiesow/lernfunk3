@@ -3,8 +3,8 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-#SPHINXBUILD   = sphinx-build
-SPHINXBUILD   = python /home/lars/master-thesis/code/modules/core/venv/bin/sphinx-build
+SPHINXBUILD   = sphinx-build
+#SPHINXBUILD   = python /home/lars/master-thesis/code/modules/core/venv/bin/sphinx-build
 PAPER         =
 BUILDDIR      = _build
 
