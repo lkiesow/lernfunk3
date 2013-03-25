@@ -1,7 +1,13 @@
 {
 	"lf-url" : "http://localhost:5000",
-	"username" : "mh-import",
-	"password" : "bX44fFEbZcQqqbYSxcJDKDt5",
+	"username" : "lkiesow",
+	"password" : "test",
+	"defaults" : {
+		"language" : "de",
+		"visibility" : 1,
+		"published" : 1,
+		"publisher" : [1]
+	},
 	"delimeter": {
 		"creator"     : ";",
 		"contributor" : ";",

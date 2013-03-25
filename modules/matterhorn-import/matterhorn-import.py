@@ -15,11 +15,13 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 import json
+import urllib
 import urllib2
 from xml.dom.minidom import parseString
 from pprint import pprint
 from util import xml_get_data
 from base64 import urlsafe_b64encode
+from flask import jsonify
 
 
 def check_rules( ruleset, data ):
@@ -129,9 +131,40 @@ def load_config():
 	config['lf-url'] = config['lf-url'].rstrip('/') + '/'
 
 	# Create a HTTP Basic Auth header from credentials
-	config['auth'] = urlsafe_b64encode("%s:%s" % \
+	config['auth'] = 'Basic ' + urlsafe_b64encode("%s:%s" % \
 			( config['username'], config['password'] ))
 	return config
+
+
+def login():
+	'''This method will send a login request to the Lernfunk Core Webservice. On
+	success it will return a valid session which can be used for further
+	authentication.
+
+	:returns: String containing session data
+
+	'''
+	global config
+
+	req = urllib2.Request('%slogin' % config['lf-url'])
+	req.add_header('Authorization', config['auth'])
+	u = urllib2.urlopen(req)
+	session = u.info().get('Set-Cookie')
+	u.close()
+	if not session:
+		raise urllib2.URLError('Login failed')
+	return session
+
+
+def logout( session ):
+	'''This method will send a logout request to the Lernfunk Core Webservice.
+
+	:param session: String containing valid session data
+
+	'''
+	req = urllib2.Request('%slogout' % config['lf-url'])
+	req.add_header('Cookie', session)
+	u = urllib2.urlopen(req)
 
 
 def import_media( mp ):
@@ -147,6 +180,9 @@ def import_media( mp ):
 	'''
 	global config
 
+	# Log into core webservice
+	session = login()
+
 	# This will be a post field:
 	source_system = 'localhost'
 
@@ -161,9 +197,13 @@ def import_media( mp ):
 	s['title']       = xml_get_data(mp, 'seriestitle')
 	m['license']     = xml_get_data(mp, 'license')
 	m['language']    = xml_get_data(mp, 'language')
+	m['description'] = xml_get_data(mp, 'description')
 	m['creator']     = xml_get_data(mp, 'creator',     array='always')
 	m['contributor'] = xml_get_data(mp, 'contributor', array='always')
 	m['subject']     = xml_get_data(mp, 'subject',     array='always')
+	m['id']          = mp.getElementsByTagNameNS('*','mediapackage')[0].getAttribute('id')
+	m['start']       = mp.getElementsByTagNameNS('*','mediapackage')[0].getAttribute('start')
+	m['duration']    = mp.getElementsByTagNameNS('*','mediapackage')[0].getAttribute('duration')
 
 	# Split values if necessary
 	m['subject']     = split_vals( m['subject'], 
@@ -200,11 +240,85 @@ def import_media( mp ):
 			except urllib2.URLError:
 				pass
 	
+	# TODO: 
+	# - check if m['id'] is UUID.
+	# - Check if media with UUID does exist.
+	# - Query creator
+	# - Query contributor
+
+	for creator in m['creator']:
+		try:
+
+
+			req = urllib2.Request('%sadmin/user/?%s' % (
+				config['lf-url'],
+				urllib.urlencode({'q':'eq:realname:'+creator})))
+			req.add_header('Cookie', session)
+			req.add_header('Accept', 'application/xml')
+			u = urllib2.urlopen(req)
+			data = u.read()
+			u.close()
+			data = parseString(data)
+			data = data.getElementsByTagNameNS('*', 'result')[0]
+			resultcount = int(data.getAttribute('resultcount'))
+			if resultcount == 0:
+				# Create new user
+				user = {"lf:user":[{'lf:realname':creator}]}
+				user = json.dumps(user, separators=(',',':'))
+				req = urllib2.Request('%sadmin/user/' % config['lf-url'])
+				req.add_data(user)
+				req.add_header('Cookie',       session)
+				req.add_header('Content-Type', 'application/json')
+				req.add_header('Accept',       'application/xml')
+				u = urllib2.urlopen(req)
+				newuser = u.read()
+				u.close()
+				uid = xml_get_data(parseString(newuser), 'id', type=int)
+			else:
+				if resultcount > 1:
+					# log(__LOG_WARNING, 'Realname (creator "%s") ambiguous' % creator)
+					pass
+				uid = xml_get_data(data, 'identifier', type=int)
+			print uid
+		except urllib2.URLError as e:
+			print 'Error: %s' % str(e)
+
+	# Build mediaobject dataset
+	media={
+			"lf:media": [
+				{
+					"lf:source_key": m['id'],
+					"dc:type": "Image",
+					"dc:title": m['title'],
+					"dc:language": (m['language'] or config['defaults']['language']),
+					"lf:visible": config['defaults']['visibility'],
+					"dc:source": None, # Put the mediapackage URL
+					"dc:identifier": m['id'],
+					"lf:published": config['defaults']['published'],
+					"dc:date": m['created'],
+					"dc:description": m['description'],
+					"dc:rights": m['license'],
+					"lf:source_system": source_system,
+
+					"dc:subject": m['subject'],
+					"lf:publisher": config['defaults']['publisher'],
+					"lf:creator": [ 3 ], 
+					"lf:contributor": [ 3 ]
+					}
+				]
+			}
+
+	print '---'
+	print(json.dumps(media, sort_keys=True, separators=(',',':')))
+
+
 	# Send data to Lernfunk3 Core Webservice
+	'''
 	req = urllib2.Request('%s/admin/series/' % config['lf-url'])
 	req.add_data(urllib.urlencode())
 	req.add_header('Authorization', config['auth'])
 	urllib2.urlopen(req)
+	'''
 
 
 	for track in mp.getElementsByTagNameNS('*', 'track'):
@@ -260,6 +374,7 @@ def import_media( mp ):
 			urllib2.install_opener(opener)
 			urllib2.urlopen('http://www.example.com/login.html')
 			'''
+	logout( session )
 	
 	pprint(m)
 	pprint(s)
