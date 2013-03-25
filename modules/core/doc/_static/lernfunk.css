@@ -1,0 +1,22 @@
+@import url("haiku.css");
+
+dl.function > dt, dl.get > dt, dl.post > dt, dl.put > dt, dl.delete > dt, dl.data > dt {
+	padding: 5px;
+	padding-left: 15px;
+	border-radius: 3px;
+	border-top: 1px solid gray;
+	background-color: silver;
+}
+
+table.docutils td, table.docutils th, table.docutils tr {
+	border: none;
+}
+
+table.docutils thead tr {
+	border-bottom: 1px solid gray;
+}
+
+table.docutils {
+	border-top: 2px solid gray;
+	border-bottom: 2px solid gray;
+}
