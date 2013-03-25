@@ -458,48 +458,46 @@ def admin_series_post():
 	identifier already exists.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-{
-	"lf:series": [
-	{
-		"lf:parent_version": null, 
-		"dc:source": null, 
-		"lf:version": 0, 
-		"lf:source_key": null, 
-		"lf:editor": 3, 
-		"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
-		"lf:owner": 3, 
-		"dc:title": "testseries", 
-		"dc:language": "de", 
-		"lf:published": 1, 
-		"dc:date": "2013-01-30 13:58:22", 
-		"lf:source_system": null, 
-		"lf:visible": 1, 
-		"lf:last_edit": "2013-01-30 13:58:22", 
-		"dc:description": "some text\u2026", 
-	}
-	]
-}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
-			xmlns:lf="http://lernfunk.de/terms">
-		<!-- TODO -->
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+		{
+			"lf:series": [
+			{
+				"lf:parent_version": null, 
+				"dc:source": null, 
+				"lf:version": 0, 
+				"lf:source_key": null, 
+				"lf:editor": 3, 
+				"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
+				"lf:owner": 3, 
+				"dc:title": "testseries", 
+				"dc:language": "de", 
+				"lf:published": 1, 
+				"dc:date": "2013-01-30 13:58:22", 
+				"lf:source_system": null, 
+				"lf:visible": 1, 
+				"lf:last_edit": "2013-01-30 13:58:22", 
+				"dc:description": "some text\u2026", 
+			}
+			]
+		}
+
+	XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+				xmlns:lf="http://lernfunk.de/terms">
+			<!-- TODO -->
+		</data>
 
 	NOTICES:
 	 * If the identifier is ommittet a new id is generated automatically. 
 	 * Only administrators and editors can change the ownership of a series.
 	 * You cannot modify a specific version. Insted a new version is created
-		automatically. If you really want to get rid of a specific version: Be
-		admin, delete the old one and create a new version. If you are no admin:
-		Create a new version based on an old one and ask someone who is admin to
-		delete the old one.
+	   automatically. If you really want to get rid of a specific version: Be
+	   admin, delete the old one and create a new version. If you are no admin:
+	   Create a new version based on an old one and ask someone who is admin to
+	   delete the old one.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -559,7 +557,10 @@ def admin_series_post():
 		try:
 			for series in data.getElementsByTagName( 'lf:series' ):
 				s = {}
-				s['id'] = uuid.UUID(xml_get_text(series, 'dc:identifier'))
+				try:
+					s['id'] = uuid.UUID(xml_get_text(series, 'dc:identifier'))
+				except TypeError:
+					s['id'] = None
 				if not ( s['id'] or user.is_editor() ):
 					return 'You are not allowed to create new series', 403
 
@@ -664,7 +665,11 @@ def admin_series_post():
 		for series in sqldata:
 			# If there is no id, we create a new one:
 			if not series.get('id'):
-				series['id'] = uuid.uuid4()
+				# Try to use the source key as UUID if ppossible:
+				try:
+					series['id'] = uuid.UUID(series.get('source_key'))
+				except (TypeError, ValueError):
+					series['id'] = uuid.uuid4()
 			try:
 				# Get next version for this series. Since this happens in a
 				# transaction the value will not change between transactions.

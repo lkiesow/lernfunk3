@@ -558,7 +558,10 @@ def admin_series_put():
 		try:
 			for series in data.getElementsByTagName( 'lf:series' ):
 				s = {}
-				s['id'] = uuid.UUID(xml_get_text(series, 'dc:identifier'))
+				try:
+					s['id'] = uuid.UUID(xml_get_text(series, 'dc:identifier'))
+				except TypeError:
+					s['id'] = None
 				if not ( s['id'] or user.is_editor() ):
 					return 'You are not allowed to create new series', 403
 
@@ -663,7 +666,11 @@ def admin_series_put():
 		for series in sqldata:
 			# If there is no id, we create a new one:
 			if not series.get('id'):
-				series['id'] = uuid.uuid4()
+				# Try to use the source key as UUID if ppossible:
+				try:
+					series['id'] = uuid.UUID(series.get('source_key'))
+				except (TypeError, ValueError):
+					series['id'] = uuid.uuid4()
 			try:
 				# Get next version for this series. Since this happens in a
 				# transaction the value will not change between transactions.
