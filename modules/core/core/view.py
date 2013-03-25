@@ -33,22 +33,22 @@ def view_media(media_id=None, lang=None, series_id=None):
 
 	GET parameter:
 
-		================  =======================================  ========
-		Parameter         Description                              Default
-		================  =======================================  ========
-		with_series       Also return the series                   enabled
-		with_contributor  Also return the contributors             enabled
-		with_creator      Also return the creators                 enabled
-		with_publisher    Also return the publishers               enabled
-		with_file         Also return all files                    disabled
-		with_subject      Also return all subjects                 enabled
-		limit             Maximum amount of results to return      10
-		offset            Offset of results to return              0
-		with_nothing      Disable all with_… options by default
+		================  =============================================  ========
+		Parameter         Description                                    Default
+		================  =============================================  ========
+		with_series       Also return the series                         enabled
+		with_contributor  Also return the contributors                   enabled
+		with_creator      Also return the creators                       enabled
+		with_publisher    Also return the publishers                     enabled
+		with_file         Also return all files                          disabled
+		with_subject      Also return all subjects                       enabled
+		limit             Maximum amount of results to return            10
+		offset            Offset of results to return                    0
+		with_nothing      Disable all ``with_...`` options by default
 		order             Order results by field (ascending)
 		rorder            Order results by field (descending)
 		q                 Search/filter query
-		================  =======================================  ========
+		================  =============================================  ========
 
 	Search arguments:
 
@@ -316,22 +316,22 @@ def view_series_media(series_id, media_id=None, lang=None):
 
 	GET parameter:
 
-		================  =======================================  ========
-		Parameter         Description                              Default
-		================  =======================================  ========
-		with_series       Also return the series                   enabled
-		with_contributor  Also return the contributors             enabled
-		with_creator      Also return the creators                 enabled
-		with_publisher    Also return the publishers               enabled
-		with_file         Also return all files                    disabled
-		with_subject      Also return all subjects                 enabled
-		limit             Maximum amount of results to return      10
-		offset            Offset of results to return              0
-		with_nothing      Disable all with_… options by default
+		================  ===========================================  ========
+		Parameter         Description                                  Default
+		================  ===========================================  ========
+		with_series       Also return the series                       enabled
+		with_contributor  Also return the contributors                 enabled
+		with_creator      Also return the creators                     enabled
+		with_publisher    Also return the publishers                   enabled
+		with_file         Also return all files                        disabled
+		with_subject      Also return all subjects                     enabled
+		limit             Maximum amount of results to return          10
+		offset            Offset of results to return                  0
+		with_nothing      Disable all ``with_...`` options by default
 		order             Order results by field (ascending)
 		rorder            Order results by field (descending)
 		q                 Search/filter query
-		================  =======================================  ========
+		================  ===========================================  ========
 
 	Search arguments:
 
@@ -598,20 +598,20 @@ def view_series(series_id=None, lang=None):
 
 	GET parameter:
 
-		==============  =====================================  =======
-		Parameter       Description                            Default
-		==============  =====================================  =======
-		with_media      Also return the media                  enabled
-		with_creator    Also return the creators               enabled
-		with_publisher  Also return the publishers             enabled
-		with_subject    Also return all subjects               enabled
-		limit           Maximum amount of results to return    10
-		offset          Offset of results to return            0
-		with_nothing    Disable all with_… options by default
+		==============  ===========================================  =======
+		Parameter       Description                                  Default
+		==============  ===========================================  =======
+		with_media      Also return the media                        enabled
+		with_creator    Also return the creators                     enabled
+		with_publisher  Also return the publishers                   enabled
+		with_subject    Also return all subjects                     enabled
+		limit           Maximum amount of results to return          10
+		offset          Offset of results to return                  0
+		with_nothing    Disable all ``with_...`` options by default
 		order           Order results by field (ascending)
 		rorder          Order results by field (descending)
 		q               Search/filter query
-		==============  =====================================  =======
+		==============  ===========================================  =======
 
 	Search arguments:
 

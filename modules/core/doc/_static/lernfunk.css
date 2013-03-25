@@ -1,6 +1,6 @@
 @import url("haiku.css");
 
-dl.function > dt, dl.get > dt, dl.post > dt, dl.put > dt, dl.delete > dt, dl.data > dt {
+dl.function > dt, dl.get > dt, dl.post > dt, dl.put > dt, dl.delete > dt, dl.data > dt, div.apititle {
 	padding: 5px;
 	padding-left: 15px;
 	border-radius: 3px;
@@ -19,4 +19,41 @@ table.docutils thead tr {
 table.docutils {
 	border-top: 2px solid gray;
 	border-bottom: 2px solid gray;
+}
+
+div.apitoc {
+	border-bottom: 2px solid silver;
+	border-left: 10px solid silver;
+}
+
+div.apitoc a {
+	display: block;
+	padding: 0px;
+	padding-left: 10px;
+	color: black;
+}
+
+div.apitoc a:hover {
+	background-color: #eee;
+}
+
+div.apitoc a.second {
+	padding-left: 25px;
+}
+
+div.apitoc span.apilnclassname, div.apitoc big, div.apitoc em {
+	font-weight: lighter;
+}
+
+div.apitoc big, div.apitoc em {
+	color: #666;
+}
+
+div.apitoc span.apilnname {
+	font-weight: bold;
+}
+
+
+a.headerlink {
+	color: gray;
 }
