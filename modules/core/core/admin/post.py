@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3::Core::Admin
+	core.admin.post
 	~~~~~~~~~~~~~~~
 
-	This module provides read and write access to the central Lernfunk database.
+	This module  contains the administrative REST endpoint for the Lernfunk
+	database. It will let you add new data.
 
-	** Admin contains the administrative REST endpoint for the Lernfunk
-	** database. It will let you retrieve, modify and edit all data.
+	:copyright: (c) 2012 by Lars Kiesow
+	:license: FreeBSD and LGPL, see LICENSE for more details.
 
-    :copyright: (c) 2012 by Lars Kiesow
-    :license: FreeBSD and LGPL, see LICENSE for more details.
 """
 
 from core import app
@@ -64,7 +63,7 @@ def admin_media_post():
 			]
 		}
 
-		XML example::
+	XML example::
 
 		<?xml version="1.0" ?>
 		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
@@ -458,6 +457,7 @@ def admin_series_post():
 	identifier already exists.
 
 	The data can either be JSON or XML. 
+
 	JSON example::
 
 		{
@@ -881,6 +881,7 @@ def admin_server_post():
 		</data>
 
 	**URI PATTERN**: You can use the following placeholders in the URI pattern:
+
 	  =================== ========================
 	  {file_id}           Fill in file identifier
 	  {format}            Fill in file format
@@ -1001,9 +1002,7 @@ def admin_subject_post():
 				"lf:name": "Computer Science", 
 				"dc:language": "en", 
 				"lf:id": 1
-			}, 
-			{ ... }
-			]
+			}]
 		}
 
 	XML example::
@@ -1306,30 +1305,31 @@ def admin_organization_post():
 	Only administrators and editors are allowed to add/modify organizations.
 
 	The data can either be JSON or XML. 
-	JSON example:
 
-	{
-		"lf:organization": [
+	JSON example::
+
 		{
-			"lf:name": "Universit\u00e4t Osnabr\u00fcck", 
-			"lf:parent_organization_id": null, 
-			"vcard_uri": null, 
-			"dc:identifier": 1
+			"lf:organization": [
+			{
+				"lf:name": "Universit\u00e4t Osnabr\u00fcck", 
+				"lf:parent_organization_id": null, 
+				"vcard_uri": null, 
+				"dc:identifier": 1
+			}
+			]
 		}
-		]
-	}
 
 
-	XML example:
+	XML example::
 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/"
-			xmlns:lf="http://lernfunk.de/terms">
-		<lf:organization>
-			<lf:name>Universität Osnabrück</lf:name>
-			<dc:identifier>1</dc:identifier>
-		</lf:organization>
-	</data>
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
+				xmlns:lf="http://lernfunk.de/terms">
+			<lf:organization>
+				<lf:name>Universität Osnabrück</lf:name>
+				<dc:identifier>1</dc:identifier>
+			</lf:organization>
+		</data>
 
 
 	The id can be omitted. In that case a new id is generated automatically.
@@ -1581,7 +1581,6 @@ def admin_user_post():
 			]
 		}
 
-
 	XML example::
 
 		<?xml version="1.0" ?>
@@ -1757,7 +1756,7 @@ def admin_user_passwd_post():
 
 	The data can either be JSON or XML.
 
-	JSON example:
+	JSON example::
 
 		{
 			"lf:user_password": [

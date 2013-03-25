@@ -1,0 +1,2 @@
+.. automodule:: core.config
+   :members:
