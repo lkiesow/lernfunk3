@@ -139,7 +139,10 @@ def admin_media_put():
 		try:
 			for media in data.getElementsByTagName( 'lf:media' ):
 				m = {}
-				m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
+				try:
+					m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
+				except TypeError:
+					m['id'] = None
 				if not ( m['id'] or user.is_editor() ):
 					return 'You are not allowed to create new media', 403
 
@@ -257,7 +260,11 @@ def admin_media_put():
 		for media in sqldata:
 			# If there is no id, we create a new one:
 			if not media.get('id'):
-				media['id'] = uuid.uuid4()
+				# Try to use the source key as UUID if ppossible:
+				try:
+					media['id'] = uuid.UUID(media['source_key'])
+				except (TypeError, ValueError):
+					media['id'] = uuid.uuid4()
 			try:
 				# Get next version for this media. Since this happens in a
 				# transaction the value will not change between transactions.

@@ -39,49 +39,48 @@ def admin_media_post():
 	already exists.
 
 	The data can either be JSON or XML. 
-	JSON example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	{
-		"lf:media": [
-		{
-			"lf:source_key": "123456789", 
-			"dc:type": "Image", 
-			"dc:title": "test", 
-			"dc:language": "de", 
-			"lf:visible": 1, 
-			"dc:source": null, 
-			"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
-			"lf:published": 0, 
-			"dc:date": "2013-01-30 13:58:22", 
-			"dc:description": "some text\u2026", 
-			"dc:rights": "cc-by", 
-			"lf:owner": 3, 
-			"lf:last_edit": "2013-01-30 13:58:22", 
-			"lf:parent_version": null, 
-			"lf:source_system": null
-		}
-		]
-	}
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-	XML example:
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-	<?xml version="1.0" ?>
-	<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
-			xmlns:lf="http://lernfunk.de/terms">
-		<!-- TODO -->
-	</data>
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	JSON example::
+
+		{
+			"lf:media": [
+			{
+				"lf:source_key": "123456789", 
+				"dc:type": "Image", 
+				"dc:title": "test", 
+				"dc:language": "de", 
+				"lf:visible": 1, 
+				"dc:source": null, 
+				"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
+				"lf:published": 0, 
+				"dc:date": "2013-01-30 13:58:22", 
+				"dc:description": "some text\u2026", 
+				"dc:rights": "cc-by", 
+				"lf:owner": 3, 
+				"lf:last_edit": "2013-01-30 13:58:22", 
+				"lf:parent_version": null, 
+				"lf:source_system": null
+			}
+			]
+		}
+
+		XML example::
+
+		<?xml version="1.0" ?>
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+				xmlns:lf="http://lernfunk.de/terms">
+			<!-- TODO -->
+		</data>
 
 	NOTICES:
 	 * If the identifier is ommittet a new one is generated automatically. 
 	 * Only administrators and editors can change the ownership of a media.
 	 * You need to have write access to a series to add this edia to a series.
 	 * You cannot modify a specific version. Insted a new version is created
-		automatically. If you really want to get rid of a specific version: Be
-		admin, delete the old one and create a new version. If you are no admin:
-		Create a new version based on an old one and ask someone who is admin to
-		delete this one.
+	   automatically. If you really want to get rid of a specific version: Be
+	   admin, delete the old one and create a new version. If you are no admin:
+	   Create a new version based on an old one and ask someone who is admin to
+	   delete this one.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -141,7 +140,10 @@ def admin_media_post():
 		try:
 			for media in data.getElementsByTagName( 'lf:media' ):
 				m = {}
-				m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
+				try:
+					m['id'] = uuid.UUID(xml_get_text(media, 'dc:identifier'))
+				except TypeError:
+					m['id'] = None
 				if not ( m['id'] or user.is_editor() ):
 					return 'You are not allowed to create new media', 403
 
@@ -259,7 +261,11 @@ def admin_media_post():
 		for media in sqldata:
 			# If there is no id, we create a new one:
 			if not media.get('id'):
-				media['id'] = uuid.uuid4()
+				# Try to use the source key as UUID if ppossible:
+				try:
+					media['id'] = uuid.UUID(media['source_key'])
+				except (TypeError, ValueError):
+					media['id'] = uuid.uuid4()
 			try:
 				# Get next version for this media. Since this happens in a
 				# transaction the value will not change between transactions.
