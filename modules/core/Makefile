@@ -1,4 +1,5 @@
 start:
+	sudo systemctl start mysqld.service
 	. venv/bin/activate
 	python runserver.py
 
