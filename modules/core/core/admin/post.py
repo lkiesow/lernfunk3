@@ -22,6 +22,7 @@ import json
 from datetime import datetime
 import email.utils
 from string import printable as printable_chars
+from string import lowercase as lowercase_chars
 import os
 import hashlib
 
@@ -1604,6 +1605,49 @@ def admin_user_post():
 		3. 'editors only'
 		4. 'administrators only'
 
+	**Username generator**:
+
+		The username can be ommittet *iff* a realname is given. In that case a
+		new username is automatically generated for the user. The username will
+		be generated in the following way:
+
+			1. Convert to lowercase
+			2. Split name at whitespaces
+			3. Remove all characters except [a-z]
+			4. Concat all fields starting from the second
+			5. Put at least one character from the first element and as many as
+			   needed to be unique at the beginning of the username.
+			6. If still not unique use a number as prefix
+
+		Example (algorithm)::
+
+			Realname := 'John Doe'
+			-> ['john', 'doe']
+			-> 'jdoe'
+			user('jdoe') exists:
+				-> 'jodoe'
+			...
+			user('johndoe') exists:
+				-> 'johndoe2'
+			...
+
+		Example (test)::
+
+			> repeat 6 curl -s \\
+					--request POST \\
+					-H 'Accept: application/json' \\
+					-H 'Content-Type: application/json' \\
+					-u lkiesow:test \\
+					--data '{"lf:user": [{"lf:realname": "John Doe"}]}' \\
+					"http://127.0.0.1:5000/admin/user/" | grep '"name"'
+			"name": "jdoe"
+			"name": "jodoe"
+			"name": "johdoe"
+			"name": "johndoe"
+			"name": "johndoe1"
+			"name": "johndoe2"
+
+
 	IMPORTANT NOTICE (Passwords):
 	 | Although a password is part of a users data it cannot be set along with
 	 | the rest of the “normal” user data as it more important. If a new user is
@@ -1671,7 +1715,7 @@ def admin_user_post():
 				u['id']       = xml_get_text(udata, 'dc:coverage')
 				if u['id']:
 					u['id'] = int(u['id'])
-				u['name']       = xml_get_text(udata, 'lf:name', True)
+				u['name']       = xml_get_text(udata, 'lf:name')
 				u['access']     = accessmap[xml_get_text(udata, 'lf:access')]
 				u['realname']   = xml_get_text(udata, 'lf:realname')
 				u['vcard']      = xml_get_text(udata, 'lf:vcard_uri')
@@ -1696,22 +1740,26 @@ def admin_user_post():
 				u = {}
 				u['id']       = int(udata['dc:identifier']) \
 						if udata.get('dc:identifier') else None
-				u['name']     = udata['lf:name']
-				u['access']   = accessmap[udata['lf:access']]
+				u['name']     = udata.get('lf:name')
+				u['access']   = accessmap[udata['lf:access']] \
+						if udata.get('lf:access') else 4
 				u['realname'] = udata.get('lf:realname')
 				u['vcard']    = udata.get('lf:vcard_uri')
 				u['email']    = udata.get('lf:email')
 				sqldata.append( u )
 			except (KeyError, ValueError):
-				return 'Invalid group data', 400
+				return 'Invalid user data', 400
 
 	# Check data
 	for udata in sqldata:
 		if udata['name'] in ['admin', 'public']:
-			return 'Cannot create fixed group "%s"' % udata['name'], 400
+			return 'Cannot create fixed user "%s"' % udata['name'], 400
 		if not ( udata['email'] is None or '@' in udata['email'] ):
 			return 'Invalid email address “%s”' % udata['email'], 400
-		if not username_regex_full.match(udata['name']):
+		if udata['name'] is None:
+			if udata['realname'] is None:
+				return 'Username cannot be generated without a realname', 400
+		elif not username_regex_full.match(udata['name']):
 			return 'Invalid username “%s”' % udata['name'], 400
 
 	# Request data
@@ -1722,6 +1770,32 @@ def admin_user_post():
 	try:
 		# check username
 		for udata in sqldata:
+			# Generate new username if necessary:
+			if udata['name'] is None:
+				username = ''.join([c if c in lowercase_chars+' ' else '' \
+						for c in udata['realname'].lower()])
+				username = username.split(' ')
+				username_hd = username[0]
+				username_tl = ''.join(username[1:])
+				cur.execute('''select name from lf_user 
+						where name like '%%%s%%' ''' % username_tl )
+				existing_user = [ n for (n,) in cur.fetchall() ]
+				# Generate username from realname
+				username = ''
+				for c in username_hd:
+					username += c
+					if username + username_tl not in existing_user:
+						username +=  username_tl
+						break
+				# Still not unique?
+				if username_hd + username_tl in existing_user:
+					username = username_hd + username_tl
+					postfix = 1
+					while username + str(postfix) in existing_user:
+						postfix += 1
+					username += str(postfix)
+				udata['name'] = username
+
 			cur.execute('''insert into lf_user
 				(id, name, vcard_uri, realname, email, access)
 				values (%s, %s, %s, %s, %s, %s) ''',
