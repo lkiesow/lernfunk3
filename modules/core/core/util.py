@@ -16,6 +16,7 @@ from xml.dom.minidom import parseString
 import re
 from flask import request, make_response
 import uuid
+from base64 import b64decode
 
 '''All characters allowed for language tags.'''
 lang_chars = letters + digits + '-_'
@@ -231,7 +232,15 @@ def search_query( query, allowed ):
 
 	Type: *str*
 
-		The string value will be escaped to prevent SQL injection attacks.
+		The string value will be escaped to prevent SQL injection attacks. To
+		enable the use of special characters the string can be base64 encoded. In
+		that case the string must have the prefix "base64:"
+
+		Base64 example::
+
+			<op>:<key>:one, two
+			  -> Will not work because of the ",". Use:
+			<op>:<key>:base64:b25lLCB0d28=
 
 		==========  =======================================
 		eq          Equal
@@ -304,6 +313,8 @@ def search_op( allowed, op, key, val ):
 			return '%s >= %i ' % (key, int(val))
 
 	elif type == 'str':
+		if val.startswith('base64:'):
+			val = b64decode( val[7:] )
 		val = get_db().escape_string(val)
 		if op == 'eq':
 			return '%s = "%s" ' % (key, val)
