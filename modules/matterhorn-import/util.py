@@ -97,3 +97,32 @@ def is_true( val ):
 	if isinstance(val, basestring):
 		return val.lower() in ('1', 'yes', 'true')
 	return val
+
+
+def split_vals( vals, delim, stripchars=' ' ):
+	'''This function will split every value of a list *vals* using the character
+	from *delim* als delimeter, strip the new values using *stripchars* and
+	return all values in a new, one dimensional list.
+
+	:param vals:       List of string values to split
+	:param delim:      Delimeter to use for splitting the strings
+	:param stripchars: Character to strip from the new values
+
+	:returns: List of split values
+
+	Example::
+		
+		>>> x = ['val;val2', 'val3; val4, val5']
+		>>> split_vals( x, ';,' )
+		['val', 'val2', 'val3', 'val4', 'val5']
+
+	'''
+	for d in delim:
+		new = []
+		for v in vals:
+			for n in v.split(d):
+				n = n.strip(stripchars)
+				if n:
+					new.append(n)
+		vals = new
+	return vals
