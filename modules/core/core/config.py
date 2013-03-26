@@ -12,7 +12,9 @@
 
 # Dubug ################################
 DEBUG = True
-'''Make shure to disable this in production'''
+'''THis will enable the debug mode. If enabled, the webservice will print
+requests, SQL queries, etc. to stdout and will also return a stack trace via
+HTTP. Make shure to disable this option in production.'''
 
 # Database #############################
 DATABASE_HOST   = 'localhost'

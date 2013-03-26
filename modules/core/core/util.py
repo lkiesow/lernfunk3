@@ -168,6 +168,15 @@ def to_int( s, default=0 ):
 
 
 def search_query( query, allowed ):
+	'''Converts a search query in the form of <operator>:<key>:<val> to a SQL
+	search query. For this the type and database field infos from allowed are
+	used.
+
+	:param query:   Search query (<operator>:<key>:<val>)
+	:param allowed: Dictionary of keys allowed as search paramater along with
+	                its type and database field name
+	                ({<search-key>:(<type>,<db-field>)})
+	'''
 	return 'or '.join([ 
 		'and '.join([ search_op(allowed, *y.split(':',2)) \
 				for y in x.split(',')]) \
