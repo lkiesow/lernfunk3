@@ -1,5 +1,5 @@
-/admin/* (delete) -- *Administrative delete endpoint*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/admin/* (delete)
+~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 
