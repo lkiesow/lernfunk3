@@ -72,15 +72,30 @@ def admin_media_post():
 			<!-- TODO -->
 		</data>
 
-	NOTICES:
-	 * If the identifier is ommittet a new one is generated automatically. 
-	 * Only administrators and editors can change the ownership of a media.
-	 * You need to have write access to a series to add this edia to a series.
-	 * You cannot modify a specific version. Insted a new version is created
-	   automatically. If you really want to get rid of a specific version: Be
-	   admin, delete the old one and create a new version. If you are no admin:
-	   Create a new version based on an old one and ask someone who is admin to
-	   delete this one.
+	**NOTICES**
+	
+	*Auto ID generation*:
+
+		If the identifier is omitted a new id is generated automatically. If
+		possible the *source_key* will be used as new identifier. If the
+		*source_key* is not set, cannot be converted to a valid UUID or a media
+		with such a UUID already exists a new UUID is generated.
+
+	*Ownership*:
+
+		Only administrators and editors can change the ownership of a media.
+		Meaning that you cannot transfer the ownership of a media to another user
+		even if you are the current owner. This is to prevent any unknown user to
+		get edit rights on media without the knowledge of the administrative
+		staff.
+
+	*Versioning*:
+	 
+		You cannot modify a specific version. Instead a new version is created
+		automatically. If you really want to get rid of a specific version: Be
+		admin, delete the old one and create a new version. If you are no admin:
+		Create a new version based on an old one and ask someone who is admin to
+		delete this one.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -264,6 +279,13 @@ def admin_media_post():
 				# Try to use the source key as UUID if ppossible:
 				try:
 					media['id'] = uuid.UUID(media['source_key'])
+					# We cannot be shure about the uniqueness of foreign keys. Thus
+					# we check if there already is a media element with this id and
+					# create a new id if necessary.
+					cur.exevute('''select count(id) from lf_media
+							where id = %s ''', media['id'].bytes )
+					if int(cur.fetchone[0]) > 0:
+						media['id'] = uuid.uuid4()
 				except (TypeError, ValueError):
 					media['id'] = uuid.uuid4()
 			try:
@@ -491,14 +513,30 @@ def admin_series_post():
 			<!-- TODO -->
 		</data>
 
-	NOTICES:
-	 * If the identifier is ommittet a new id is generated automatically. 
-	 * Only administrators and editors can change the ownership of a series.
-	 * You cannot modify a specific version. Insted a new version is created
-	   automatically. If you really want to get rid of a specific version: Be
-	   admin, delete the old one and create a new version. If you are no admin:
-	   Create a new version based on an old one and ask someone who is admin to
-	   delete the old one.
+	**NOTICES**
+	
+	*Auto ID generation*:
+
+		If the identifier is omitted a new id is generated automatically. If
+		possible the *source_key* will be used as new identifier. If the
+		*source_key* is not set, cannot be converted to a valid UUID or a media
+		with such a UUID already exists a new UUID is generated.
+
+	*Ownership*:
+
+		Only administrators and editors can change the ownership of a media.
+		Meaning that you cannot transfer the ownership of a media to another user
+		even if you are the current owner. This is to prevent any unknown user to
+		get edit rights on media without the knowledge of the administrative
+		staff.
+
+	*Versioning*:
+	 
+		You cannot modify a specific version. Instead a new version is created
+		automatically. If you really want to get rid of a specific version: Be
+		admin, delete the old one and create a new version. If you are no admin:
+		Create a new version based on an old one and ask someone who is admin to
+		delete this one.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
@@ -669,6 +707,13 @@ def admin_series_post():
 				# Try to use the source key as UUID if ppossible:
 				try:
 					series['id'] = uuid.UUID(series.get('source_key'))
+					# We cannot be shure about the uniqueness of foreign keys. Thus
+					# we check if there already is a media element with this id and
+					# create a new id if necessary.
+					cur.exevute('''select count(id) from lf_series
+							where id = %s ''', series['id'].bytes )
+					if int(cur.fetchone[0]) > 0:
+						series['id'] = uuid.uuid4()
 				except (TypeError, ValueError):
 					series['id'] = uuid.uuid4()
 			try:
