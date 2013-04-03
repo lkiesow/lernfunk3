@@ -18,4 +18,6 @@ startup
    You probably need to have the mysql-devel 
    package installed for this.
 
-6. Start MySQL server and import database (lernfunk3.sql)
+6. Install python-dateutil
+
+7. Start MySQL server and import database (lernfunk3.sql)

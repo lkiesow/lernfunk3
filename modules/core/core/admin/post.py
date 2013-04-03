@@ -20,6 +20,7 @@ from MySQLdb import Error as MySQLdbError
 from xml.dom.minidom import parseString
 import json
 from datetime import datetime
+import dateutil.parser
 import email.utils
 from string import printable as printable_chars
 from string import lowercase as lowercase_chars
@@ -247,17 +248,9 @@ def admin_media_post():
 						+ 'dcmi-type-vocabulary/]', 400
 			if not media.get('date'):
 				media['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-			else:
-				try:
-					# Assume ISO datetime format (YYYY-MM-DD HH:MM:SS)
-					datetime.strptime(media['date'], '%Y-%m-%d %H:%M:%S')
-				except ValueError:
-					# Check RFC2822 datetime format instead
-					# (Do not use , for separating weekday and month!)
-					media['date'] = datetime.fromtimestamp(
-							email.utils.mktime_tz(email.utils.parsedate_tz(val))
-							).strftime("%Y-%m-%d %H:%M:%S")
-			media['owner'] = int(media['owner'])
+			media['date'] = dateutil.parser.parse(media['date']).isoformat()
+			media['owner'] = int(media['owner']) \
+					if media.get('owner') else user.id
 			# Check relations:
 			if media.get('publisher'):
 				media['publisher'] = [ int(pub) for pub in media['publisher'] ]
@@ -282,7 +275,7 @@ def admin_media_post():
 					# We cannot be shure about the uniqueness of foreign keys. Thus
 					# we check if there already is a media element with this id and
 					# create a new id if necessary.
-					cur.exevute('''select count(id) from lf_media
+					cur.execute('''select count(id) from lf_media
 							where id = %s ''', media['id'].bytes )
 					if int(cur.fetchone[0]) > 0:
 						media['id'] = uuid.uuid4()
@@ -321,7 +314,7 @@ def admin_media_post():
 
 				# Add relations
 				if media.get('published'):
-					for pub in media['published']:
+					for pub in media['publisher']:
 						cur.execute('''insert into lf_media_publisher
 							(media_id, organization_id, media_version)
 							values (%s, %s, %s) ''',
@@ -418,7 +411,7 @@ def admin_media_post():
 
 				# Add relations
 				if media.get('published'):
-					for pub in media['published']:
+					for pub in media['publisher']:
 						cur.execute('''insert into lf_media_publisher
 							(media_id, organization_id, media_version)
 							values (%s, %s, %s) ''',
@@ -710,7 +703,7 @@ def admin_series_post():
 					# We cannot be shure about the uniqueness of foreign keys. Thus
 					# we check if there already is a media element with this id and
 					# create a new id if necessary.
-					cur.exevute('''select count(id) from lf_series
+					cur.execute('''select count(id) from lf_series
 							where id = %s ''', series['id'].bytes )
 					if int(cur.fetchone[0]) > 0:
 						series['id'] = uuid.uuid4()
