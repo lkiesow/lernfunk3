@@ -41,7 +41,7 @@ def load_config( configfile='config.json' ):
 	# Check/normalize config
 	for key in ['creator', 'contributor', 'subject']:
 		if not key in config['delimeter'].keys():
-			entry[key] = None
+			config['delimeter'][key] = None
 	for entry in config['trackrules'] + config['metadatarules'] \
 			+ config['attachmentrules']:
 		for key in ['name','comment']:
@@ -55,6 +55,17 @@ def load_config( configfile='config.json' ):
 		for key in ['tags', '-tags']:
 			if not key in entry.keys():
 				entry[key] = []
+
+	# Defaults
+	if not 'defaults' in config.keys():
+		config['defaults'] = {}
+	for key in ['publisher', 'contributor', 'creator']:
+		if not key in config['defaults']:
+			config['defaults'][key] = []
+	for key in ['visibility', 'published']:
+		if not key in config['defaults']:
+			config['defaults'][key] = 1
+		config['defaults']['language'] = config['defaults'].get('language') or ''
 
 	# Make shure URL ends with /
 	config['lf-url'] = config['lf-url'].rstrip('/') + '/'
@@ -196,7 +207,99 @@ class MediapackageImporter:
 		return uids
 
 
-	def import_media( self, mp ):
+	def post_series( self, s ):
+		print '###############'
+		print s
+		print '###############'
+		creators     = self.request_people( s['creator'] )
+		contributors = self.request_people( s['contributor'] )
+
+		series = {
+				"lf:series": [
+					{
+						"lf:source_key": s['id'],
+						"lf:editor": 3,
+						"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
+						"lf:owner": 3, 
+						"dc:title": "testseries", 
+						"dc:language": "de", 
+						"lf:published": 1, 
+						"dc:date": "2013-01-30 13:58:22", 
+						"lf:source_system": null, 
+						"lf:visible": 1, 
+						"lf:last_edit": "2013-01-30 13:58:22", 
+						"dc:description": "some text\u2026", 
+
+						"dc:publisher": [ 1 ], 
+						"lf:creator": [ 1 ], 
+						"dc:subject": [ "Informatik" ]
+						}
+					]
+				}
+		return
+		uids = []
+		for name in names:
+			# First: Check if user exists:
+
+			# Use Base64 encoding if necessary
+			searchq = 'eq:realname:base64:%s' % b64encode(name) \
+					if ( ',' in name or ';' in name ) \
+					else 'eq:realname:%s' % name
+			req = urllib2.Request('%sadmin/user/?%s' % (
+				self.config['lf-url'],
+				urllib.urlencode({'q':searchq})))
+			req.add_header('Cookie', self.session)
+			req.add_header('Accept', 'application/xml')
+			u = urllib2.urlopen(req)
+			data = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
+			u.close()
+			resultcount = int(data.getAttribute('resultcount'))
+			if resultcount == 0:
+				logging.info('No user with realname "%s". Create new.' % name)
+				# Create new user
+				user = {"lf:user":[{'lf:realname':name}]}
+				user = json.dumps(user, separators=(',',':'))
+				req  = urllib2.Request('%sadmin/user/' % self.config['lf-url'])
+				req.add_data(user)
+				req.add_header('Cookie',       self.session)
+				req.add_header('Content-Type', 'application/json')
+				req.add_header('Accept',       'application/xml')
+				u = urllib2.urlopen(req)
+				newuser = u.read()
+				u.close()
+				uid = xml_get_data(parseString(newuser), 'id', type=int)
+			else:
+				if resultcount > 1:
+					logging.warn('Realname "%s" is ambiguous. Use first match.' % name )
+				uid = xml_get_data(data, 'identifier', type=int)
+			uids.append( uid )
+
+		return uids
+
+
+	def build_search_request( self, op, val, endpoint, mimetype='application/xml' ):
+		'''Build a search request for the Lernfunk Core Webservice.
+
+		:param op:       Search operator for request
+		:param val:      Value for search
+		:param endpoint: Endpoint for request
+		:param mimetype: Mimetype for result
+
+		:returns: Search request for use with urllib2
+		'''
+		searchq = '%s:base64:%s' % ( op, b64encode(val) ) \
+				if ( ',' in val or ';' in val ) \
+				else '%s:%s' % ( op, val )
+		req = urllib2.Request('%s%s?%s' % (
+			self.config['lf-url'],
+			endpoint,
+			urllib.urlencode({'q':searchq})))
+		req.add_header('Cookie', self.session)
+		req.add_header('Accept', mimetype)
+		return req
+
+
+	def import_media( self, mp, source_system='localhost' ):
 		'''This method takes a Opencast Matterhorn mediapackage as input, parses it
 		and imports the tracks, metadata and attachments according to the
 		configuration.
@@ -209,9 +312,6 @@ class MediapackageImporter:
 		'''
 		# Log into core webservice
 		self.login()
-
-		# This will be a post field:
-		source_system = 'localhost'
 
 		# Parse XML
 		mp = parseString( mp )
@@ -274,8 +374,26 @@ class MediapackageImporter:
 		# - Query creator
 		# - Query contributor
 
-		creators     = self.request_people( m['creator'] )
-		contributors = self.request_people( m['contributor'] )
+		# Check if mediapackage with source_key exists
+		u = urllib2.urlopen( self.build_search_request( 
+				op='eq:source_key', 
+				val=m['id'], 
+				endpoint='admin/media/' ) )
+		mdata = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
+		u.close()
+
+		if int(mdata.getAttribute('resultcount')):
+			# There is already a existing mediaobject with the given source_key in
+			# Lernfunk. Thus we abort the import
+			logging.warn( 'Media with source_key="%s" already exists. Aborting import.' )
+			return
+
+		# Import new user or get the ids of existing user
+		creators      = self.request_people( m['creator'] )
+		contributors  = self.request_people( m['contributor'] )
+
+		creators     += self.config['defaults']['creator']
+		contributors += self.config['defaults']['contributor']
 
 		# Build mediaobject dataset
 		media={
@@ -287,7 +405,6 @@ class MediapackageImporter:
 						"dc:language": (m['language'] or config['defaults']['language']),
 						"lf:visible": config['defaults']['visibility'],
 						"dc:source": None, # Put the mediapackage URL
-						"dc:identifier": m['id'],
 						"lf:published": config['defaults']['published'],
 						"dc:date": m['created'],
 						"dc:description": m['description'],
@@ -295,15 +412,24 @@ class MediapackageImporter:
 						"lf:source_system": source_system,
 
 						"dc:subject": m['subject'],
-						"lf:publisher": config['defaults']['publisher'],
+						"dc:publisher": config['defaults']['publisher'],
 						"lf:creator": creators,
 						"lf:contributor": contributors
 						}
 					]
 				}
 
-		print '---'
-		print(json.dumps(media, sort_keys=True, separators=(',',':')))
+		media = json.dumps(media, separators=(',',':'))
+		req  = urllib2.Request('%sadmin/media/' % self.config['lf-url'])
+		req.add_data(media)
+		req.add_header('Cookie',       self.session)
+		req.add_header('Content-Type', 'application/json')
+		req.add_header('Accept',       'application/xml')
+		u = urllib2.urlopen(req)
+		newmedia = parseString(u.read())
+		u.close()
+		print( newmedia.toxml() )
+		#uid = xml_get_data(parseString(newuser), 'id', type=int)
 
 
 		# Send data to Lernfunk3 Core Webservice
@@ -370,7 +496,6 @@ class MediapackageImporter:
 				'''
 		self.logout()
 		
-		pprint(m)
 		pprint(s)
 
 
@@ -389,7 +514,7 @@ def main():
 	mediapackage = f.read()
 	f.close()
 
-	importer.import_media( mediapackage )
+	importer.import_media( mediapackage, 'localhost' )
 
 
 if __name__ == "__main__":
