@@ -313,7 +313,7 @@ def admin_media_post():
 						media.get('relation') ) )
 
 				# Add relations
-				if media.get('published'):
+				if media.get('publisher'):
 					for pub in media['publisher']:
 						cur.execute('''insert into lf_media_publisher
 							(media_id, organization_id, media_version)
@@ -410,7 +410,7 @@ def admin_media_post():
 						media.get('relation') ) )
 
 				# Add relations
-				if media.get('published'):
+				if media.get('publisher'):
 					for pub in media['publisher']:
 						cur.execute('''insert into lf_media_publisher
 							(media_id, organization_id, media_version)
