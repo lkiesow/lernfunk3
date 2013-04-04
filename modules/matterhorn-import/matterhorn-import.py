@@ -540,6 +540,22 @@ class MediapackageImporter:
 						(str(e), m['id'] ))
 				return False
 
+
+		# Check if series with source_key exists
+		u = urllib2.urlopen( self.build_search_request( 
+				op='eq:source_key', 
+				val=s['id'], 
+				endpoint='admin/series/' ) )
+		sdata = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
+		u.close()
+
+		print( mdata.toxml() )
+
+		if int(mdata.getAttribute('resultcount')) > 0:
+			print( 'Series does exist. Add media here' )
+
+		else:
+
 		self.logout()
 		
 		pprint(s)
