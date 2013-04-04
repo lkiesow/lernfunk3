@@ -277,9 +277,9 @@ def admin_media_post():
 					# create a new id if necessary.
 					cur.execute('''select count(id) from lf_media
 							where id = %s ''', media['id'].bytes )
-					if int(cur.fetchone[0]) > 0:
+					if int(cur.fetchone()[0]) > 0:
 						media['id'] = uuid.uuid4()
-				except (TypeError, ValueError):
+				except (TypeError, ValueError) as e:
 					media['id'] = uuid.uuid4()
 			try:
 				# Get next version for this media. Since this happens in a
@@ -705,7 +705,7 @@ def admin_series_post():
 					# create a new id if necessary.
 					cur.execute('''select count(id) from lf_series
 							where id = %s ''', series['id'].bytes )
-					if int(cur.fetchone[0]) > 0:
+					if int(cur.fetchone()[0]) > 0:
 						series['id'] = uuid.uuid4()
 				except (TypeError, ValueError):
 					series['id'] = uuid.uuid4()
@@ -1304,9 +1304,9 @@ def admin_file_post():
 				d['source_key'] = file.get('lf:source_key')
 				d['source_system'] = file.get('lf:source_system')
 				d['type'] = file.get('lf:type')
-				try:
+				if file.get('lf:uri'):
 					d['uri'] = file['lf:uri']
-				except KeyError:
+				else:
 					d['server_id'] = file['lf:server_id']
 
 				sqldata.append( ( d.get('id'), d['media_id'], 
@@ -1326,7 +1326,8 @@ def admin_file_post():
 			(id, media_id, format, type, quality, server_id, uri, source,
 				source_system, source_key) 
 			values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ''', sqldata )
-	except IntegrityError as e:
+	except MySQLdbError as e:
+		db.rollback()
 		return str(e), 409
 	db.commit()
 
