@@ -24,9 +24,10 @@
 			"protocol"      : "http",
 			"-tags"         : [ "test" ],
 			"source_system" : "localhost",
-			"lf-type"       : "video/webm",
+			"lf-format"     : "video/webm",
+			"lf-type"       : "vga",
 			"lf-quality"    : "high",
-			"lf-server-id"  : "localhost"
+			"lf-source"     : "http://video2.virtuos.uos.de:8080"
 		},{
 			"name"          : "import-hq-mp4",
 			"comment"       : "Import mp4 files tagged with high-quality",
@@ -39,7 +40,7 @@
 			"type"          : "presenter/delivery",
 			"lf-type"       : "video/mp4",
 			"lf-quality"    : "high-quality",
-			"lf-server-id"  : "video2.virtuos.uos.de"
+			"lf-server-id"  : "video2uos"
 		}
 	],
 	"metadatarules" : [

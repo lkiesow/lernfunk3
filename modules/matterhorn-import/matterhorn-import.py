@@ -15,6 +15,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 import json
+import uuid
 import urllib
 import urllib2
 from xml.dom.minidom import parseString
@@ -49,7 +50,8 @@ def load_config( configfile='config.json' ):
 				entry[key] = ''
 		for key in ['mimetype', '-mimetype', 'extension', '-extension', \
 				'protocol', '-protocol', 'source_system', '-source_system', \
-				'lf-quality', 'lf-server-id', 'lf-type', 'type', '-type']:
+				'lf-quality', 'lf-server-id', 'lf-type', 'lf-format', \
+				'lf-source', 'type', '-type']:
 			if not key in entry.keys():
 				entry[key] = None
 		for key in ['tags', '-tags']:
@@ -385,8 +387,9 @@ class MediapackageImporter:
 		if int(mdata.getAttribute('resultcount')):
 			# There is already a existing mediaobject with the given source_key in
 			# Lernfunk. Thus we abort the import
-			logging.warn( 'Media with source_key="%s" already exists. Aborting import.' )
-			return
+			logging.warn( ('Media with source_key="%s" already exists. ' \
+					+ 'Aborting import.') % m['id'] )
+			return False
 
 		# Import new user or get the ids of existing user
 		creators      = self.request_people( m['creator'] )
@@ -420,6 +423,7 @@ class MediapackageImporter:
 				}
 
 		media = json.dumps(media, separators=(',',':'))
+		# POST media to Lernfunk Core Webservice
 		req  = urllib2.Request('%sadmin/media/' % self.config['lf-url'])
 		req.add_data(media)
 		req.add_header('Cookie',       self.session)
@@ -428,19 +432,19 @@ class MediapackageImporter:
 		u = urllib2.urlopen(req)
 		newmedia = parseString(u.read())
 		u.close()
-		print( newmedia.toxml() )
-		#uid = xml_get_data(parseString(newuser), 'id', type=int)
 
+		newmedia = newmedia.getElementsByTagNameNS('*', 'result')[0]
+		mediaid  = xml_get_data(newmedia, 'id', type=uuid.UUID)
 
-		# Send data to Lernfunk3 Core Webservice
-		'''
-		req = urllib2.Request('%s/admin/series/' % config['lf-url'])
-		req.add_data(urllib.urlencode())
-		req.add_header('Authorization', config['auth'])
-		urllib2.urlopen(req)
-		'''
+		resultcount = int(newmedia.getAttribute('resultcount'))
+		if resultcount != 1:
+			logging.error( ('Something went seriously wrong. ' \
+					+ 'The Lernfunk Core Webservice reports, that %i media were ' \
+					+ 'created. Should be 1. Aborting import of media "%s".') % \
+					(resultcount, m['id'] ))
+			return False
 
-
+		files = []
 		for track in mp.getElementsByTagNameNS('*', 'track'):
 			t = {'source_system' : source_system}
 			t['mimetype'] = xml_get_data(track, 'mimetype')
@@ -455,12 +459,29 @@ class MediapackageImporter:
 				if not self.check_rules( r, t ):
 					continue
 
-				# Build request
-				pprint(t)
+				if r['lf-type']:
+					t['type'] = r['lf-type']
+				if r['lf-server-id']:
+					t['url'] = None
+				t['format']    = r['lf-format'] or t['mimetype']
+				t['quality']   = r['lf-quality']
+				t['server-id'] = r['lf-server-id']
+				t['source']    = r['lf-source']
 
-				# Send request
-				# http://docs.python.org/2/library/urllib2.html
-		
+				# Build request
+				#  omitting: "dc:identifier": "..."
+				f = {
+					"dc:format":        t['format'],
+					"lf:media_id":      str(mediaid),
+					"lf:quality":       t['quality'],
+					"lf:source":        t['source'],
+					"lf:source_key":    t['id'],
+					"lf:source_system": source_system,
+					"lf:type":          t['type'],
+					"lf:uri":           t['url'],
+					"lf:server_id":     t['server-id']
+				}
+				files.append(f)
 
 		for attachment in mp.getElementsByTagNameNS('*', 'attachment'):
 			a = {'source_system' : source_system}
@@ -476,24 +497,49 @@ class MediapackageImporter:
 				if not self.check_rules( r, a ):
 					continue
 
+				if r['lf-type']:
+					a['type'] = r['lf-type']
+				if r['lf-server-id']:
+					a['url'] = None
+				a['format']    = r['lf-format'] or a['mimetype']
+				a['quality']   = r['lf-quality']
+				a['server-id'] = r['lf-server-id']
+				a['source']    = r['lf-source']
+
 				# Build request
-				pprint(a)
+				#  omitting: "dc:identifier": "..."
+				f = {
+					"dc:format":        a['format'],
+					"lf:media_id":      str(mediaid),
+					"lf:quality":       a['quality'],
+					"lf:source":        a['source'],
+					"lf:source_key":    a['id'],
+					"lf:source_system": source_system,
+					"lf:type":          a['type'],
+					"lf:uri":           a['url'],
+					"lf:server_id":     a['server-id']
+				}
+				files.append(f)
 
-				# Send request
-				# http://docs.python.org/2/library/urllib2.html
 
-				'''
-				# Create an OpenerDirector with support for Basic HTTP Authentication...
-				auth_handler = urllib2.HTTPBasicAuthHandler()
-				auth_handler.add_password(realm='PDQ Application',
-						uri='https://mahler:8092/site-updates.py',
-						user='klem',
-						passwd='kadidd!ehopper')
-				opener = urllib2.build_opener(auth_handler)
-				# ...and install it globally so it can be used with urlopen.
-				urllib2.install_opener(opener)
-				urllib2.urlopen('http://www.example.com/login.html')
-				'''
+		# POST files to Lernfunk Core Webservice
+		if files:
+			files = {'lf:file':files}
+			files = json.dumps(files, separators=(',',':'))
+
+			req  = urllib2.Request('%sadmin/file/' % self.config['lf-url'])
+			req.add_data(files)
+			req.add_header('Cookie',       self.session)
+			req.add_header('Content-Type', 'application/json')
+			req.add_header('Accept',       'application/xml')
+			try:
+				u = urllib2.urlopen(req)
+				u.close()
+			except urllib2.HTTPError as e:
+				logging.error( ('Importing files failed: "%s". Aborting import of media "%s".') % \
+						(str(e), m['id'] ))
+				return False
+
 		self.logout()
 		
 		pprint(s)
