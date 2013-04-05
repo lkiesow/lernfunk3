@@ -365,8 +365,21 @@ class MediapackageImporter:
 					if r.get('use-for') == 'media':
 						m['created'] = xml_get_data(dcdata, 'created', namespace=ns)
 					if r.get('use-for') == 'series':
-						s['creator']     = xml_get_data(dcdata, 'creator',     namespace=ns)
-						s['contributor'] = xml_get_data(dcdata, 'contributor', namespace=ns)
+						s['creator']     = xml_get_data(dcdata, 'creator',     namespace=ns, array='always')
+						s['contributor'] = xml_get_data(dcdata, 'contributor', namespace=ns, array='always')
+						s['subject']     = xml_get_data(dcdata, 'subject',     namespace=ns, array='always')
+						s['license']     = xml_get_data(dcdata, 'license>',    namespace=ns)
+						s['description'] = xml_get_data(dcdata, 'description', namespace=ns)
+						s['description'] = xml_get_data(dcdata, 'description', namespace=ns)
+						s['language']    = xml_get_data(dcdata, 'language',    namespace=ns)
+
+						# Split values if necessary
+						s['subject']     = split_vals( s['subject'], 
+								config['delimeter']['subject'] or [] )
+						s['creator']     = split_vals( s['creator'], 
+								config['delimeter']['creator'] or [] )
+						s['contributor'] = split_vals( s['contributor'], 
+								config['delimeter']['contributor'] or [] )
 				except urllib2.URLError:
 					pass
 		
@@ -541,6 +554,10 @@ class MediapackageImporter:
 				return False
 
 
+		# If we have no series we are finished here
+		if not s.get('id'):
+			return True
+
 		# Check if series with source_key exists
 		u = urllib2.urlopen( self.build_search_request( 
 				op='eq:source_key', 
@@ -555,6 +572,24 @@ class MediapackageImporter:
 			print( 'Series does exist. Add media here' )
 
 		else:
+			series_creators     = self.request_people( s['creator'] )
+			series_contributors = self.request_people( s['contributor'] )
+
+			series = { "lf:series": [ {
+					"lf:source_key":    s['id'],
+					"dc:title":         s['title'],
+					"dc:language":      s['language'] or config['defaults']['language'],
+					"lf:published":     config['defaults']['published'],
+					"lf:source_system": source_system,
+					"lf:visible":       config['defaults']['visibility'],
+					"dc:description":   s['description'],
+
+					"dc:publisher":     config['defaults']['publisher'],
+					"lf:creator":       series_creators,
+					"dc:subject":       s['subject']
+				} ] }
+			series = json.dumps(series, separators=(',',':'))
+			print( series )
 
 		self.logout()
 		
