@@ -674,15 +674,7 @@ def admin_series_post():
 			if not series.get('date'):
 				series['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 			else:
-				try:
-					# Assume ISO datetime format (YYYY-MM-DD HH:MM:SS)
-					datetime.strptime(series['date'], '%Y-%m-%d %H:%M:%S')
-				except ValueError:
-					# Check RFC2822 datetime format instead
-					# (Do not use , for separating weekday and month!)
-					series['date'] = datetime.fromtimestamp(
-							email.utils.mktime_tz(email.utils.parsedate_tz(val))
-							).strftime("%Y-%m-%d %H:%M:%S")
+				series['date'] = dateutil.parser.parse(series['date']).isoformat()
 			series['owner'] = user.id if series['owner'] is None else int(series['owner'])
 			# Check relations:
 			if series.get('publisher'):
