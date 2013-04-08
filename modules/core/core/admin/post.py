@@ -2182,12 +2182,18 @@ def admin_series_media_post():
 		</data>
 
 
-	IMPORTANT NOTICE: If you send JSON/XML data to set up new series media
-	 | connections, the connection of the parent series version will be cloned.
-	 | To specify all connections use PUT.
+	**NOTICES**
 
-	NOTICE: series_version is used to determine the parent version. It can be
-	 | omittet in which case the latest version of the series is used as parent.
+	*Persistence of old data*:
+
+		If you send JSON/XML data to set up new series media connections, the
+		connection of the parent series version will be cloned.  To specify all
+		connections use PUT.
+
+	*Data source for parent version*:
+
+		series_version is used to determine the parent version. It can be omittet
+		in which case the latest version of the series is used as parent.
 
 	This data should fill the whole body and the content type should be set
 	accordingly (“application/json” or “application/xml”). You can however also
