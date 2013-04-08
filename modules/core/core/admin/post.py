@@ -494,6 +494,11 @@ def admin_series_post():
 				"lf:visible": 1, 
 				"lf:last_edit": "2013-01-30 13:58:22", 
 				"dc:description": "some text\u2026", 
+
+				"dc:subject" : [ ... ],
+				"dc:publisher" : [ ... ],
+				"lf:creator:" : [ ... ],
+				"lf:media_id" : [ ... ]
 			}
 			]
 		}
@@ -651,7 +656,7 @@ def admin_series_post():
 				s['source_system']  = series.get('lf:source_system')
 				s['title']          = series.get('dc:title')
 				s['visible']        = series['lf:visible']
-				s['date']           = series['dc:date']
+				s['date']           = series.get('dc:date')
 
 				# Additional relations:
 				s['subject']        = series.get('dc:subject')
@@ -660,8 +665,8 @@ def admin_series_post():
 				s['media']          = series.get('lf:media_id')
 
 				sqldata.append( s )
-			except KeyError:
-				return 'Invalid server data', 400
+			except KeyError as e:
+				return 'Invalid server data: %s' % str(e), 400
 
 	# Check some data
 	for series in sqldata:
@@ -678,7 +683,7 @@ def admin_series_post():
 					series['date'] = datetime.fromtimestamp(
 							email.utils.mktime_tz(email.utils.parsedate_tz(val))
 							).strftime("%Y-%m-%d %H:%M:%S")
-			series['owner'] = int(series['owner'])
+			series['owner'] = user.id if series['owner'] is None else int(series['owner'])
 			# Check relations:
 			if series.get('publisher'):
 				series['publisher'] = [ int(pub) for pub in series['publisher'] ]
@@ -686,8 +691,8 @@ def admin_series_post():
 				series['creator'] = [ int(creator) for creator in series['creator'] ]
 			if series.get('media'):
 				series['media'] = [ uuid.UUID(m) for m in series['media'] ]
-		except (KeyError, ValueError):
-			return 'Invalid server data', 400
+		except (KeyError, ValueError, TypeError) as e:
+			return 'Invalid server data: %s' % str(e), 400
 
 	# Admins and editors are allowed to create new series and change the
 	# ownership of all existing ones. Thus we do not have to check their
