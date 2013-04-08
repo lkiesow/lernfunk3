@@ -447,8 +447,6 @@ class MediapackageImporter:
 		u.close()
 
 		newmedia = newmedia.getElementsByTagNameNS('*', 'result')[0]
-		mediaid  = xml_get_data(newmedia, 'id', type=uuid.UUID)
-
 		resultcount = int(newmedia.getAttribute('resultcount'))
 		if resultcount != 1:
 			logging.error( ('Something went seriously wrong. ' \
@@ -456,6 +454,8 @@ class MediapackageImporter:
 					+ 'created. Should be 1. Aborting import of media "%s".') % \
 					(resultcount, m['id'] ))
 			return False
+
+		mediaid  = xml_get_data(newmedia, 'id', type=uuid.UUID)
 
 		files = []
 		for track in mp.getElementsByTagNameNS('*', 'track'):
@@ -569,7 +569,41 @@ class MediapackageImporter:
 		print( mdata.toxml() )
 
 		if int(mdata.getAttribute('resultcount')) > 0:
-			print( 'Series does exist. Add media here' )
+			seriesid = xml_get_data(mdata, 'id', type=uuid.UUID)
+			series_media = { "lf:series_media": [ {
+					"lf:series_id": str(seriesid),
+					'lf:media_id':  [ str(mediaid) ]
+				} ] }
+			series_media = json.dumps(series_media, separators=(',',':'))
+			print( series_media )
+
+			# POST series to Lernfunk Core Webservice
+			req = urllib2.Request('%sadmin/series/media/' % self.config['lf-url'])
+			req.add_data(series_media)
+			req.add_header('Cookie',       self.session)
+			req.add_header('Content-Type', 'application/json')
+			req.add_header('Accept',       'application/xml')
+			try:
+				u = urllib2.urlopen(req)
+				newseries_media = parseString(u.read())
+				u.close()
+				print( newseries_media.toxml() )
+				'''
+				resultcount = int(newseries.getAttribute('resultcount'))
+				if resultcount != 1:
+					logging.error( ('Something went seriously wrong. ' \
+							+ 'The Lernfunk Core Webservice reports, that %i series were ' \
+							+ 'created. Should be 1. Creation of series "%s" failed.') % \
+							(resultcount, s['id'] ))
+					return False
+
+				seriesid = xml_get_data(newseries, 'id', type=uuid.UUID)
+				logging.info( ('Successfully imported series (lf:%s) and connected media (lf:%s)') % \
+						(str(seriesid), str(mediaid) ))
+				'''
+			except urllib2.HTTPError as e:
+				logging.error('Connecting media to series failed: "%s".' % str(e))
+				return False
 
 		else:
 			series_creators     = self.request_people( s['creator'] )
@@ -586,10 +620,38 @@ class MediapackageImporter:
 
 					"dc:publisher":     config['defaults']['publisher'],
 					"lf:creator":       series_creators,
-					"dc:subject":       s['subject']
+					"dc:subject":       s['subject'],
+
+					'lf:media_id':      [ str(mediaid) ]
 				} ] }
 			series = json.dumps(series, separators=(',',':'))
 			print( series )
+
+			# POST series to Lernfunk Core Webservice
+			req = urllib2.Request('%sadmin/series/' % self.config['lf-url'])
+			req.add_data(series)
+			req.add_header('Cookie',       self.session)
+			req.add_header('Content-Type', 'application/json')
+			req.add_header('Accept',       'application/xml')
+			try:
+				u = urllib2.urlopen(req)
+				newseries = parseString(u.read())
+				u.close()
+				resultcount = int(newseries.getAttribute('resultcount'))
+				if resultcount != 1:
+					logging.error( ('Something went seriously wrong. ' \
+							+ 'The Lernfunk Core Webservice reports, that %i series were ' \
+							+ 'created. Should be 1. Creation of series "%s" failed.') % \
+							(resultcount, s['id'] ))
+					return False
+
+				seriesid = xml_get_data(newseries, 'id', type=uuid.UUID)
+				logging.info( ('Successfully imported series (lf:%s) and connected media (lf:%s)') % \
+						(str(seriesid), str(mediaid) ))
+			except urllib2.HTTPError as e:
+				logging.error( ('Importing series failed: "%s". Part of media import (%s).') % \
+						(str(e), m['id'] ))
+				return False
 
 		self.logout()
 		
