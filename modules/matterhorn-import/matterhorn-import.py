@@ -24,8 +24,10 @@ from util import xml_get_data, split_vals
 from base64 import urlsafe_b64encode, b64encode
 from flask import jsonify
 import logging
-# http://docs.python.org/2/howto/logging.html
-logging.basicConfig(filename='example.log',level=logging.DEBUG)
+
+# webservice stuff
+from flask import Flask, request
+app = Flask(__name__)
 
 
 def load_config( configfile='config.json' ):
@@ -200,76 +202,7 @@ class MediapackageImporter:
 				newuser = u.read()
 				u.close()
 				uid = xml_get_data(parseString(newuser), 'id', type=int)
-			else:
-				if resultcount > 1:
-					logging.warn('Realname "%s" is ambiguous. Use first match.' % name )
-				uid = xml_get_data(data, 'identifier', type=int)
-			uids.append( uid )
-
-		return uids
-
-
-	def post_series( self, s ):
-		print '###############'
-		print s
-		print '###############'
-		creators     = self.request_people( s['creator'] )
-		contributors = self.request_people( s['contributor'] )
-
-		series = {
-				"lf:series": [
-					{
-						"lf:source_key": s['id'],
-						"lf:editor": 3,
-						"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
-						"lf:owner": 3, 
-						"dc:title": "testseries", 
-						"dc:language": "de", 
-						"lf:published": 1, 
-						"dc:date": "2013-01-30 13:58:22", 
-						"lf:source_system": null, 
-						"lf:visible": 1, 
-						"lf:last_edit": "2013-01-30 13:58:22", 
-						"dc:description": "some text\u2026", 
-
-						"dc:publisher": [ 1 ], 
-						"lf:creator": [ 1 ], 
-						"dc:subject": [ "Informatik" ]
-						}
-					]
-				}
-		return
-		uids = []
-		for name in names:
-			# First: Check if user exists:
-
-			# Use Base64 encoding if necessary
-			searchq = 'eq:realname:base64:%s' % b64encode(name) \
-					if ( ',' in name or ';' in name ) \
-					else 'eq:realname:%s' % name
-			req = urllib2.Request('%sadmin/user/?%s' % (
-				self.config['lf-url'],
-				urllib.urlencode({'q':searchq})))
-			req.add_header('Cookie', self.session)
-			req.add_header('Accept', 'application/xml')
-			u = urllib2.urlopen(req)
-			data = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
-			u.close()
-			resultcount = int(data.getAttribute('resultcount'))
-			if resultcount == 0:
-				logging.info('No user with realname "%s". Create new.' % name)
-				# Create new user
-				user = {"lf:user":[{'lf:realname':name}]}
-				user = json.dumps(user, separators=(',',':'))
-				req  = urllib2.Request('%sadmin/user/' % self.config['lf-url'])
-				req.add_data(user)
-				req.add_header('Cookie',       self.session)
-				req.add_header('Content-Type', 'application/json')
-				req.add_header('Accept',       'application/xml')
-				u = urllib2.urlopen(req)
-				newuser = u.read()
-				u.close()
-				uid = xml_get_data(parseString(newuser), 'id', type=int)
+				logging.info('User with realname "%s" created with uid=%i' % (name,uid))
 			else:
 				if resultcount > 1:
 					logging.warn('Realname "%s" is ambiguous. Use first match.' % name )
@@ -337,11 +270,11 @@ class MediapackageImporter:
 
 		# Split values if necessary
 		m['subject']     = split_vals( m['subject'], 
-				config['delimeter']['subject'] or [] )
+				self.config['delimeter']['subject'] or [] )
 		m['creator']     = split_vals( m['creator'], 
-				config['delimeter']['creator'] or [] )
+				self.config['delimeter']['creator'] or [] )
 		m['contributor'] = split_vals( m['contributor'], 
-				config['delimeter']['contributor'] or [] )
+				self.config['delimeter']['contributor'] or [] )
 
 		# Get additional metadata
 		for cat in mp.getElementsByTagNameNS('*', 'catalog'):
@@ -352,7 +285,7 @@ class MediapackageImporter:
 			t['tags']     = xml_get_data(cat, 'tag', array='always')
 			t['url']      = xml_get_data(cat, 'url')
 
-			for r in config['metadatarules']:
+			for r in self.config['metadatarules']:
 				if not self.check_rules( r, t ):
 					continue
 				# Get additional metadata from server
@@ -375,11 +308,11 @@ class MediapackageImporter:
 
 						# Split values if necessary
 						s['subject']     = split_vals( s['subject'], 
-								config['delimeter']['subject'] or [] )
+								self.config['delimeter']['subject'] or [] )
 						s['creator']     = split_vals( s['creator'], 
-								config['delimeter']['creator'] or [] )
+								self.config['delimeter']['creator'] or [] )
 						s['contributor'] = split_vals( s['contributor'], 
-								config['delimeter']['contributor'] or [] )
+								self.config['delimeter']['contributor'] or [] )
 				except urllib2.URLError:
 					pass
 		
@@ -418,17 +351,17 @@ class MediapackageImporter:
 						"lf:source_key": m['id'],
 						"dc:type": "Image",
 						"dc:title": m['title'],
-						"dc:language": (m['language'] or config['defaults']['language']),
-						"lf:visible": config['defaults']['visibility'],
+						"dc:language": (m['language'] or self.config['defaults']['language']),
+						"lf:visible": self.config['defaults']['visibility'],
 						"dc:source": None, # Put the mediapackage URL
-						"lf:published": config['defaults']['published'],
+						"lf:published": self.config['defaults']['published'],
 						"dc:date": m['created'],
 						"dc:description": m['description'],
 						"dc:rights": m['license'],
 						"lf:source_system": source_system,
 
 						"dc:subject": m['subject'],
-						"dc:publisher": config['defaults']['publisher'],
+						"dc:publisher": self.config['defaults']['publisher'],
 						"lf:creator": creators,
 						"lf:contributor": contributors
 						}
@@ -457,6 +390,8 @@ class MediapackageImporter:
 
 		mediaid  = xml_get_data(newmedia, 'id', type=uuid.UUID)
 
+		logging.info('Created new media with (lf:%s)' % str(mediaid) )
+
 		files = []
 		for track in mp.getElementsByTagNameNS('*', 'track'):
 			t = {'source_system' : source_system}
@@ -466,7 +401,7 @@ class MediapackageImporter:
 			t['tags']     = xml_get_data(track, 'tag', array='always')
 			t['url']      = xml_get_data(track, 'url')
 
-			for r in config['trackrules']:
+			for r in self.config['trackrules']:
 				# Check rules defined in configuration. If a rule does not apply jump
 				# straight to the next set of rules.
 				if not self.check_rules( r, t ):
@@ -504,7 +439,7 @@ class MediapackageImporter:
 			a['tags']     = xml_get_data(attachment, 'tag', array='always')
 			a['url']      = xml_get_data(attachment, 'url')
 
-			for r in config['attachmentrules']:
+			for r in self.config['attachmentrules']:
 				# Check rules defined in configuration. If a rule does not apply jump
 				# straight to the next set of rules.
 				if not self.check_rules( r, a ):
@@ -553,6 +488,8 @@ class MediapackageImporter:
 						(str(e), m['id'] ))
 				return False
 
+		logging.info('Successfully added files to media (lf:%s)' % str(mediaid) )
+
 
 		# If we have no series we are finished here
 		if not s.get('id'):
@@ -597,13 +534,13 @@ class MediapackageImporter:
 			series = { "lf:series": [ {
 					"lf:source_key":    s['id'],
 					"dc:title":         s['title'],
-					"dc:language":      s['language'] or config['defaults']['language'],
-					"lf:published":     config['defaults']['published'],
+					"dc:language":      s['language'] or self.config['defaults']['language'],
+					"lf:published":     self.config['defaults']['published'],
 					"lf:source_system": source_system,
-					"lf:visible":       config['defaults']['visibility'],
+					"lf:visible":       self.config['defaults']['visibility'],
 					"dc:description":   s['description'],
 
-					"dc:publisher":     config['defaults']['publisher'],
+					"dc:publisher":     self.config['defaults']['publisher'],
 					"lf:creator":       series_creators,
 					"dc:subject":       s['subject'],
 
@@ -638,19 +575,121 @@ class MediapackageImporter:
 				return False
 
 		self.logout()
-		
-		pprint(s)
+
+		return True
+
+
+
+def service_get_config():
+	'''Returns the importer configuration. If it is not alredy loaded for the
+	current application context it will load it.
+
+	:returns: A MediapackageImporter configuration
+	'''
+	top = _app_ctx_stack.top
+	if not hasattr(top, 'importer_config'):
+		try:
+			top.importer_config = load_config()
+			# We also want to configure the logger
+			configure_logger( top.importer_config )
+		except ValueError as e:
+			abort(500, str(e))
+	return top.importer_config
+
+
+
+def service_get_mediapackage_importer( config ):
+	'''Returns an instance of a mediapackage importer. If there is none for the
+	current application context a new one will be created.
+
+	:param config: A valid MediapackageImporter configuration
+	:returns: An instance of MediapackageImporter
+	'''
+	top = _app_ctx_stack.top
+	if not hasattr(top, 'importer_instance'):
+		try:
+			top.importer_instance = MediapackageImporter( config )
+		except ValueError as e:
+			abort(500, str(e))
+	return top.importer_instance
+
+
+
+@app.route('/', methods=['PUT','POST'])
+def service():
+	'''This method will accept a mediapackage per HTTP POST or PUT request and
+	uses it for import.
+
+	GET parameters:
+
+		=============  ==========================================
+		mediapackage   An Opencast Matterhorn mediapackage as XML
+		source_system  System identifier of the Matterhorn server
+		=============  ==========================================
+	
+	'''
+	mpkg = request.form.get('mediapackage')
+	if not mpkg:
+		return 'No mediapackage attached\n', 400
+
+	source_system = request.form.get('source_system')
+	if not source_system:
+		return 'No source system defined\n', 400
+
+	config = service_get_config()
+
+	# Check if we want to save the mediapackages we get
+	if config.get('mediapackage_archive'):
+		try:
+			f = open('%s/%s.xml' % (config['mediapackage_archive'], time.time()), 'w')
+			f.write( mpkg )
+		except StandardError:
+			return 'Could not write mediapackage\n', 500
+		finally:
+			f.close()
+
+	# Import media
+	importer = service_get_mediapackage_importer( config )
+	if importer.import_media( mpkg, source_system ):
+		return 'Mediapackage received\n', 201
+	return 'Import failed. See importer logs for more details', 500
+
+
+
+def configure_logger( config ):
+	'''This method will set up the logger. For this config['loglevel'] and
+	config['logfile'] are used. The fallback values in case that these keys are
+	not in the configuration are INFO as loglevel and matterhorn-import.log as
+	'''
+	loglevel = config.get('loglevel') or 'INFO'
+	loglevel = getattr(logging, loglevel.upper(), None)
+	if not isinstance(loglevel, int):
+		print('Error: Invalig loglevel')
+		exit()
+	logfile = config.get('logfile') or 'matterhorn-import.log'
+	logging.basicConfig(filename=logfile, level=loglevel)
 
 
 
 def main():
-	global config
+	'''Reads a mediapackage in XML format which is passed as first command line
+	argument and starts the import.
+
+	Usage: matterhorn-import.py <mediapackage.xml>
+	'''
+	if len(sys.argv) != 2:
+		print( 'Usage: %s <mediapackage.xml> | --server' % sys.argv[0] )
+		exit()
+
 	try:
 		config = load_config()
 	except ValueError as e:
-		logging.error( 'Error loading config: %s' % str(e) )
+		print( 'Error loading config: %s' % str(e) )
 		exit()
 
+	configure_logger( config )
+
+	# Import media
 	importer = MediapackageImporter( config )
 
 	f = open( sys.argv[1], 'r' )
@@ -661,4 +700,7 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+	if len(sys.argv) == 2 and sys.argv[1] == '--server':
+		app.run(host='0.0.0.0', port=5001)
+	else:
+		main()

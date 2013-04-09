@@ -2,6 +2,8 @@
 	"lf-url" : "http://localhost:5000",
 	"username" : "lkiesow",
 	"password" : "test",
+	"logfile"  : "matterhorn-import.log",
+	"loglovel" : "debug",
 	"defaults" : {
 		"language" : "de",
 		"visibility" : 1,
