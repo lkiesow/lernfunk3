@@ -641,8 +641,9 @@ def admin_series_post():
 		for series in data:
 			s = {}
 			try:
-				if series.get('dc:identifier'):
-					s['id'] = uuid.UUID(series['dc:identifier'])
+				s['id'] = series.get('dc:identifier')
+				if s['id']:
+					s['id'] = uuid.UUID(s['id'])
 				elif not user.is_editor():
 					return 'You are not allowed to create new series', 403
 
@@ -2289,10 +2290,10 @@ def admin_series_media_post():
 			cur.execute('''select id, version, parent_version, title, language,
 				description, source, timestamp_edit, timestamp_created, published,
 				owner, editor, visible, source_key, source_system from %s 
-				where id = x'%s' %s''' % \
+				where id = x'%s' %s''' % (
 						('lf_series', series_id.hex, 'and version = %i ' % int(version)) \
 						if not version is None else \
-						('lf_latest_series', series_id.hex, ''))
+						('lf_latest_series', series_id.hex, '')))
 			( id, version, parent_version, title, language, description, source,
 					timestamp_edit, timestamp_created, published, owner, editor,
 					visible, source_key, source_system ) = cur.fetchone()
