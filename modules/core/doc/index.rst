@@ -1,18 +1,11 @@
-Welcome to Lernfunk3's documentation!
-=====================================
+Lernfunk3::Core Module
+======================
 
 
 Contents:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3
 
-   core/index
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   api
+   rest
