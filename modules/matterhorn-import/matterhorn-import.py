@@ -566,10 +566,8 @@ class MediapackageImporter:
 		sdata = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
 		u.close()
 
-		print( mdata.toxml() )
-
-		if int(mdata.getAttribute('resultcount')) > 0:
-			seriesid = xml_get_data(mdata, 'id', type=uuid.UUID)
+		if int(sdata.getAttribute('resultcount')) > 0:
+			seriesid = xml_get_data(sdata, 'identifier', type=uuid.UUID, array='always')[0]
 			series_media = { "lf:series_media": [ {
 					"lf:series_id": str(seriesid),
 					'lf:media_id':  [ str(mediaid) ]
@@ -577,7 +575,7 @@ class MediapackageImporter:
 			series_media = json.dumps(series_media, separators=(',',':'))
 			print( series_media )
 
-			# POST series to Lernfunk Core Webservice
+			# POST series media connection to Lernfunk Core Webservice
 			req = urllib2.Request('%sadmin/series/media/' % self.config['lf-url'])
 			req.add_data(series_media)
 			req.add_header('Cookie',       self.session)
@@ -585,22 +583,9 @@ class MediapackageImporter:
 			req.add_header('Accept',       'application/xml')
 			try:
 				u = urllib2.urlopen(req)
-				newseries_media = parseString(u.read())
 				u.close()
-				print( newseries_media.toxml() )
-				'''
-				resultcount = int(newseries.getAttribute('resultcount'))
-				if resultcount != 1:
-					logging.error( ('Something went seriously wrong. ' \
-							+ 'The Lernfunk Core Webservice reports, that %i series were ' \
-							+ 'created. Should be 1. Creation of series "%s" failed.') % \
-							(resultcount, s['id'] ))
-					return False
-
-				seriesid = xml_get_data(newseries, 'id', type=uuid.UUID)
-				logging.info( ('Successfully imported series (lf:%s) and connected media (lf:%s)') % \
+				logging.info( 'Successfully media (lf:%s) to series (lf:%s)' % \
 						(str(seriesid), str(mediaid) ))
-				'''
 			except urllib2.HTTPError as e:
 				logging.error('Connecting media to series failed: "%s".' % str(e))
 				return False
@@ -625,7 +610,6 @@ class MediapackageImporter:
 					'lf:media_id':      [ str(mediaid) ]
 				} ] }
 			series = json.dumps(series, separators=(',',':'))
-			print( series )
 
 			# POST series to Lernfunk Core Webservice
 			req = urllib2.Request('%sadmin/series/' % self.config['lf-url'])
@@ -635,7 +619,7 @@ class MediapackageImporter:
 			req.add_header('Accept',       'application/xml')
 			try:
 				u = urllib2.urlopen(req)
-				newseries = parseString(u.read())
+				newseries = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
 				u.close()
 				resultcount = int(newseries.getAttribute('resultcount'))
 				if resultcount != 1:

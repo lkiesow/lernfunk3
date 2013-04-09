@@ -66,9 +66,11 @@ def xml_get_data(node, name, raiseError=False, namespace='*', type=None,
 
 	# Special handling of bools:
 	if type == bool:
-		result = is_true(type)
+		result = [ is_true(x) for x in result ] \
+				if isinstance(result, list) else is_true(result)
 	elif type:
-		result = type(result)
+		result = [ type(x) for x in result ] \
+				if isinstance(result, list) else type(result)
 	return result
 
 
