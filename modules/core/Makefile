@@ -9,6 +9,3 @@ clean:
 	rm -f `find core -name '*.pyo'`
 	@echo Removing docs...
 	make -C doc clean
-
-doc-html:
-	make -C doc html
