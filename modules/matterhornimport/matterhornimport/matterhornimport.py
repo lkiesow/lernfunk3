@@ -629,7 +629,8 @@ def service():
 	'''This method will accept a mediapackage per HTTP POST or PUT request and
 	uses it for import.
 
-	GET parameters:
+	The data should be delivered as multipart/form-data and have to include the
+	following fields:
 
 		=============  ==========================================
 		mediapackage   An Opencast Matterhorn mediapackage as XML

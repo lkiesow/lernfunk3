@@ -8,6 +8,7 @@ Contents:
    :maxdepth: 4
 
    core/index
+   matterhornimport/index
 
 Indices and tables
 ==================

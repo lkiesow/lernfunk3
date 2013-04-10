@@ -18,6 +18,7 @@ import sys, os, time
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../modules/core/'))
+sys.path.insert(0, os.path.abspath('../modules/matterhornimport/'))
 
 # -- General configuration -----------------------------------------------------
 
