@@ -15,7 +15,12 @@ $(document).ready(function() {
 				.replace(/<tt class="desc/g, '<span class="apiln')
 				.replace(/<\/tt>/g, '</span>');
 			var ln   = $(this).attr('href');
-			$('div.apitoc').append('<a class="second" href="'+ln+'">'+name+'</a>');
+			var p = $(this).parent().parent();
+			if ( p.hasClass('method') || p.hasClass('attribute') ) {
+				$('div.apitoc').append('<a class="partOfClass" href="'+ln+'">'+name+'</a>');
+			} else {
+				$('div.apitoc').append('<a class="second" href="'+ln+'">'+name+'</a>');
+			}
 		} else {
 			alert( type );
 		}

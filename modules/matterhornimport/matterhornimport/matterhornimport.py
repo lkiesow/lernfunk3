@@ -1,8 +1,8 @@
 #!/bin/env python
 # -*- coding: utf-8 -*-
 '''
-	Lernfunk3: Matterhorn Import Service
-	====================================
+	matterhornimport.matterhornimport
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	:copyright: 2013, Lars Kiesow <lkiesow@uos.de>
 

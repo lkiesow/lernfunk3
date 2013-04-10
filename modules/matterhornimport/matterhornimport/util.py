@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-	Lernfunk3: Matterhorn Import Service Utils
-	==========================================
+	matterhornimport.util
+	~~~~~~~~~~~~~~~~~~~~~
 
 	:copyright: 2013 by Lars Kiesow
 
@@ -22,6 +22,13 @@ def xml_get_data(node, name, raiseError=False, namespace='*', type=None,
 	:param array:      One of 'always', 'allowed', 'never' (default)
 
 	:returns: Value of first element or None
+
+	Example::
+
+		>>> x = xml.dom.minidom.parseString('<a><b>123</b><b>456</b></a>')
+		>>> xml_get_data(x, 'b', type=int, array='always')
+		[ 123, 456 ]
+
 	'''
 
 	# Autodetect namespace:
