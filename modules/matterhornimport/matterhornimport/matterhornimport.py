@@ -19,18 +19,23 @@ import uuid
 import urllib
 import urllib2
 from xml.dom.minidom import parseString
-from pprint import pprint
+import os
 from util import xml_get_data, split_vals
 from base64 import urlsafe_b64encode, b64encode
 from flask import jsonify
 import logging
+
+# Defaultconfigfile
+__dir__     = os.path.dirname(__file__)
+__cfgfile__ = os.path.join(__dir__,'config.json')
+__logfile__ = os.path.join(__dir__,'matterhorn-import.log')
 
 # webservice stuff
 from flask import Flask, request
 app = Flask(__name__)
 
 
-def load_config( configfile='config.json' ):
+def load_config( configfile=__cfgfile__ ):
 	'''This method loads the configuration file and normalizes all entries.
 	This means that empty entries will be set to None values or entry lists.
 	This way the configuration is easier to handle afterwards.
@@ -246,7 +251,11 @@ class MediapackageImporter:
 
 		'''
 		# Log into core webservice
-		self.login()
+		try:
+			self.login()
+		except urllib2.URLError as e:
+			logging.error('Faild to login: %s' % str(e) )
+			return False
 
 		# Parse XML
 		mp = parseString( mp )
@@ -666,21 +675,16 @@ def configure_logger( config ):
 	if not isinstance(loglevel, int):
 		print('Error: Invalig loglevel')
 		exit()
-	logfile = config.get('logfile') or 'matterhorn-import.log'
+	logfile = config.get('logfile') or __logfile__
 	logging.basicConfig(filename=logfile, level=loglevel)
 
 
 
-def main():
-	'''Reads a mediapackage in XML format which is passed as first command line
-	argument and starts the import.
+def program( mpkgfile ):
+	'''Reads a mediapackage in XML format from a file and starts the import.
 
-	Usage: matterhorn-import.py <mediapackage.xml>
+	:param mpkgfile: XML mediapackage file to load
 	'''
-	if len(sys.argv) != 2:
-		print( 'Usage: %s <mediapackage.xml> | --server' % sys.argv[0] )
-		exit()
-
 	try:
 		config = load_config()
 	except ValueError as e:
@@ -692,15 +696,8 @@ def main():
 	# Import media
 	importer = MediapackageImporter( config )
 
-	f = open( sys.argv[1], 'r' )
+	f = open( mpkgfile, 'r' )
 	mediapackage = f.read()
 	f.close()
 
 	importer.import_media( mediapackage, 'localhost' )
-
-
-if __name__ == "__main__":
-	if len(sys.argv) == 2 and sys.argv[1] == '--server':
-		app.run(host='0.0.0.0', port=5001)
-	else:
-		main()
