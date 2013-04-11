@@ -9,3 +9,5 @@ Contents:
 
    api
    rest
+   matterhorn-module
+   config
