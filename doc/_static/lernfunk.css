@@ -69,3 +69,21 @@ div.apitoc span.apilnname {
 a.headerlink {
 	color: gray;
 }
+
+li.toctree-l3 {
+	display: inline-block;
+	min-width: 200px;
+	padding: 0px;
+	margin: 0px;
+}
+
+li.toctree-l3 a {
+	display: block;
+	margin: 1px 10px;
+	padding: 3px 10px;
+	border-radius: 3px;
+}
+
+li.toctree-l3 a:hover {
+	background-color: #eee;
+}
