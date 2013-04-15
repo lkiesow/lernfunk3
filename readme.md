@@ -19,18 +19,18 @@ appear from a single system.
 
 ::
 
-                             Metadata
-                                 |
-                                 |     ------------ Portal
-       Opencast                  |    /
-     Matterhorn 1 ------------   |   /  ------------- RSS/ATOM 
-                              \  v  /  /               Feeds
-                               \   /  /
-    Image  ------------------ Lernfunk3 ------------------- StudIP (LMS)
-   Archive                     /   \  \
-                              /     \  ------------ Youtube
-       Opencast   ------------       \
-     Matterhorn 2                     --------- Blogs
+                              Metadata
+                                  |
+                                  |     ------------ Portal
+        Opencast                  |    /
+      Matterhorn 1 ------------   |   /  ------------- RSS/ATOM 
+                               \  v  /  /               Feeds
+                                \   /  /
+     Image  ------------------ Lernfunk3 ------------------- StudIP (LMS)
+    Archive                     /   \  \
+                               /     \  ------------ Youtube
+        Opencast   ------------       \
+      Matterhorn 2                     --------- Blogs
 
 Features
 --------
