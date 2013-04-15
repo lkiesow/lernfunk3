@@ -17,7 +17,9 @@ portal directly.
 This way it is easy to manage all media, its metadat and the places they should
 appear from a single system.
 
-<pre>
+.. raw:: html
+
+   <pre style="background-color: transparent; border: none;">
                              Metadata
                                  |
                                  |     ------------ Portal
@@ -29,8 +31,11 @@ appear from a single system.
    Archive                     /   \  \
                               /     \  ------------ Youtube
        Opencast   ------------       \
-	  Matterhorn 2                     --------- Blogs
-</pre>
+     Matterhorn 2                     --------- Blogs
+
+.. raw:: html
+
+   </pre>
 
 Features
 --------

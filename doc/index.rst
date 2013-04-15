@@ -2,10 +2,12 @@ Welcome to Lernfunk3's documentation!
 =====================================
 
 
+.. include:: main-readme.rst
+
 Contents:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    core/index
    matterhornimport/index
