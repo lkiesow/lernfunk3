@@ -23,9 +23,11 @@ def usage():
 	print 'Usage: python -m matterhornimport <mediapackage.xml> | --server [ opts ]'
 	print ''
 	print 'opts:'
-	print '  --help'
-	print '  --port=5001'
-	print '  --host=0.0.0.0'
+	print '  --debug        -- Enable debug mode of build-in webserver'
+	print '  --help         -- Show this help'
+	print '  --host=0.0.0.0 -- Host of the build-in webserver'
+	print '  --port=5001    -- Port of the build-in webserver'
+	print '  --server       -- Run as webservice using the build-in webserver'
 
 
 
@@ -36,12 +38,13 @@ def main():
 	Usage: matterhorn-import.py <mediapackage.xml>
 	'''
 	webserver = False
-	port = 5001
-	host = '0.0.0.0'
+	port  = 5001
+	host  = '0.0.0.0'
+	debug = False
 
 	try:                                
 		opts, args = getopt.getopt(sys.argv[1:], "h", 
-				["--help", "port=", 'host=', 'server']) 
+				["--help", "port=", 'host=', 'server', 'debug']) 
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):
 				usage()
@@ -52,12 +55,14 @@ def main():
 				host = arg
 			if opt == '--server':
 				webserver = True
+			if opt == '--debug':
+				debug = True
 	except (getopt.GetoptError, ValueError):
 		usage()
 		sys.exit(2)
 
 	if webserver:
-		matterhornimport.app.run(host=host, port=port)
+		matterhornimport.app.run(host=host, port=port, debug=debug)
 	else:
 		if len(args) != 1:
 			usage()

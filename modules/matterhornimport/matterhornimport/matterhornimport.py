@@ -31,7 +31,7 @@ __cfgfile__ = os.path.join(__dir__,'config.json')
 __logfile__ = os.path.join(__dir__,'matterhorn-import.log')
 
 # webservice stuff
-from flask import Flask, request
+from flask import Flask, request, _app_ctx_stack
 app = Flask(__name__)
 
 
@@ -493,8 +493,10 @@ class MediapackageImporter:
 				u = urllib2.urlopen(req)
 				u.close()
 			except urllib2.HTTPError as e:
-				logging.error( ('Importing files failed: "%s". Aborting import of media "%s".') % \
-						(str(e), m['id'] ))
+				addinfo = '409 probably means that the requested lf_server does not exist.' \
+						if e.getcode() == 409 else ''
+				logging.error('Importing files failed: "%s". Aborting import of media "%s". %s' % \
+						(str(e), m['id'], addinfo ))
 				return False
 
 		logging.info('Successfully added files to media (lf:%s)' % str(mediaid) )
@@ -701,4 +703,4 @@ def program( mpkgfile ):
 	mediapackage = f.read()
 	f.close()
 
-	importer.import_media( mediapackage, 'localhost' )
+	return importer.import_media( mediapackage, 'localhost' )
