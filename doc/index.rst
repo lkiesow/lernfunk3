@@ -1,10 +1,13 @@
-Welcome to Lernfunk3's documentation!
-=====================================
-
+.. contents:: Table of Contents
 
 .. include:: main-readme.rst
 
-Contents:
+.. raw:: html
+
+   <hr />
+
+Module documentation
+====================
 
 .. toctree::
    :maxdepth: 2

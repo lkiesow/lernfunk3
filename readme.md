@@ -17,7 +17,7 @@ portal directly.
 This way it is easy to manage all media, its metadat and the places they should
 appear from a single system.
 
-::
+Position of Lernfunk in media management and distribution::
 
                               Metadata
                                   |
