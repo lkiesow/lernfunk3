@@ -1,0 +1,11 @@
+startup
+~~~~~~~
+
+Dependencies:
+ - python-feedgen [https://github.com/lkiesow/python-feedgen]
+ - python-redis
+ - python-flask
+
+
+Hint on python-redis:
+	http://degizmo.com/2010/03/22/getting-started-redis-and-python/
