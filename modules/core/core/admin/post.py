@@ -2118,9 +2118,9 @@ def admin_access_post():
 			try:
 				id = int(access['dc:identifier']) \
 						if access.get('dc:identifier') else None
-				media_id = uuid.UUID(access['lf:media_id']) \
+				media_id = uuid.UUID(access['lf:media_id']).bytes \
 						if access.get('lf:media_id') else None
-				series_id = uuid.UUID(access['lf:series_id']) \
+				series_id = uuid.UUID(access['lf:series_id']).bytes \
 						if access.get('lf:series_id') else None
 				user_id = int(access['lf:user_id']) \
 						if access.get('lf:user_id') else None
@@ -2134,9 +2134,10 @@ def admin_access_post():
 				return 'Invalid group data', 400
 
 	affected_rows = 0
+	print sqldata
 	try:
 		affected_rows = cur.executemany('''insert into lf_access
-			(id, media_id, series_id, group_id, user_id, read_access, write_access)
+			(id, media_id, series_id, user_id, group_id, read_access, write_access)
 			values (%s,%s,%s,%s,%s,%s,%s) ''', sqldata )
 	except IntegrityError as e:
 		return str(e), 409

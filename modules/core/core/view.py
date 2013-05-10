@@ -397,7 +397,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 	query_condition += 'and visible ' if query_condition else 'where visible '
 	
 	# Request specific series_id
-	query_condition += "and series_id = x'%s' " % series_id.hex
+	query_condition += "and ms.series_id = x'%s' " % series_id.hex
 
 
 	# Check flags for additional data
