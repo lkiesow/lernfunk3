@@ -20,4 +20,8 @@ startup
 
 6. Install python-dateutil
 
-7. Start MySQL server and import database (lernfunk3.sql)
+7. Install pylibmc
+
+8. Start MySQL server and import database (lernfunk3.sql)
+
+9. Start Memcached
