@@ -1,6 +1,7 @@
 start:
 	sudo systemctl start mysqld.service
-	. venv/bin/activate
+	sudo systemctl start memcached.service
+	#. venv/bin/activate
 	python runserver.py
 
 clean:

@@ -32,6 +32,8 @@ DATABASE_PASSWD = ''
 DATABASE_PORT   = 3306
 '''Database access port configuration'''
 
+MEMCACHED_HOST  = 'localhost'
+
 # Session ##############################
 SECRET_KEY = 'development key'
 '''Secret key to use for signing sessions.

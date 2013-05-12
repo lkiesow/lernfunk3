@@ -14,6 +14,7 @@ from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
 import uuid
+from core.user import user_by_id
 
 from flask import request, session, g, redirect, url_for, make_response, jsonify
 
@@ -42,6 +43,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 		with_publisher    Also return the publishers                     enabled
 		with_file         Also return all files                          disabled
 		with_subject      Also return all subjects                       enabled
+		with_name         Request names for user_id                      disabled
 		limit             Maximum amount of results to return            10
 		offset            Offset of results to return                    0
 		with_nothing      Disable all ``with_...`` options by default
@@ -127,6 +129,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_file        = is_true(request.args.get('with_file',        '0'))
 	with_subject     = is_true(request.args.get('with_subject',     default))
+	with_name        = is_true(request.args.get('with_name',        '0'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
@@ -212,8 +215,16 @@ def view_media(media_id=None, lang=None, series_id=None):
 		media["dc:language"]       = language
 		media["dc:title"]          = title
 		media["dc:description"]    = description
-		media["lf:owner"]          = owner
-		media["lf:editor"]         = editor
+		if with_name:
+			u                       = user_by_id(owner)
+			media["lf:owner"]       = { owner : u.realname if u.realname else u.name }
+		else:
+			media["lf:owner"]       = owner
+		if with_name:
+			u                       = user_by_id(editor)
+			media["lf:editor"]      = { editor : u.realname if u.realname else u.name }
+		else:
+			media["lf:editor"]      = editor
 		media["dc:date"]           = str(timestamp_created)
 		media["lf:last_edit"]      = str(timestamp_edit)
 		media["lf:published"]      = published
@@ -239,18 +250,26 @@ def view_media(media_id=None, lang=None, series_id=None):
 		if with_contributor:
 			cur.execute( '''select user_id from lf_media_contributor
 				where media_id = x'%s' ''' % media_uuid.hex )
-			contributor = []
+			contributor = {} if with_name else []
 			for (user_id,) in cur.fetchall():
-				contributor.append( user_id )
+				if with_name:
+					u = user_by_id(user_id)
+					contributor[user_id] = u.realname if u.realname else u.name
+				else:
+					contributor.append( user_id )
 			media["lf:contributor"] = contributor
 
 		# Get creator (user)
 		if with_creator:
 			cur.execute( '''select user_id from lf_media_creator
 				where media_id = x'%s' ''' % media_uuid.hex )
-			creator = []
+			creator = {} if with_name else []
 			for (user_id,) in cur.fetchall():
-				creator.append( user_id )
+				if with_name:
+					u = user_by_id(user_id)
+					creator[user_id] = u.realname if u.realname else u.name
+				else:
+					creator.append( user_id )
 			media["lf:creator"] = creator
 
 		# Get publisher (organization)
@@ -325,6 +344,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 		with_publisher    Also return the publishers                   enabled
 		with_file         Also return all files                        disabled
 		with_subject      Also return all subjects                     enabled
+		with_name         Request names for user_id                    disabled
 		limit             Maximum amount of results to return          10
 		offset            Offset of results to return                  0
 		with_nothing      Disable all ``with_...`` options by default
@@ -408,6 +428,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_file        = is_true(request.args.get('with_file',        '0'))
 	with_subject     = is_true(request.args.get('with_subject',     default))
+	with_name        = is_true(request.args.get('with_name',        '0'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
@@ -496,8 +517,16 @@ def view_series_media(series_id, media_id=None, lang=None):
 		media["dc:language"]       = language
 		media["dc:title"]          = title
 		media["dc:description"]    = description
-		media["lf:owner"]          = owner
-		media["lf:editor"]         = editor
+		if with_name:
+			u                       = user_by_id(owner)
+			media["lf:owner"]       = { owner : u.realname if u.realname else u.name }
+		else:
+			media["lf:owner"]       = owner
+		if with_name:
+			u                       = user_by_id(editor)
+			media["lf:editor"]      = { editor : u.realname if u.realname else u.name }
+		else:
+			media["lf:editor"]      = editor
 		media["dc:date"]           = str(timestamp_created)
 		media["lf:last_edit"]      = str(timestamp_edit)
 		media["lf:published"]      = published
@@ -523,18 +552,26 @@ def view_series_media(series_id, media_id=None, lang=None):
 		if with_contributor:
 			cur.execute( '''select user_id from lf_media_contributor
 				where media_id = x'%s' ''' % media_uuid.hex )
-			contributor = []
+			contributor = {} if with_name else []
 			for (user_id,) in cur.fetchall():
-				contributor.append( user_id )
+				if with_name:
+					u = user_by_id(user_id)
+					contributor[user_id] = u.realname if u.realname else u.name
+				else:
+					contributor.append( user_id )
 			media["lf:contributor"] = contributor
 
 		# Get creator (user)
 		if with_creator:
 			cur.execute( '''select user_id from lf_media_creator
 				where media_id = x'%s' ''' % media_uuid.hex )
-			creator = []
+			creator = {} if with_name else []
 			for (user_id,) in cur.fetchall():
-				creator.append( user_id )
+				if with_name:
+					u = user_by_id(user_id)
+					creator[user_id] = u.realname if u.realname else u.name
+				else:
+					creator.append( user_id )
 			media["lf:creator"] = creator
 
 		# Get publisher (organization)
@@ -598,20 +635,21 @@ def view_series(series_id=None, lang=None):
 
 	GET parameter:
 
-		==============  ===========================================  =======
+		==============  ===========================================  ========
 		Parameter       Description                                  Default
-		==============  ===========================================  =======
+		==============  ===========================================  ========
 		with_media      Also return the media                        enabled
 		with_creator    Also return the creators                     enabled
 		with_publisher  Also return the publishers                   enabled
 		with_subject    Also return all subjects                     enabled
+		with_name       Request names for user_id                    disabled
 		limit           Maximum amount of results to return          10
 		offset          Offset of results to return                  0
 		with_nothing    Disable all ``with_...`` options by default
 		order           Order results by field (ascending)
 		rorder          Order results by field (descending)
 		q               Search/filter query
-		==============  ===========================================  =======
+		==============  ===========================================  ========
 
 	Search arguments:
 
@@ -674,6 +712,7 @@ def view_series(series_id=None, lang=None):
 	with_creator     = is_true(request.args.get('with_creator',     default))
 	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_subject     = is_true(request.args.get('with_subject',     default))
+	with_name        = is_true(request.args.get('with_name',        '0'))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
@@ -762,8 +801,16 @@ def view_series(series_id=None, lang=None):
 		series["lf:last_edit"]      = str(timestamp_edit)
 		series["dc:date"]           = str(timestamp_created)
 		series["lf:published"]      = published
-		series["lf:owner"]          = owner
-		series["lf:editor"]         = editor
+		if with_name:
+			u                        = user_by_id(owner)
+			series["lf:owner"]       = { owner : u.realname if u.realname else u.name }
+		else:
+			series["lf:owner"]       = owner
+		if with_name:
+			u                        = user_by_id(editor)
+			series["lf:editor"]      = { editor : u.realname if u.realname else u.name }
+		else:
+			series["lf:editor"]      = editor
 		series["lf:visible"]        = visible
 		series["lf:source_key"]     = source_key
 		series["lf:source_system"]  = source_system
@@ -780,11 +827,15 @@ def view_series(series_id=None, lang=None):
 
 		# Get creator (user)
 		if with_creator:
-			creator = []
+			creator = {} if with_name else []
 			cur.execute( '''select user_id from lf_series_creator
 				where series_id = x'%s' ''' % series_uuid.hex )
 			for (user_id,) in cur.fetchall():
-				creator.append( user_id )
+				if with_name:
+					u = user_by_id(user_id)
+					creator[user_id] = u.realname if u.realname else u.name
+				else:
+					creator.append( user_id )
 			series['lf:creator'] = creator
 
 		# Get publisher (organization)
