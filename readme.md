@@ -17,8 +17,9 @@ portal directly.
 This way it is easy to manage all media, its metadat and the places they should
 appear from a single system.
 
-Position of Lernfunk in media management and distribution::
+Position of Lernfunk in media management and distribution:
 
+<pre>
                               Metadata
                                   |
                                   |     ------------ Portal
@@ -26,11 +27,12 @@ Position of Lernfunk in media management and distribution::
       Matterhorn 1 ------------   |   /  ------------- RSS/ATOM 
                                \  v  /  /               Feeds
                                 \   /  /
-     Image  ------------------ Lernfunk3 ------------------- StudIP (LMS)
-    Archive                     /   \  \
+     Image  ------------------ Lernfunk3 ------------------- Stud.IP
+    Archive                     /   \  \                      (LMS)
                                /     \  ------------ Youtube
         Opencast   ------------       \
       Matterhorn 2                     --------- Blogs
+</pre>
 
 Features
 --------

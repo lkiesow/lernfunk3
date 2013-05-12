@@ -11,7 +11,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os, time
+import sys, os, time, codecs, re
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -258,8 +258,6 @@ intersphinx_mapping = {'http://docs.python.org/': None}
 
 
 # Ugly way of setting tabsize
-import re
-
 def process_docstring(app, what, name, obj, options, lines):
 	'''
 	spaces_pat = re.compile(r"(?<=        )( {8})")
@@ -275,5 +273,26 @@ def process_docstring(app, what, name, obj, options, lines):
 		ll.append( (' '*newlen) + l.lstrip(' ') )
 	lines[:] = ll
 
+
+# Include the GitHub readme file in index.rst
+r = re.compile(r'\[`*([^\]`]+)`*\]\(([^\)]+)\)')
+r2 = re.compile(r'.. include-github-readme')
+r3 = re.compile(r'\n *\<pre\> *\n')
+r4 = re.compile(r'\n *\<\/pre\> *\n')
+def include_github_readme(app, docname, text):
+	if docname == 'index':
+		readme_text = ''
+		with codecs.open(os.path.abspath('../readme.md'), 'r', 'utf-8') as f:
+			# <div style="text-align:center;"><pre style="text-align:left; padding: 25px;  display: inline-block;">
+			readme_text = r.sub(r'`\1 <\2>`_', f.read())
+			readme_text = r3.sub(r'\n.. raw:: html\n\n\t' + \
+					'<div style="text-align: center;">' + \
+					'<pre style="text-align: left; padding: 25px; ' + \
+					'display: inline-block;">\n', readme_text)
+			readme_text = r4.sub(r'\n.. raw:: html\n\n\t</pre>\n', readme_text)
+		text[0] = r2.sub(readme_text, text[0])
+
+
 def setup(app):
 	app.connect('autodoc-process-docstring', process_docstring)
+	app.connect('source-read', include_github_readme)
