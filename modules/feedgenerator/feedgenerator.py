@@ -18,6 +18,7 @@ import urllib2
 import json
 import os.path
 import time
+from feedgen.feed import FeedGenerator
 
 # create our little application :)
 app = Flask(__name__)
@@ -96,6 +97,25 @@ def request_series():
 
 
 def build_feed(id, lang):
+	fg = FeedGenerator()
+	fg.id(request.url)
+	fg.link( href=request.url, rel='self' )
+	req  = urllib2.Request('%s://%s:%i%sview/series/%s?with_name=true' % (
+		config._LERNFUNK_CORE_PROTOCOL,
+		config._LERNFUNK_CORE_HOST,
+		config._LERNFUNK_CORE_PORT,
+		config._LERNFUNK_CORE_PATH,
+		id))
+	req.add_header('Accept', 'application/json')
+	u = urllib2.urlopen(req)
+	try:
+		series = json.loads(u.read())
+	finally:
+		u.close()
+	print str(series)
+	fg.title(series['result']['lf:series'][0]['dc:title'])
+
+	# Get media
 	req  = urllib2.Request('%s://%s:%i%sview/series/%s/media/%s?with_file=true' % (
 		config._LERNFUNK_CORE_PROTOCOL,
 		config._LERNFUNK_CORE_HOST,
