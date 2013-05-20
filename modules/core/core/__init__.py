@@ -19,7 +19,6 @@ sys.setdefaultencoding('utf8')
 # create our little application :)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
 # Import custom converter
 import core.converter
