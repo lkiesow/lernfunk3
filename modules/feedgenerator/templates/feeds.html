@@ -10,9 +10,9 @@
 			{% for feed in feeds %}
 			<li>
 				<span class="title">{{ feed[1] }}</span>
-				<a href="{{ url_for('rss',     id=feed[0]) }}">RSS</a>
-				<a href="{{ url_for('atom',    id=feed[0]) }}">Atom</a>
-				<a href="{{ url_for('podcast', id=feed[0]) }}">Podcast</a>
+				<a href="{{ url_for('feed', feedtype='rss',     id=feed[0]) }}">RSS</a>
+				<a href="{{ url_for('feed', feedtype='atom',    id=feed[0]) }}">Atom</a>
+				<a href="{{ url_for('feed', feedtype='podcast', id=feed[0]) }}">Podcast</a>
 			</li>
 			{% endfor %}
 		</ul>
