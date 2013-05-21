@@ -17,6 +17,33 @@ from feedgenerator.storage import *
 
 
 def build_feed(id, lang, url, return_type=None):
+	'''Request the data for a given id from the lernfunk core webservice and
+	construct a feed for it which is stored in the redis database.
+
+	:param id:          Series id to request.
+	:param lang:        Language to request.
+	:param url:         The request URL
+	:param return_type: Type of feed to return.
+
+	:returns: Feed of requested type.
+
+	You have to pass the request URL since it cannot be retrieved automatically
+	for asynchronous updates.
+	'''
+	try:
+		_build_feed(id, lang, url, return_type=None)
+	except urllib2.HTTPError as e:
+		# Clean up if we get a 404: Not Found
+		if e.code == 404:
+			r_server = get_redis()
+			r_server.delete('%slast_update_%s' % (REDIS_NS, id))
+			r_server.delete('%srss_%s'         % (REDIS_NS, id))
+			r_server.delete('%satom_%s'        % (REDIS_NS, id))
+			r_server.delete('%spodcast_%s'     % (REDIS_NS, id))
+		raise
+
+
+def _build_feed(id, lang, url, return_type=None):
 	fg = None
 	fg = FeedGenerator()
 	fg.id(url)

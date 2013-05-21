@@ -11,15 +11,16 @@ import redis
 import time
 from threading import Thread
 
-from feedgenerator import app
+from feedgenerator           import app
 from feedgenerator.generator import *
-from feedgenerator.storage import *
-from feedgenerator.info import *
+from feedgenerator.storage   import *
+from feedgenerator.info      import *
 
 
 @app.route('/<any(rss, atom, podcast):feedtype>/<id>')
 @app.route('/<any(rss, atom, podcast):feedtype>/<id>/<lang>')
 def feed(feedtype, id, lang=None):
+	'''Return a feed for a given series (id).'''
 
 	UPDATE_NONE  = 0
 	UPDATE_ASYNC = 1
@@ -46,7 +47,13 @@ def feed(feedtype, id, lang=None):
 	if update == UPDATE_ASYNC:
 		Thread(target=build_feed, args=(id, lang, request.url)).start()
 	elif update == UPDATE_SYNC:
-		feed = build_feed(id, lang, request.url, feedtype)
+		try:
+			feed = build_feed(id, lang, request.url, feedtype)
+		except urllib2.HTTPError as e:
+			if e.code == 404:
+				return 'Series with id="%s" does not exist.' % id, 404
+			else:
+				raise
 	return Response(feed, mimetype=('application/atom+xml' if feedtype == 'atom' \
 			else 'application/rss+xml'))
 
