@@ -15,6 +15,11 @@ import redis
 from feedgenerator import app
 
 REDIS_NS = 'lf_feedgen_'
+'''The namespace for all keys of the feedgenerator module. It is simply a
+string used as prefix for the keys. This ensures that the feedgenerator does
+not modify or delete keys which belong to a different application using the
+same redis database.
+'''
 
 def get_redis():
 	'''Opens a new database connection if there is none yet for the

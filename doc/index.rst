@@ -14,6 +14,7 @@ Module documentation
 
    core/index
    matterhornimport/index
+   feedgenerator/index
 
 Indices and tables
 ==================

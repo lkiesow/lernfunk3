@@ -20,7 +20,12 @@ from feedgenerator.info      import *
 @app.route('/<any(rss, atom, podcast):feedtype>/<id>')
 @app.route('/<any(rss, atom, podcast):feedtype>/<id>/<lang>')
 def feed(feedtype, id, lang=None):
-	'''Return a feed for a given series (id).'''
+	'''Return a feed for a given series (id).
+	
+	:param feedtype: Type of feed to return. Supported types are rss, atom and
+		podcast.
+	:param lang: Language filter for the request.
+	'''
 
 	UPDATE_NONE  = 0
 	UPDATE_ASYNC = 1

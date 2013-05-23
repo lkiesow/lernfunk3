@@ -50,6 +50,13 @@ def request_series():
 	for each series.
 
 	:returns: List of series
+
+	Example::
+
+		>>> request_series()
+		[('7d13e687-da94-4847-87a1-186f1867a7d3','Series 1'),
+				('23841592-98ba-4a96-9684-adf6aa844643','Series 2')]
+
 	'''
 	req  = urllib2.Request('%s://%s:%i%sview/series/?with_nothing=true' % (
 		app.config['LERNFUNK_CORE_PROTOCOL'],

@@ -19,6 +19,7 @@ import sys, os, time, codecs, re
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../modules/core/'))
 sys.path.insert(0, os.path.abspath('../modules/matterhornimport/'))
+sys.path.insert(0, os.path.abspath('../modules/feedgenerator/'))
 
 # -- General configuration -----------------------------------------------------
 

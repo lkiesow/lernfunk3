@@ -26,26 +26,6 @@ Second, the rules which require the presence of a certain value. They have no
 prefix. And third the rules which add or overwrite certain data. They have
 "lf-" as prefix.
 
-   "name"          : "import-hq-mp4",
-   "comment"       : "Import WebM",
-
-   "extension"     : ".mp4",
-   "mimetype" : "image/jpeg",
-   "protocol"      : "http",
-   "source_system" : "localhost",
-   "tags"          : [ "publish", "high-quality", "engage" ],
-   "type"          : "presenter/delivery",
-
-   "-tags"         : [ "test" ],
-
-   "lf-format"     : "video/webm",
-   "lf-quality"    : "high",
-   "lf-server-id"  : "video2uos"
-   "lf-source"     : "http://video2.virtuos.uos.de:8080"
-   "lf-type"       : "video/mp4",
-
-   "use-for"  : "media"
-
 Example::
 
    {
