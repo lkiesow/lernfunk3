@@ -18,6 +18,11 @@ from feedgenerator.storage import *
 
 
 def load_style():
+	'''Try to load the css style sheet from the style.css template. The style
+	will be stored in redis storage for further use.
+
+	:returns: CSS stylesheet
+	'''
 	try:
 		s = render_template('style.css')
 	except TemplateNotFound:
@@ -27,14 +32,25 @@ def load_style():
 
 
 def load_html():
+	'''Load the HTML template from feeds.html and generate the HTML page which
+	will be stored in the redis storage for further use.
+
+	:returns: HTML page
+	'''
 	feeds = request_series()
-	html = render_template('feeds.html', feeds=feeds, 
+	html  = render_template('feeds.html', feeds=feeds, 
 			title=app.config['FEED_HTML_TITLE'])
 	get_redis().set('%shtml' % REDIS_NS, html)
 	return html
 
 
 def request_series():
+	'''Request list of public available series from the lernfunk core
+	webservice and return a list of tuples containing the identifier and title
+	for each series.
+
+	:returns: List of series
+	'''
 	req  = urllib2.Request('%s://%s:%i%sview/series/?with_nothing=true' % (
 		app.config['LERNFUNK_CORE_PROTOCOL'],
 		app.config['LERNFUNK_CORE_HOST'],

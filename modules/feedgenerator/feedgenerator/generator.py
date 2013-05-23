@@ -43,6 +43,9 @@ def build_feed(id, lang, url, return_type=None):
 		raise
 
 
+###
+# Build a feed without handling errors
+##
 def _build_feed(id, lang, url, return_type=None):
 	fg = None
 	fg = FeedGenerator()

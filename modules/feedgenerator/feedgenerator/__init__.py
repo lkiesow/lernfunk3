@@ -23,6 +23,7 @@ app.config.from_pyfile('config.py')
 # import submodules
 import feedgenerator.rest
 
+# Write error log to file
 if not app.debug:
 	import logging
 	from logging.handlers import RotatingFileHandler
