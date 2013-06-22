@@ -59,6 +59,5 @@ enforce the use of a specific programming language or operating system.
 Documentation
 -------------
 
-More information and dcumentation can currently be found at:
-
-	[http://lernfunk.de/docs](http://lernfunk.de/docs)
+More information and dcumentation can currently be found at: 
+[http://lernfunk.de/docs](http://lernfunk.de/docs)
