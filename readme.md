@@ -55,3 +55,10 @@ to create a distributed environment for the system and furthermore does not
 enforce the use of a specific programming language or operating system.
 
 *MySQL* is used as database backend.
+
+Documentation
+-------------
+
+More information and dcumentation can currently be found at:
+
+	[http://lernfunk.de/docs](http://lernfunk.de/docs)
