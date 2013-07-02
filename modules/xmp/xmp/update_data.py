@@ -62,6 +62,7 @@ def get_dc_data(xmpstr):
 			if not lang_filter.match(lang):
 				continue
 			dc_prop = {}
+			dc_prop['language'] = lang
 
 			lang_generic  = lang.split('-',1)[0]
 			lang_specific = lang
@@ -85,6 +86,7 @@ def get_dc_data(xmpstr):
 			dcdata.append( dc_prop )
 	else:
 		dc_prop = {}
+		dc_prop['language'] = config.LANGUAGE_DEFAULT
 
 		get_dc_array( xmp, dc_prop, 'contributor' )
 		get_dc_prop(  xmp, dc_prop, 'coverage' )
@@ -107,8 +109,16 @@ def get_dc_data(xmpstr):
 	return dcdata
 
 
-def update_media( media_id, dc_data ):
+def update_media( media_id, dc ):
 
+	# Prepare data we need for HTTP requests
+	url = '%s://%s:%i%s' % (
+			config.LERNFUNK_CORE_PROTOCOL,
+			config.LERNFUNK_CORE_HOST,
+			config.LERNFUNK_CORE_PORT,
+			config.LERNFUNK_CORE_PATH )
+	auth = 'Basic ' + urlsafe_b64encode("%s:%s" % \
+			( config.LERNFUNK_CORE_USERNAME, config.LERNFUNK_CORE_PASSWORD ))
 
 	# TODO: 
 	# - check if m['id'] is UUID.
@@ -117,44 +127,40 @@ def update_media( media_id, dc_data ):
 	# - Query contributor
 
 	# Import new user or get the ids of existing user
-	if 
-	creators      = self.request_people( m['creator'] )
-	contributors  = self.request_people( m['contributor'] )
-
-	creators     += self.config['defaults']['creator']
-	contributors += self.config['defaults']['contributor']
+	creators = self.request_people( dc['creator'] ) \
+			if dc.get('creator') \
+			else []
+	contributors = self.request_people( dc['contributor'] ) \
+			if dc.get('contributor') \
+			else []
 
 	# Build mediaobject dataset
 	media={
 			"lf:media": [
 				{
-					"lf:source_key": m['id'],
-					"dc:type": "Image",
-					"dc:title": m['title'],
-					"dc:language": (m['language'] or self.config['defaults']['language']),
-					"lf:visible": self.config['defaults']['visibility'],
-					"dc:source": None, # Put the mediapackage URL
-					"lf:published": self.config['defaults']['published'],
-					"dc:date": m['created'],
-					"dc:description": m['description'],
-					"dc:rights": m['license'],
-					"lf:source_system": source_system,
-
-					"dc:subject": m['subject'],
-					"dc:publisher": self.config['defaults']['publisher'],
-					"lf:creator": creators,
-					"lf:contributor": contributors
+					"dc:type"        : "Image",
+					"dc:title"       : dc.get('title'),
+					"dc:language"    : dc.get('language'),
+					"dc:source"      : dc.get('source'),
+					"dc:date"        : dc.get('created'),
+					"dc:description" : dc.get('description'),
+					"dc:rights"      : dc.get('license'),
+					"dc:subject"     : dc.get('subject'),
+					"dc:publisher"   : dc.get('publisher'),
+					"lf:creator"     : creators,
+					"lf:contributor" : contributors
 					}
 				]
 			}
 
 	media = json.dumps(media, separators=(',',':'))
 	# POST media to Lernfunk Core Webservice
-	req  = urllib2.Request('%sadmin/media/' % self.config['lf-url'])
+	req  = urllib2.Request('%sadmin/media/' % url)
 	req.add_data(media)
-	req.add_header('Cookie',       self.session)
-	req.add_header('Content-Type', 'application/json')
-	req.add_header('Accept',       'application/xml')
+	req.add_header('Cookie',        self.session)
+	req.add_header('Authorization', auth)
+	req.add_header('Content-Type',  'application/json')
+	req.add_header('Accept',        'application/xml')
 	u = urllib2.urlopen(req)
 	newmedia = parseString(u.read())
 	u.close()
@@ -164,199 +170,14 @@ def update_media( media_id, dc_data ):
 	if resultcount != 1:
 		logging.error( ('Something went seriously wrong. ' \
 				+ 'The Lernfunk Core Webservice reports, that %i media were ' \
-				+ 'created. Should be 1. Aborting import of media "%s".') % \
-				(resultcount, m['id'] ))
+				+ 'created. Should be 1.') % \
+				resultcount)
 		return False
 
-	mediaid  = xml_get_data(newmedia, 'id', type=uuid.UUID)
+	# mediaid  = xml_get_data(newmedia, 'id', type=uuid.UUID)
 
-	logging.info('Created new media with (lf:%s)' % str(mediaid) )
+	# logging.info('Created new media with (lf:%s)' % str(mediaid) )
 
-	files = []
-	for track in mp.getElementsByTagNameNS('*', 'track'):
-		t = {'source_system' : source_system}
-		t['mimetype'] = xml_get_data(track, 'mimetype')
-		t['type']     = track.getAttribute('type')
-		t['id']       = track.getAttribute('ref').lstrip('track').lstrip(':')
-		t['tags']     = xml_get_data(track, 'tag', array='always')
-		t['url']      = xml_get_data(track, 'url')
-
-		for r in self.config['trackrules']:
-			# Check rules defined in configuration. If a rule does not apply jump
-			# straight to the next set of rules.
-			if not self.check_rules( r, t ):
-				continue
-
-			if r['lf-type']:
-				t['type'] = r['lf-type']
-			if r['lf-server-id']:
-				t['url'] = None
-			t['format']    = r['lf-format'] or t['mimetype']
-			t['quality']   = r['lf-quality']
-			t['server-id'] = r['lf-server-id']
-			t['source']    = r['lf-source']
-
-			# Build request
-			#  omitting: "dc:identifier": "..."
-			f = {
-				"dc:format":        t['format'],
-				"lf:media_id":      str(mediaid),
-				"lf:quality":       t['quality'],
-				"lf:source":        t['source'],
-				"lf:source_key":    t['id'],
-				"lf:source_system": source_system,
-				"lf:type":          t['type'],
-				"lf:uri":           t['url'],
-				"lf:server_id":     t['server-id']
-			}
-			files.append(f)
-
-	for attachment in mp.getElementsByTagNameNS('*', 'attachment'):
-		a = {'source_system' : source_system}
-		a['mimetype'] = xml_get_data(attachment, 'mimetype')
-		a['type']     = attachment.getAttribute('type')
-		a['id']       = attachment.getAttribute('ref').lstrip('attachment').lstrip(':')
-		a['tags']     = xml_get_data(attachment, 'tag', array='always')
-		a['url']      = xml_get_data(attachment, 'url')
-
-		for r in self.config['attachmentrules']:
-			# Check rules defined in configuration. If a rule does not apply jump
-			# straight to the next set of rules.
-			if not self.check_rules( r, a ):
-				continue
-
-			if r['lf-type']:
-				a['type'] = r['lf-type']
-			if r['lf-server-id']:
-				a['url'] = None
-			a['format']    = r['lf-format'] or a['mimetype']
-			a['quality']   = r['lf-quality']
-			a['server-id'] = r['lf-server-id']
-			a['source']    = r['lf-source']
-
-			# Build request
-			#  omitting: "dc:identifier": "..."
-			f = {
-				"dc:format":        a['format'],
-				"lf:media_id":      str(mediaid),
-				"lf:quality":       a['quality'],
-				"lf:source":        a['source'],
-				"lf:source_key":    a['id'],
-				"lf:source_system": source_system,
-				"lf:type":          a['type'],
-				"lf:uri":           a['url'],
-				"lf:server_id":     a['server-id']
-			}
-			files.append(f)
-
-
-	# POST files to Lernfunk Core Webservice
-	if files:
-		files = {'lf:file':files}
-		files = json.dumps(files, separators=(',',':'))
-
-		req  = urllib2.Request('%sadmin/file/' % self.config['lf-url'])
-		req.add_data(files)
-		req.add_header('Cookie',       self.session)
-		req.add_header('Content-Type', 'application/json')
-		req.add_header('Accept',       'application/xml')
-		try:
-			u = urllib2.urlopen(req)
-			u.close()
-		except urllib2.HTTPError as e:
-			addinfo = '409 probably means that the requested lf_server does not exist.' \
-					if e.getcode() == 409 else ''
-			logging.error('Importing files failed: "%s". Aborting import of media "%s". %s' % \
-					(str(e), m['id'], addinfo ))
-			return False
-
-	logging.info('Successfully added files to media (lf:%s)' % str(mediaid) )
-
-
-	# If we have no series we are finished here
-	if not s.get('id'):
-		return True
-
-	# Check if series with source_key exists
-	u = urllib2.urlopen( self.build_search_request( 
-			op='eq:source_key', 
-			val=s['id'], 
-			endpoint='admin/series/' ) )
-	sdata = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
-	u.close()
-
-	if int(sdata.getAttribute('resultcount')) > 0:
-		seriesid = xml_get_data(sdata, 'identifier', type=uuid.UUID, array='always')[0]
-		series_media = { "lf:series_media": [ {
-				"lf:series_id": str(seriesid),
-				'lf:media_id':  [ str(mediaid) ]
-			} ] }
-		series_media = json.dumps(series_media, separators=(',',':'))
-		print( series_media )
-
-		# POST series media connection to Lernfunk Core Webservice
-		req = urllib2.Request('%sadmin/series/media/' % self.config['lf-url'])
-		req.add_data(series_media)
-		req.add_header('Cookie',       self.session)
-		req.add_header('Content-Type', 'application/json')
-		req.add_header('Accept',       'application/xml')
-		try:
-			u = urllib2.urlopen(req)
-			u.close()
-			logging.info( 'Successfully media (lf:%s) to series (lf:%s)' % \
-					(str(seriesid), str(mediaid) ))
-		except urllib2.HTTPError as e:
-			logging.error('Connecting media to series failed: "%s".' % str(e))
-			return False
-
-	else:
-		series_creators     = self.request_people( s['creator'] )
-		series_contributors = self.request_people( s['contributor'] )
-
-		series = { "lf:series": [ {
-				"lf:source_key":    s['id'],
-				"dc:title":         s['title'],
-				"dc:language":      s['language'] or self.config['defaults']['language'],
-				"lf:published":     self.config['defaults']['published'],
-				"lf:source_system": source_system,
-				"lf:visible":       self.config['defaults']['visibility'],
-				"dc:description":   s['description'],
-
-				"dc:publisher":     self.config['defaults']['publisher'],
-				"lf:creator":       series_creators,
-				"dc:subject":       s['subject'],
-
-				'lf:media_id':      [ str(mediaid) ]
-			} ] }
-		series = json.dumps(series, separators=(',',':'))
-
-		# POST series to Lernfunk Core Webservice
-		req = urllib2.Request('%sadmin/series/' % self.config['lf-url'])
-		req.add_data(series)
-		req.add_header('Cookie',       self.session)
-		req.add_header('Content-Type', 'application/json')
-		req.add_header('Accept',       'application/xml')
-		try:
-			u = urllib2.urlopen(req)
-			newseries = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
-			u.close()
-			resultcount = int(newseries.getAttribute('resultcount'))
-			if resultcount != 1:
-				logging.error( ('Something went seriously wrong. ' \
-						+ 'The Lernfunk Core Webservice reports, that %i series were ' \
-						+ 'created. Should be 1. Creation of series "%s" failed.') % \
-						(resultcount, s['id'] ))
-				return False
-
-			seriesid = xml_get_data(newseries, 'id', type=uuid.UUID)
-			logging.info( ('Successfully imported series (lf:%s) and connected media (lf:%s)') % \
-					(str(seriesid), str(mediaid) ))
-		except urllib2.HTTPError as e:
-			logging.error( ('Importing series failed: "%s". Part of media import (%s).') % \
-					(str(e), m['id'] ))
-			return False
-
-	self.logout()
 
 
 def request_people( self, names ):
