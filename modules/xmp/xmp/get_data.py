@@ -1,86 +1,46 @@
 # -*- coding: utf-8 -*-
 """
-	feedgenerator.generator
-	~~~~~~~~~~~~~~~~~~~~~~~
+	xmp.get_data
+	~~~~~~~~~~~~
 
 
 	:copyright: 2013 by Lars Kiesow
 	:license: FreeBSD, see LICENSE for more details.
 """
 import urllib2
-import json
-import time
-from feedgen.feed import FeedGenerator
-
-from feedgenerator import app
-from feedgenerator.storage import *
+import libxmp
+from libxmp.consts import XMP_NS_DC
+import os.path
 
 
-def build_feed(id, lang, url, return_type=None):
-	'''Request the data for a given id from the lernfunk core webservice and
-	construct a feed for it which is stored in the redis database.
-
-	:param id:          Series id to request.
-	:param lang:        Language to request.
-	:param url:         The request URL
-	:param return_type: Type of feed to return.
-
-	:returns: Feed of requested type.
-
-	You have to pass the request URL since it cannot be retrieved automatically
-	for asynchronous updates.
-	'''
-	try:
-		_build_feed(id, lang, url, return_type=None)
-	except urllib2.HTTPError as e:
-		# Clean up if we get a 404: Not Found
-		if e.code == 404:
-			r_server = get_redis()
-			r_server.delete('%slast_update_%s' % (REDIS_NS, id))
-			r_server.delete('%srss_%s'         % (REDIS_NS, id))
-			r_server.delete('%satom_%s'        % (REDIS_NS, id))
-			r_server.delete('%spodcast_%s'     % (REDIS_NS, id))
-		raise
+dc_elements = ['contributor', 'coverage', 'creator', 'date', 'description',
+		'format', 'identifier', 'language', 'publisher', 'relation', 'rights',
+		'source', 'subject', 'title', 'type']
 
 
-###
-# Build a feed without handling errors
-##
-def _build_feed(id, lang, url, return_type=None):
-	fg = None
-	fg = FeedGenerator()
-	fg.id(url)
-	fg.link( href=url, rel='self' )
-	req  = urllib2.Request('%s://%s:%i%sview/series/%s?with_name=true' % (
-		app.config['LERNFUNK_CORE_PROTOCOL'],
-		app.config['LERNFUNK_CORE_HOST'],
-		app.config['LERNFUNK_CORE_PORT'],
-		app.config['LERNFUNK_CORE_PATH'],
-		id))
-	req.add_header('Accept', 'application/json')
-	u = urllib2.urlopen(req)
-	try:
-		series = json.loads(u.read())
-	finally:
-		u.close()
-	s = series['result']['lf:series'][0]
-	fg.title(s['dc:title'])
-	fg.language(s['dc:language'])
-	for cat in s['dc:subject']:
-		fg.category( term=cat.lower(), label=cat )
-	fg.description(s['dc:description'] or s['dc:title'])
-	for uid, name in s['lf:creator'].iteritems():
-		fg.author( name=name )
+def get_request_data(username=None, password=None):
 
-	# Get media
-	req  = urllib2.Request('%s://%s:%i%sview/series/%s/media/%s%s' % (
-		app.config['LERNFUNK_CORE_PROTOCOL'],
-		app.config['LERNFUNK_CORE_HOST'],
-		app.config['LERNFUNK_CORE_PORT'],
-		app.config['LERNFUNK_CORE_PATH'],
-		id,
-		lang or '',
-		'?with_file=1&with_name=1'))
+	url = '%s://%s:%i%s' % (
+			config.LERNFUNK_CORE_PROTOCOL,
+			config.LERNFUNK_CORE_HOST,
+			config.LERNFUNK_CORE_PORT,
+			config.LERNFUNK_CORE_PATH )
+	auth = ('Authorization', 'Basic ' + urlsafe_b64encode("%s:%s" % \
+			( username, password ))) \
+			if username and password \
+			else None
+
+	return url, auth
+
+
+def request_media(media_id, username=None, password=None):
+
+	# Prepare request data
+	url, auth = get_request_data(username, password)
+
+	req  = urllib2.Request('%s/view/media/%s?with_name=true' % url)
+	if auth:
+		req.add_header(*auth)
 	req.add_header('Accept', 'application/json')
 	u = urllib2.urlopen(req)
 	try:
@@ -88,43 +48,28 @@ def _build_feed(id, lang, url, return_type=None):
 	finally:
 		u.close()
 
-	# Add media to feed
-	for media in media['result']['lf:media']:
-		fe = fg.add_entry()
-		fe.id('%s/%s/%s' % (url, media['dc:identifier'], media['lf:version']))
-		fe.title(media['dc:title'])
-		for uid, name in media['lf:creator'].iteritems():
-			fe.author( name=name )
-			fg.contributor( name=name )
-		for uid, name in media['lf:contributor'].iteritems():
-			fe.contributor( name=name )
-			fg.contributor( name=name )
-		fe.content(media['dc:description'])
-		is_av = lambda x: x.startswith('video') or x.startswith('audio')
-		for file in media['lf:file']:
-			fe.link( 
-					href=file['lf:uri'], 
-					rel=( 'enclosure' if is_av(file['dc:format']) else 'alternate' ),
-					type=file['dc:format'] )
-		fe.published(media['dc:date'] + ' +0')
+	return media['result']['lf:media']:
 
-	rssfeed  = fg.rss_str(pretty=False)
-	atomfeed = fg.atom_str(pretty=False)
 
-	# Podcast specific values
-	fg.load_extension('podcast')
+def load_xmp( id, type='media' ):
+	'''This method will try to load the XMP for a given object from the
+	filesystem. If there is no file, a new XMP structure is created instead.
 
-	podcast = fg.rss_str(pretty=False)
+	xmpfilename = config.XMP_FILE_REPOSITORY + '/media_' + id
 
-	r_server = get_redis()
-	r_server.set('%slast_update_%s' % (REDIS_NS, id), int(time.time()))
-	r_server.set('%srss_%s'     % (REDIS_NS, id), rssfeed)
-	r_server.set('%satom_%s'    % (REDIS_NS, id), atomfeed)
-	r_server.set('%spodcast_%s' % (REDIS_NS, id), podcast)
+	if not os.path.isfile(xmpfilename):
+		return libxmp.core.XMPMeta()
 
-	if return_type == 'rss':
-		return rssfeed
-	if return_type == 'atom':
-		return atomfeed
-	if return_type == 'podcast':
-		return podcast
+	try:
+		f = open( xmpfilename, 'r' )
+		xmpstr = f.read()
+	finally:
+		f.close()
+	
+	xmp = libxmp.core.XMPMeta( xmp_str=xmpstr )
+
+	# Remove DC data from XMP as we get the new one from the core webservice
+	for elem in dc_elements:
+		xmp.delete_property( libxmp.consts.XMP_NS_DC, elem )
+	
+	return xmp
