@@ -376,7 +376,12 @@ def __xmlify( result, dom, parent ):
 		raise ValueError()
 	elif isinstance(result, dict):
 		for k,v in result.iteritems():
-			if isinstance(v, list):
+			if isinstance( k, (int, long) ):
+				# we have id/name pairs
+				parent.setAttribute('uid', str(k))
+				parent.appendChild( dom.createTextNode(str(v)) )
+
+			elif isinstance(v, list):
 				for e in v:
 					elem = dom.createElement(k)
 					try:
