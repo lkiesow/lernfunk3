@@ -109,7 +109,3 @@ def include_lf_dc(lf_data, xmp):
 		# Add subjects
 		for subj in data.get('dc:subject') or []:
 				xmp.append_array_item(XMP_NS_DC, 'subject', subj)
-
-			get_dc_array(     xmp, dc_prop, 'contributor' )
-			get_dc_array(     xmp, dc_prop, 'creator' )
-			get_dc_array(     xmp, dc_prop, 'publisher' )
