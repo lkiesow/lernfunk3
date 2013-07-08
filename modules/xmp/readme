@@ -6,3 +6,4 @@ Dependencies:
 
 TODO:
  - Include Memcached
+ - Accept XMP and write to LF:Core
