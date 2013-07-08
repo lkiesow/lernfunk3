@@ -7,94 +7,35 @@
 	:license: FreeBSD, see LICENSE for more details.
 """
 from flask import Flask, request, Response
-import redis
-import time
-from threading import Thread
+import urllib2
 
-from feedgenerator           import app
-from feedgenerator.generator import *
-from feedgenerator.storage   import *
-from feedgenerator.info      import *
+from xmp     import app
+from xmp.get import get_xmp
 
 
-@app.route('/<any(rss, atom, podcast):feedtype>/<id>')
-@app.route('/<any(rss, atom, podcast):feedtype>/<id>/<lang>')
-def feed(feedtype, id, lang=None):
-	'''Return a feed for a given series (id).
+@app.route('/<any(media, series):type>/<id>')
+def xmpgen(type, id):
+	'''Return an XMP structure for a series or media specified by its id.
 	
-	:param feedtype: Type of feed to return. Supported types are rss, atom and
-		podcast.
-	:param lang: Language filter for the request.
+	:param type: Specifies if media or series are requested.
+	:param id:   The id of the resource.
 	'''
 
-	UPDATE_NONE  = 0
-	UPDATE_ASYNC = 1
-	UPDATE_SYNC  = 2
+	user, passwd = None, None
+	if request.authorization:
+		user   = request.authorization.username
+		passwd = request.authorization.password
 
-	update = UPDATE_NONE
+	try:
+		xmpstr = get_xmp(type, id, user, passwd)
+	except urllib2.HTTPError as e:
+		if e.code == 404:
+			app.logger.warn('Request to /%s/%s: 404 NOT FOUND' % (type, id))
+			return 'Resource not found', 404
+		if e.code == 401:
+			app.logger.warn('Request to /%s/%s: 401 UNAUTHORIZED' % (type, id))
+			return 'Unauthorized access (wrong credentials?)', 401
+		raise e
+	app.logger.info('Request to /%s/%s: OK' % (type, id))
 
-	last_update = get_redis().get('%slast_update_%s' % (REDIS_NS, id))
-	if last_update is None:
-		update = UPDATE_SYNC
-	elif int(time.time()) - int(last_update) > \
-			timestr_to_secs(app.config['FEED_UPDATE_TIME_SYNC']):
-		update = UPDATE_SYNC
-	elif int(time.time()) - int(last_update) > \
-			timestr_to_secs(app.config['FEED_UPDATE_TIME']):
-		update = UPDATE_ASYNC
-
-	feed = None
-	if update != UPDATE_SYNC:
-		feed = get_redis().get('%s%s_%s' % (REDIS_NS, feedtype, id))
-	if not feed:
-		update = UPDATE_SYNC
-	
-	if update == UPDATE_ASYNC:
-		Thread(target=build_feed, args=(id, lang, request.url)).start()
-	elif update == UPDATE_SYNC:
-		try:
-			feed = build_feed(id, lang, request.url, feedtype)
-		except urllib2.HTTPError as e:
-			if e.code == 404:
-				return 'Series with id="%s" does not exist.' % id, 404
-			else:
-				raise
-	return Response(feed, mimetype=('application/atom+xml' if feedtype == 'atom' \
-			else 'application/rss+xml'))
-
-
-@app.route('/')
-def html():
-	'''Display information page listing all available feeds.
-	'''
-	last_update = int(time.time()) \
-			- int(get_redis().get('%slast_update_html' % REDIS_NS) or 0)
-
-	# Synchronous update:
-	if last_update > timestr_to_secs(app.config['INFO_UPDATE_TIME_SYNC']):
-		return load_html()
-	# Asynchronous update:
-	elif last_update > timestr_to_secs(app.config['INFO_UPDATE_TIME']):
-		Thread(target=load_html).start()
-	# No update:
-	return get_redis().get('%shtml' % REDIS_NS) \
-			or load_html()
-
-
-@app.route('/style.css')
-def style():
-	'''Return CSS stylesheet for information page'''
-	return Response( 
-			get_redis().get('%sstyle' % REDIS_NS) or load_style(),
-			mimetype='text/css' )
-
-
-def timestr_to_secs(timestr):
-	timeparts = timestr.split(':')
-	if len(timeparts) > 3:
-		raise ValueError('Invalid time string "%s"' % timestr)
-	timeparts = [ int(x) for x in timeparts ]
-	timeparts.reverse()
-	timeparts += [0,0,0] # make sure we have three elements
-	seconds = timeparts[0] + 60*timeparts[1] + 3600*timeparts[2]
-	return seconds
+	return Response(xmpstr, mimetype='application/rdf+xml')

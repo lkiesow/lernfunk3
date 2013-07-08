@@ -19,7 +19,7 @@ from libxmp.consts import XMP_NS_DC
 import json
 import os.path
 from base64 import urlsafe_b64encode
-import config
+from xmp import app
 
 
 dc_elements = ['contributor', 'coverage', 'creator', 'date', 'description',
@@ -29,13 +29,13 @@ dc_elements = ['contributor', 'coverage', 'creator', 'date', 'description',
 
 def get_request_data(username=None, password=None):
 
-	path = config.LERNFUNK_CORE_PATH \
-			if config.LERNFUNK_CORE_PATH.endswith('/') \
-			else config.LERNFUNK_CORE_PATH + '/'
+	path = app.config['LERNFUNK_CORE_PATH'] \
+			if app.config['LERNFUNK_CORE_PATH'].endswith('/') \
+			else app.config['LERNFUNK_CORE_PATH'] + '/'
 	url = '%s://%s:%i%s' % (
-			config.LERNFUNK_CORE_PROTOCOL,
-			config.LERNFUNK_CORE_HOST,
-			config.LERNFUNK_CORE_PORT,
+			app.config['LERNFUNK_CORE_PROTOCOL'],
+			app.config['LERNFUNK_CORE_HOST'],
+			app.config['LERNFUNK_CORE_PORT'],
 			path )
 	auth = ('Authorization', 'Basic ' + urlsafe_b64encode("%s:%s" % \
 			( username, password ))) \
@@ -69,7 +69,7 @@ def load_xmp( type, id ):
 	filesystem. If there is no file, a new XMP structure is created instead.
 	'''
 
-	xmpfilename = '%s/%s_%s.xmp' % (config.XMP_FILE_REPOSITORY, type, id)
+	xmpfilename = '%s/%s_%s.xmp' % (app.config['XMP_FILE_REPOSITORY'], type, id)
 
 	if not os.path.isfile(xmpfilename):
 		return libxmp.core.XMPMeta()
@@ -93,6 +93,9 @@ def include_lf_dc(lf_data, xmp):
 	'''Include elements from a given dataset (result from a lf:core webservice
 	request) into a given XMP structure.
 	'''
+
+	lastdata = {}
+
 	for data in lf_data:
 		lang = data.get('dc:language')
 		for key in ['title', 'description', 'rights']:
@@ -110,18 +113,24 @@ def include_lf_dc(lf_data, xmp):
 
 		for key in ['date', 'language', 'relation', 'source']:
 			value = data.get('dc:' + key)
-			if value:
-				xmp.append_array_item(XMP_NS_DC, key, value)
+			if value and value != lastdata.get(key):
+				lastdata[key] = value
+				xmp.append_array_item(XMP_NS_DC, key, value, {'prop_array_is_alt':True})
 
 		# Add persons
 		# TODO: Add publisher (get name from core)
 		for key in ['contributor', 'creator']: #, 'publisher']:
 			for uid, name in (data.get('dc:' + key) or {}).iteritems():
-				xmp.append_array_item(XMP_NS_DC, key, name)
+				if name != lastdata.get(key):
+					lastdata[key] = name
+					xmp.append_array_item(XMP_NS_DC, key, name, {'prop_array_is_alt':True})
 
 		# Add subjects
 		for subj in data.get('dc:subject') or []:
-				xmp.append_array_item(XMP_NS_DC, 'subject', subj)
+			if lang:
+				xmp.set_localized_text(XMP_NS_DC, 'subject', None, lang, subj.encode('utf-8'))
+			else:
+				xmp.append_array_item(XMP_NS_DC, 'subject', subj, {'prop_array_is_alt':True})
 
 	return xmp
 

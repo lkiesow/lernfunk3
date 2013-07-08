@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from feedgenerator import app
+from xmp import app
 import sys
 import getopt
 
@@ -7,7 +7,7 @@ import getopt
 def usage():
 	opts = [
 			'--help, -h       -- Show this help',
-			'--port=VAL, -p   -- Define the port the webserver should listen on (default: 5001)',
+			'--port=VAL, -p   -- The port the webserver should listen on (default: 5002)',
 			'--debug=VAL, -d  -- Enable or disable debug mode (1=enabled, 2=disabled; default: 0)',
 		]
 	print('Usage %s [options]\n\nOPTIONS:\n  %s' % \
@@ -15,7 +15,7 @@ def usage():
 
 
 if __name__ == '__main__':
-	port = 5001
+	port = 5002
 	debug=False
 	try:                                
 		opts, args = getopt.getopt(sys.argv[1:], "hp:d:", 

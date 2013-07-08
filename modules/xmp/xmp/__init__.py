@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-	feedgenerator
-	~~~~~~~~~~~~~
+	xmp
+	~~~
 
-	This module will generate RSS feeds for series.
+	This module will handle XMP metadata files for lernfunk series and media.
 
 	:copyright: (c) 2012 by Lars Kiesow
 	:license: FreeBSD and LGPL, see LICENSE for more details.
@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
 # import submodules
-import feedgenerator.rest
+import xmp.rest
 
 # Write error log to file
 if not app.debug:

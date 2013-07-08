@@ -1,0 +1,8 @@
+startup
+~~~~~~~
+
+Dependencies:
+ - python-xmp-toolkit
+
+TODO:
+ - Include Memcached
