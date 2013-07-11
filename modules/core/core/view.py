@@ -14,6 +14,7 @@ from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
 import uuid
+import json
 from core.user import user_by_id
 
 from flask import request, session, g, redirect, url_for, make_response, jsonify
@@ -284,10 +285,14 @@ def view_media(media_id=None, lang=None, series_id=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_prepared_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
-			for id, format, uri, src, src_key, src_sys in cur.fetchall():
+			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
+				try:
+					tags = json.loads(tags)
+				except (ValueError, TypeError):
+					tags = None
 				f = {}
 				f["dc:identifier"]    = id
 				f["dc:format"]        = format
@@ -295,6 +300,8 @@ def view_media(media_id=None, lang=None, series_id=None):
 				f["lf:source"]        = src
 				f["lf:source_key"]    = src_key
 				f["lf:source_system"] = src_sys
+				f["lf:flavor"]        = flavor
+				f["lf:tags"]          = tags
 				files.append( f )
 			media["lf:file"] = files
 
@@ -586,10 +593,14 @@ def view_series_media(series_id, media_id=None, lang=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_prepared_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
-			for id, format, uri, src, src_key, src_sys in cur.fetchall():
+			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
+				try:
+					tags = json.loads(tags)
+				except (ValueError, TypeError):
+					tags = None
 				f = {}
 				f["dc:identifier"]    = id
 				f["dc:format"]        = format
@@ -597,6 +608,8 @@ def view_series_media(series_id, media_id=None, lang=None):
 				f["lf:source"]        = src
 				f["lf:source_key"]    = src_key
 				f["lf:source_system"] = src_sys
+				f["lf:flavor"]        = flavor
+				f["lf:tags"]          = tags
 				files.append( f )
 			media["lf:file"] = files
 
@@ -1082,7 +1095,8 @@ def view_file(file_id=None):
 	db = get_db()
 	cur = db.cursor()
 	query = '''select f.id, f.format, f.type, f.quality, f.uri, bin2uuid(f.media_id),
-				f.source, f.source_key, f.source_system from lf_prepared_file f '''
+				f.source, f.source_key, f.source_system, f.flavor, f.tags from
+				lf_prepared_file f '''
 	count_query = '''select count(f.id) from lf_prepared_file f '''
 	if file_id:
 		query_condition += ('and ' if query_condition else 'where ') + \
@@ -1099,7 +1113,9 @@ def view_file(file_id=None):
 					'uri'           : ('str','f.uri'),
 					'source'        : ('str','f.source'),
 					'source_key'    : ('str','f.source_key'),
-					'source_system' : ('str','f.source_system')}
+					'source_system' : ('str','f.source_system'),
+					'flavor'        : ('str','f.flavor'),
+					'tags'          : ('str','f.tags')}
 			query_condition += ('and ' if query_condition else 'where ') + \
 					'(%s) ' % search_query( search, allowed )
 		except ValueError as e:
@@ -1138,7 +1154,12 @@ def view_file(file_id=None):
 	result = []
 
 	# For each file we get
-	for id, format, type, quality, uri, media_id, src, src_key, src_sys in cur.fetchall():
+	for id, format, type, quality, uri, media_id, src, src_key, src_sys, \
+			flavor, tags in cur.fetchall():
+		try:
+			tags = json.loads(tags)
+		except (ValueError, TypeError):
+			tags = None
 		file_uuid = uuid.UUID(bytes=id)
 		file = {}
 		file["dc:identifier"]    = str(file_uuid)
@@ -1150,6 +1171,8 @@ def view_file(file_id=None):
 		file["lf:source"]        = src
 		file["lf:source_key"]    = src_key
 		file["lf:source_system"] = src_sys
+		file["lf:flavor"]        = flavor
+		file["lf:tags"]          = tags
 		result.append( file )
 
 	result = { 'lf:file' : result }

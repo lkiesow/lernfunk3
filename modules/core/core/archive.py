@@ -15,6 +15,7 @@ from core.util import *
 from core.db import get_db
 from core.authenticate import get_authorization
 import uuid
+import json
 
 from flask import request, session, g, redirect, url_for, abort, make_response, jsonify
 
@@ -257,10 +258,14 @@ def archive_media(media_id=None, version=None, lang=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_prepared_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
-			for id, format, uri, src, src_key, src_sys in cur.fetchall():
+			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
+				try:
+					tags = json.loads(tags)
+				except (ValueError, TypeError):
+					tags = None
 				f = {}
 				f["dc:identifier"]    = id
 				f["dc:format"]        = format
@@ -268,6 +273,8 @@ def archive_media(media_id=None, version=None, lang=None):
 				f["lf:source"]        = src
 				f["lf:source_key"]    = src_key
 				f["lf:source_system"] = src_sys
+				f["lf:flavor"]        = flavor
+				f["lf:tags"]          = tags
 				files.append( f )
 			media["lf:file"] = files
 
