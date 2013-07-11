@@ -15,6 +15,7 @@ from core.db   import get_db
 from core.user import User
 from hashlib   import sha512
 from core.util import username_chars
+from base64    import b64decode, b64encode
 
 
 def get_authorization( auth ):
