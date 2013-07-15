@@ -1280,12 +1280,16 @@ def admin_file_put():
 				d['source_key']    = xml_get_text(file,'lf:source_key')
 				d['type']          = xml_get_text(file,'lf:type')
 				d['uri']           = xml_get_text(file,'lf:uri')
+				d['flavor']        = xml_get_text(file,'lf:flavor')
+				d['tags']          = [ t.childNodes[0].data 
+						for t in file.getElementsByTagNameNS(XML_NS_LF, 'tags') ]
+				d['tags'] = json.dumps(d['tags'], separators=(',',':'))
 				if not d.get('uri'):
 					d['server_id'] = xml_get_text(file,'lf:server_id',True)
 				sqldata.append( ( d.get('id'), d['media_id'], 
 					d['format'], d.get('type'), d.get('quality'), d.get('server_id'),
 					d.get('uri'), d.get('source'), d.get('source_system'), 
-					d.get('source_key') ) )
+					d.get('source_key'), d.get('flavor'), d.get('tags') ) )
 		except (AttributeError, IndexError):
 			return 'Invalid subject data', 400
 	elif type == 'application/json':
@@ -1314,11 +1318,15 @@ def admin_file_put():
 				except ValueError:
 					return 'Bad media identifier', 400
 				d['format'] = file['dc:format']
-				d['quality'] = file.get('lf:quality')
-				d['source'] = file.get('lf:source')
-				d['source_key'] = file.get('lf:source_key')
+				d['quality']       = file.get('lf:quality')
+				d['source']        = file.get('lf:source')
+				d['source_key']    = file.get('lf:source_key')
 				d['source_system'] = file.get('lf:source_system')
-				d['type'] = file.get('lf:type')
+				d['type']          = file.get('lf:type')
+				d['flavor']        = file.get('lf:flavor')
+				d['tags']          = file.get('lf:tags')
+				if not d['tags'] is None:
+					d['tags'] = json.dumps(d['tags'], separators=(',',':'))
 				if file.get('lf:uri'):
 					d['uri'] = file['lf:uri']
 				else:
@@ -1327,7 +1335,7 @@ def admin_file_put():
 				sqldata.append( ( d.get('id'), d['media_id'], 
 					d['format'], d['type'], d['quality'], d.get('server_id'),
 					d.get('uri'), d['source'], d['source_system'], 
-					d['source_key'] ) )
+					d['source_key'], d['flavor'], d['tags'] ) )
 			except KeyError:
 				return 'Invalid subject data', 400
 	
@@ -1339,8 +1347,8 @@ def admin_file_put():
 	try:
 		affected_rows = cur.executemany('''insert into lf_file
 			(id, media_id, format, type, quality, server_id, uri, source,
-				source_system, source_key) 
-			values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+				source_system, source_key, flavor, tags) 
+			values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
 			on duplicate key update 
 			media_id=values(media_id), format=values(format) , type=values(type),
 			quality=values(quality), server_id=values(server_id), uri=values(uri),
