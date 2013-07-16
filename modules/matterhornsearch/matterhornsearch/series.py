@@ -121,7 +121,7 @@ def prepare_series(dom, lf_series):
 
 
 def get_series():
-	series = request_series()
+	series = request_series('lkiesow','test')
 	dom = parseString(
 			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
 			+ '''<search-results 
@@ -145,7 +145,7 @@ def get_series():
 		
 
 
-def get_xmp(type, id, user=None, password=None):
+def get_serach_result(type, id, user=None, password=None):
 	'''Get/Generate an XMP structure for a specified object from the Lernfunk db.
 	'''
 	# Get necessary data

@@ -154,11 +154,13 @@ def prepare_media(dom, lf_media):
 	for f in lf_media.get('lf:file') or []:
 		if not f.get('dc:format'):
 			continue
+
+		# Handle videos
 		if f['dc:format'].startswith('video/'):
 			t = dom.createElement('m:track')
 			t.setAttribute('ref', 'track:track-%s' % f['dc:identifier'])
 			t.setAttribute('id', f['dc:identifier'])
-			# t.setAttribute('type', 'presenter/source')
+			t.setAttribute('type', f['lf:flavor'])
 			m.appendChild(t)
 
 			if f.get('dc:format'):
@@ -170,6 +172,40 @@ def prepare_media(dom, lf_media):
 				x = dom.createElement('m:url')
 				x.appendChild( dom.createTextNode(f['lf:uri']) )
 				t.appendChild(x)
+
+			if f.get('lf:tags'):
+				x = dom.createElement('m:tags')
+				for tag in f['lf:tags']:
+					y = dom.createElement('m:tag')
+					y.appendChild( dom.createTextNode(tag) )
+					x.appendChild(y)
+				t.appendChild(x)
+
+			# Handle images
+		elif f['dc:format'].startswith('image/'):
+			t = dom.createElement('m:attachment')
+			t.setAttribute('ref', 'track:track-%s' % f['dc:identifier'])
+			t.setAttribute('id', f['dc:identifier'])
+			t.setAttribute('type', f['lf:flavor'])
+			a.appendChild(t)
+
+			if f.get('dc:format'):
+				x = dom.createElement('m:mimetype')
+				x.appendChild( dom.createTextNode(f['dc:format']) )
+				t.appendChild(x)
+
+			if f.get('lf:uri'):
+				x = dom.createElement('m:url')
+				x.appendChild( dom.createTextNode(f['lf:uri']) )
+				t.appendChild(x)
+
+			if f.get('lf:tags'):
+				x = dom.createElement('m:tags')
+				t.appendChild(x)
+				for tag in f['lf:tags']:
+					y = dom.createElement('m:tag')
+					y.appendChild( dom.createTextNode(tag) )
+					t.appendChild(y)
 
           # <ns2:tags><ns2:tag>engage</ns2:tag></ns2:tags>
           # <ns2:duration>15750</ns2:duration>
