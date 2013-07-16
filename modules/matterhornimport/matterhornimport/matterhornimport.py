@@ -409,6 +409,7 @@ class MediapackageImporter:
 			t['id']       = track.getAttribute('ref').lstrip('track').lstrip(':')
 			t['tags']     = xml_get_data(track, 'tag', array='always')
 			t['url']      = xml_get_data(track, 'url')
+			t['flavor']   = t['type']
 
 			for r in self.config['trackrules']:
 				# Check rules defined in configuration. If a rule does not apply jump
@@ -436,7 +437,9 @@ class MediapackageImporter:
 					"lf:source_system": source_system,
 					"lf:type":          t['type'],
 					"lf:uri":           t['url'],
-					"lf:server_id":     t['server-id']
+					"lf:server_id":     t['server-id'],
+					"lf:flavor":        t['flavor'],
+					"lf:tags":          t['tags']
 				}
 				files.append(f)
 
@@ -447,6 +450,7 @@ class MediapackageImporter:
 			a['id']       = attachment.getAttribute('ref').lstrip('attachment').lstrip(':')
 			a['tags']     = xml_get_data(attachment, 'tag', array='always')
 			a['url']      = xml_get_data(attachment, 'url')
+			a['flavor']   = a['type']
 
 			for r in self.config['attachmentrules']:
 				# Check rules defined in configuration. If a rule does not apply jump
@@ -474,7 +478,9 @@ class MediapackageImporter:
 					"lf:source_system": source_system,
 					"lf:type":          a['type'],
 					"lf:uri":           a['url'],
-					"lf:server_id":     a['server-id']
+					"lf:server_id":     a['server-id'],
+					"lf:flavor":        a['flavor'],
+					"lf:tags":          a['tags']
 				}
 				files.append(f)
 
