@@ -1175,8 +1175,10 @@ def admin_file_post():
 					"lf:source": "http://video.example.com/",
 					"lf:type": "vga", 
 					"lf:media_id": "BA8488D1-6ADC-11E2-8B4E-047D7B0F869A", 
-					"lf:uri": "http://video.example.com/watch/ba8b331d-6adc-11e2-8b4e-047d7b0f869a/"
-					"lf:server_id": "exampleserver"
+					"lf:uri": "http://video.example.com/watch/ba8b331d-6adc-11e2-8b4e-047d7b0f869a/",
+					"lf:server_id": "exampleserver",
+					"lf:flavor": "presentation/source",
+					"lf:tags": ["a","b","c"]
 				}
 			]
 		}
