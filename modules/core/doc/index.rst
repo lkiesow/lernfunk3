@@ -9,3 +9,4 @@ Contents:
 
    api
    rest
+   searchquery
