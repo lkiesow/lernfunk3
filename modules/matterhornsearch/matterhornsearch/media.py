@@ -18,45 +18,40 @@ import json
 import os.path
 from base64 import urlsafe_b64encode
 from xml.dom.minidom import parseString
-#from xmp import app
-from flask import Flask
-app = Flask(__name__)
-app.config.from_pyfile('config.py')
+
+from matterhornsearch import app
+from matterhornsearch.util import get_request_data
 
 
-dc_elements = ['contributor', 'coverage', 'creator', 'date', 'description',
-		'format', 'identifier', 'language', 'publisher', 'relation', 'rights',
-		'source', 'subject', 'title', 'type']
-
-
-def get_request_data(username=None, password=None):
-
-	path = app.config['LERNFUNK_CORE_PATH'] \
-			if app.config['LERNFUNK_CORE_PATH'].endswith('/') \
-			else app.config['LERNFUNK_CORE_PATH'] + '/'
-	url = '%s://%s:%i%s' % (
-			app.config['LERNFUNK_CORE_PROTOCOL'],
-			app.config['LERNFUNK_CORE_HOST'],
-			app.config['LERNFUNK_CORE_PORT'],
-			path )
-	auth = ('Authorization', 'Basic ' + urlsafe_b64encode("%s:%s" % \
-			( username, password ))) \
-			if username and password \
-			else None
-
-	return url, auth
-
-
-def request_media(username=None, password=None):
+def request_media(username=None, password=None, id=None, sid=None,
+		limit=None, offset=None, q=None, cookie=None):
 	'''Request media with a given identifier from the lf core server.
 	'''
 	# Prepare request data
 	url, auth = get_request_data(username, password)
 
-	req  = urllib2.Request('%sview/media/?with_name=1&with_file=1' % url)
+	# Build search query
+	if sid:
+		url = '%sview/series/%s/media/' % (url,sid)
+	else:
+		url = '%sview/media/' % url
+	if id:
+		url = '%s%s/?with_name=1&with_file=1' % (url,id)
+	else:
+		url = '%s?with_name=1&with_file=1&with_series=1' % url
+	if limit:
+		url += '&limit=%i' % limit
+	if offset:
+		url += '&offset=%i' % offset
+	if q:
+		url += '&q=%s' % q
+
+	req  = urllib2.Request(url)
 	# offset, limit
 	if auth:
 		req.add_header(*auth)
+	elif cookie:
+		req.add_header('cookie', 'session="%s"; Path=/; HttpOnly' % cookie)
 	req.add_header('Accept', 'application/json')
 	u = urllib2.urlopen(req)
 	try:
@@ -64,10 +59,10 @@ def request_media(username=None, password=None):
 	finally:
 		u.close()
 
-	return media['result']['lf:media']
+	return media['result']['lf:media'], media['resultcount']
 
 
-def prepare_media(dom, lf_media):
+def prepare_media_xml(dom, lf_media):
 	res = dom.createElement('result')
 	res.setAttribute('org', 'mh_default_org')
 	res.setAttribute('id', lf_media['dc:identifier'])
@@ -121,6 +116,11 @@ def prepare_media(dom, lf_media):
 	for subj in lf_media.get('dc:subject') or []:
 		x = dom.createElement('dcSubject')
 		x.appendChild( dom.createTextNode(subj) )
+		res.appendChild(x)
+	
+	for series in lf_media.get('lf:series_id') or []:
+		x = dom.createElement('dcIsPartOf')
+		x.appendChild( dom.createTextNode(series) )
 		res.appendChild(x)
 
 	c = dom.createElement('m:creators')
@@ -207,38 +207,6 @@ def prepare_media(dom, lf_media):
 					y.appendChild( dom.createTextNode(tag) )
 					t.appendChild(y)
 
-          # <ns2:tags><ns2:tag>engage</ns2:tag></ns2:tags>
           # <ns2:duration>15750</ns2:duration>
-		
-
 
 	return res
-
-
-def get_media():
-	media = request_media('lkiesow','test')
-	dom = parseString(
-			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
-			+ '''<search-results 
-				xmlns="http://search.opencastproject.org" 
-				xmlns:m="http://mediapackage.opencastproject.org">''' \
-			+ '</search-results>')
-
-	searchResult = dom.childNodes[0]
-	searchResult.setAttribute('total', str(len(media)))
-	searchResult.setAttribute('limit', '0')
-	searchResult.setAttribute('offset','0')
-	searchResult.setAttribute('searchTime','1')
-
-	q = dom.createElement('query')
-	q.appendChild( dom.createTextNode('*:* AND oc_organization:mh_default_org AND (oc_acl_read:ROLE_ANONYMOUS) AND -oc_mediatype:AudioVisual AND -oc_deleted:[* TO *]') )
-	searchResult.appendChild(q)
-	for m in media or []:
-		searchResult.appendChild( prepare_media(dom, m) )
-	
-	return searchResult.toxml()
-
-
-if __name__ == '__main__':
-	print get_media()
-	#print get_xmp('media', 'e8ad5959-9d26-11e2-a381-047d7b0f869a', 'lkiesow', 'test')
