@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-	feedgenerator.rest
-	~~~~~~~~~~~~~~~~~~
+	xmp.rest
+	~~~~~~~~
 
 	:copyright: 2013 by Lars Kiesow
 	:license: FreeBSD, see LICENSE for more details.
