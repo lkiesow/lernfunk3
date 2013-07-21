@@ -25,7 +25,16 @@ from matterhornsearch.util import get_request_data
 
 def request_media(username=None, password=None, id=None, sid=None,
 		limit=None, offset=None, q=None, cookie=None):
-	'''Request media with a given identifier from the lf core server.
+	'''Request media from the lf core server.
+
+	:param id:       The id to search for.
+	:param sid:      The id of the series the episode should belong to.
+	:param q:        A Lernfunk search query.
+	:param limit:    The maximum amount of objects to return.
+	:param offset:   The offset for the first of the returned objects.
+	:param username: The username used for authetication with the core service.
+	:param password: The password used for authetication with the core service.
+	:param cookie:   Cookie used for authentication.
 	'''
 	# Prepare request data
 	url, auth = get_request_data(username, password)
@@ -63,6 +72,13 @@ def request_media(username=None, password=None, id=None, sid=None,
 
 
 def prepare_media_xml(dom, lf_media):
+	'''This method will build an XML structure matching a Opencast Matterhorn
+	search result from a given set of media data returned from the Lernfunk core
+	service.
+
+	:param dom:      The DOM tree the elements should be appended to.
+	:param lf_media: The media data to build the result from.
+	'''
 	res = dom.createElement('result')
 	res.setAttribute('org', 'mh_default_org')
 	res.setAttribute('id', lf_media['dc:identifier'])

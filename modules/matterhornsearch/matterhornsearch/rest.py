@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-	feedgenerator.rest
-	~~~~~~~~~~~~~~~~~~
+	matterhornsearch.rest
+	~~~~~~~~~~~~~~~~~~~~~
+
+	This module contains the rest endpoint definitions for the Lernfunk
+	matterhornsearch module.
 
 	:copyright: 2013 by Lars Kiesow
 	:license: FreeBSD, see LICENSE for more details.
@@ -77,6 +80,7 @@ def series(format):
 	return Response(result, mimetype='application/xml')
 
 
+
 @app.route('/search/episode.<any(xml, json):format>')
 def media(format):
 	'''Search for episodes (media) matching the query parameters.
@@ -131,6 +135,7 @@ def media(format):
 	app.logger.info('Request to %s: OK' % request.path)
 
 	return Response(result, mimetype='application/xml')
+
 
 
 def search_xml(series, episode, id, sid, q, limit, offset, user, passwd, cookie):

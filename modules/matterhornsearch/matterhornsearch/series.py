@@ -26,6 +26,14 @@ from matterhornsearch.util import get_request_data
 def request_series(username=None, password=None, id=None, limit=None,
 		offset=None, q=None, cookie=None):
 	'''Request series from the lf core server.
+
+	:param id:       The id to search for.
+	:param q:        A Lernfunk search query.
+	:param limit:    The maximum amount of objects to return.
+	:param offset:   The offset for the first of the returned objects.
+	:param username: The username used for authetication with the core service.
+	:param password: The password used for authetication with the core service.
+	:param cookie:   Cookie used for authentication.
 	'''
 	# Prepare request data
 	url, auth = get_request_data(username, password)
@@ -58,9 +66,14 @@ def request_series(username=None, password=None, id=None, limit=None,
 	return series['result']['lf:series'], series['resultcount']
 
 
+
 def prepare_series_xml(dom, lf_series):
-	'''Include elements from a given dataset (result from a lf:core webservice
-	request) into a given XMP structure.
+	'''This method will build an XML structure matching a Opencast Matterhorn
+	search result from a given set of series data returned from the Lernfunk
+	core service.
+
+	:param dom:      The DOM tree the elements should be appended to.
+	:param lf_media: The series data to build the result from.
 	'''
 	res = dom.createElement('result')
 	res.setAttribute('org', 'mh_default_org')

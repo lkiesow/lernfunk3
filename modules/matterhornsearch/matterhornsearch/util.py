@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-	xmp.get_data
-	~~~~~~~~~~~~
+	matterhornsearch.util
+	~~~~~~~~~~~~~~~~~~~~~
 
+	This module contains helper methods for the Lernfunk matterhornsearch
+	module.
 
 	:copyright: 2013 by Lars Kiesow
 	:license: FreeBSD, see LICENSE for more details.
@@ -19,6 +21,12 @@ from matterhornsearch import app
 
 
 def get_request_data(username=None, password=None):
+	'''Get the base URL of the Lernfunk core service and the authorization
+	header (build from the passed credentials) to get access to internal data.
+
+	:param username: Username for authentication.
+	:param password: Password for authentication.
+	'''
 
 	path = app.config['LERNFUNK_CORE_PATH'] \
 			if app.config['LERNFUNK_CORE_PATH'].endswith('/') \
@@ -39,8 +47,7 @@ def get_request_data(username=None, password=None):
 def is_true( val ):
 	'''Check if a string is some kind of representation for True.
 
-	Keyword arguments:
-	val -- Value to check
+	:param val: Value to check
 	'''
 	if isinstance(val, basestring):
 		return val.lower() in ('1', 'yes', 'true')
@@ -51,9 +58,8 @@ def to_int( s, default=0 ):
 	'''Convert string to integer. If the string cannot be converted a default
 	value is used.
 
-	Keyword arguments:
-	s       -- String to convert
-	default -- Value to return if the string cannot be converted
+	:param s:       String to convert
+	:param default: Value to return if the string cannot be converted
 	'''
 	try:
 		return int(s)
