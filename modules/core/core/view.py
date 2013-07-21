@@ -345,7 +345,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 		================  ===========================================  ========
 		Parameter         Description                                  Default
 		================  ===========================================  ========
-		with_series       Also return the series                       enabled
+		with_series       Also return the series                       disabled
 		with_contributor  Also return the contributors                 enabled
 		with_creator      Also return the creators                     enabled
 		with_publisher    Also return the publishers                   enabled
