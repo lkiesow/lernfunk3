@@ -13,8 +13,9 @@ Module documentation
    :maxdepth: 2
 
    core/index
-   matterhornimport/index
    feedgenerator/index
+   matterhornimport/index
+   matterhornsearch/index
    xmp/index
 
 Indices and tables
