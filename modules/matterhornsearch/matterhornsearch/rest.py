@@ -75,6 +75,8 @@ def series(format):
 			app.logger.warn('Request to /%s/%s: 401 UNAUTHORIZED' % (type, id))
 			return 'Unauthorized access (wrong credentials?)', 401
 		raise e
+	except urllib2.URLError as e:
+		return 'Core server refused connection. Please report this.', 502
 	app.logger.info('Request to %s: OK' % request.path)
 
 	return Response(result, mimetype='application/xml')
@@ -132,6 +134,8 @@ def media(format):
 			app.logger.warn('Request to /%s/%s: 401 UNAUTHORIZED' % (type, id))
 			return 'Unauthorized access (wrong credentials?)', 401
 		raise e
+	except urllib2.URLError as e:
+		return 'Core server refused connection. Please report this.', 502
 	app.logger.info('Request to %s: OK' % request.path)
 
 	return Response(result, mimetype='application/xml')
