@@ -14,6 +14,7 @@ import urllib2
 from base64 import urlsafe_b64encode
 from xml.dom.minidom import parseString
 import re
+from uuid import UUID
 
 from matterhornsearch import app
 from matterhornsearch.util import is_true, to_int, get_request_data
@@ -63,6 +64,10 @@ def series(format):
 	if q:
 		q = 'in:description:base64:%(q)s;in:title:base64:%(q)s' % \
 				{ 'q' : urlsafe_b64encode(q) }
+		try:
+			q += ';eq:identifier:%s' % str(UUID(q))
+		except:
+			pass
 
 	try:
 		result = search_xml(series, episode, id, None, q, limit, offset, user,
@@ -123,6 +128,10 @@ def media(format):
 	if q:
 		q = 'in:description:base64:%(q)s;in:title:base64:%(q)s' % \
 				{ 'q' : urlsafe_b64encode(q) }
+		try:
+			q += ';eq:identifier:%s' % str(UUID(q))
+		except:
+			pass
 
 	try:
 		result = search_xml(False,True,id,sid,q,limit,offset,user,passwd,cookie)
