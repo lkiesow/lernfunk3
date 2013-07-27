@@ -17,6 +17,7 @@ import re
 from flask import request, make_response
 import uuid
 from base64 import b64decode
+import json
 
 '''All characters allowed for language tags.'''
 lang_chars = letters + digits + '-_'
@@ -368,6 +369,17 @@ def search_op( allowed, op, key, val ):
 	raise ValueError('Illegal search operator')
 
 	return '-'
+
+
+
+def try_parse_json(val):
+	'''Try to parse a given JSON string. Return None if the string could not be
+	parsed.
+	'''
+	try:
+		return json.loads(val)
+	except (ValueError, TypeError):
+		return None
 
 
 

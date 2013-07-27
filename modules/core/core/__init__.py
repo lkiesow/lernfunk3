@@ -31,6 +31,7 @@ app.url_map.converters['user'] = core.converter.UsernameConverter
 app.secret_key = '\xbe\xfd\xef\x99\x9bl.:4\xb1\xc0!\xe7:D \x9en\x88tu\xd0\xde\xaa'
 
 # import submodules
+import core.archive
 import core.admin.delete
 import core.admin.get
 import core.admin.post

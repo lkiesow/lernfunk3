@@ -41,9 +41,6 @@ def archive_media(media_id=None, version=None, lang=None):
 		Parameter         Description                                  Default
 		================  ===========================================  ========
 		with_series       Also return the series                       enabled
-		with_contributor  Also return the contributors                 enabled
-		with_creator      Also return the creators                     enabled
-		with_publisher    Also return the publishers                   enabled
 		with_file         Also return all files                        disabled
 		with_subject      Also return all subjects                     enabled
 		limit             Maximum amount of results to return          10
@@ -57,6 +54,8 @@ def archive_media(media_id=None, version=None, lang=None):
 	Search arguments:
 
 		=============  ====  =================
+		Key            Type  Database Field
+		=============  ====  =================
 		identifier     uuid  id
 		version        int   version
 		description    str   description
@@ -67,6 +66,9 @@ def archive_media(media_id=None, version=None, lang=None):
 		date           time  timestamp_created
 		last_edit      time  timestamp_edit
 		lang           lang  language
+		creator        str   creator
+		contributor    str   contributor
+		publisher      str   publisher
 		=============  ====  =================
 	
 	Search example::
@@ -125,15 +127,32 @@ def archive_media(media_id=None, version=None, lang=None):
 	# Check flags for additional data
 	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
 	with_series      = is_true(request.args.get('with_series',      default))
-	with_contributor = is_true(request.args.get('with_contributor', default))
-	with_creator     = is_true(request.args.get('with_creator',     default))
-	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_file        = is_true(request.args.get('with_file',        '0'))
 	with_subject     = is_true(request.args.get('with_subject',     default))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'  : ('uuid','m.id'),
+					'version'     : ('int','m.version'),
+					'description' : ('str','m.description'),
+					'title'       : ('str','m.title'),
+					'date'        : ('time','m.timestamp_created'),
+					'last_edit'   : ('time','m.timestamp_edit'),
+					'lang'        : ('lang','m.language'),
+					'creator'     : ('str','m.creator'),
+					'contributor' : ('str','m.contributor'),
+					'publisher'   : ('str','m.publisher')}
+			query_condition += 'and (%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	# Request data
 	db = get_db()
@@ -142,7 +161,8 @@ def archive_media(media_id=None, version=None, lang=None):
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
-			m.relation from lf_published_media m '''
+			m.relation, m.creator, m.contributor, m.publisher 
+			from lf_published_media m '''
 	count_query = '''select count(m.id) from lf_published_media m '''
 	if media_id:
 		query_condition += ( 'and ' if query_condition else 'where ' ) + \
@@ -195,7 +215,7 @@ def archive_media(media_id=None, version=None, lang=None):
 	for id, version, parent_version, language, title, description, owner, \
 			editor, timestamp_edit, timestamp_created, published, source, \
 			visible, source_system, source_key, rights, type, coverage, \
-			relation in cur.fetchall():
+			relation, creator, contributor, publisher in cur.fetchall():
 		media_uuid = uuid.UUID(bytes=id)
 		media = {}
 		# Add default elements
@@ -216,6 +236,9 @@ def archive_media(media_id=None, version=None, lang=None):
 		media["lf:source_key"]     = source_key
 		media["dc:rights"]         = rights
 		media["dc:type"]           = type
+		media["dc:creator"]        = try_parse_json(creator)
+		media["dc:contributor"]    = try_parse_json(contributor)
+		media["dc:publisher"]      = try_parse_json(publisher)
 
 		# Get series
 		if with_series:
@@ -227,33 +250,6 @@ def archive_media(media_id=None, version=None, lang=None):
 			for (series_id,) in cur.fetchall():
 				series.append( series_id )
 			media["lf:series_id"] = series
-
-		# Get contributor (user)
-		if with_contributor:
-			cur.execute( '''select user_id from lf_media_contributor
-				where media_id = x'%s' ''' % media_uuid.hex )
-			contributor = []
-			for (user_id,) in cur.fetchall():
-				contributor.append( user_id )
-			media["lf:contributor"] = contributor
-
-		# Get creator (user)
-		if with_creator:
-			cur.execute( '''select user_id from lf_media_creator
-				where media_id = x'%s' ''' % media_uuid.hex )
-			creator = []
-			for (user_id,) in cur.fetchall():
-				creator.append( user_id )
-			media["lf:creator"] = creator
-
-		# Get publisher (organization)
-		if with_publisher:
-			cur.execute( '''select organization_id from lf_media_publisher
-				where media_id = x'%s' ''' % media_uuid.hex )
-			organization = []
-			for (organization_id,) in cur.fetchall():
-				organization.append( organization_id )
-			media["dc:publisher"] = organization
 
 		# Get files
 		if with_file:
@@ -319,8 +315,6 @@ def archive_series(series_id=None, version=None, lang=None):
 		Parameter       Description                                  Default
 		==============  ===========================================  =======
 		with_media      Also return the media                        enabled
-		with_creator    Also return the creators                     enabled
-		with_publisher  Also return the publishers                   enabled
 		with_subject    Also return all subjects                     enabled
 		limit           Maximum amount of results to return          10
 		offset          Offset of results to return                  0
@@ -333,6 +327,8 @@ def archive_series(series_id=None, version=None, lang=None):
 	Search arguments:
 
 		=============  ====  =================
+		Key            Type  Database Field
+		=============  ====  =================
 		identifier     uuid  id
 		version        int   version
 		description    str   description
@@ -343,6 +339,9 @@ def archive_series(series_id=None, version=None, lang=None):
 		date           time  timestamp_created
 		last_edit      time  timestamp_edit
 		lang           lang  language
+		creator        str   creator
+		contributor    str   contributor
+		publisher      str   publisher
 		=============  ====  =================
 
 	Search example::
@@ -388,20 +387,41 @@ def archive_series(series_id=None, version=None, lang=None):
 	# Check flags for additional data
 	default          = '0' if is_true(request.args.get('with_nothing', '0')) else '1'
 	with_media       = is_true(request.args.get('with_media',       default))
-	with_creator     = is_true(request.args.get('with_creator',     default))
-	with_publisher   = is_true(request.args.get('with_publisher',   default))
 	with_subject     = is_true(request.args.get('with_subject',     default))
 	limit            = to_int(request.args.get('limit',  '10'), 10)
 	offset           = to_int(request.args.get('offset',  '0'),  0)
 	order            = request.args.get( 'order', None)
 	rorder           = request.args.get('rorder', None)
+	search           = request.args.get('q', None)
+	
+	if search:
+		try:
+			allowed = {
+					'identifier'    : ('uuid','s.id'),
+					'version'       : ('int','s.version'),
+					'description'   : ('str','s.description'),
+					'title'         : ('str','s.title'),
+					'source'        : ('str','s.source'),
+					'source_key'    : ('str','s.source_key'),
+					'source_system' : ('str','s.source_system'),
+					'date'          : ('time','s.timestamp_created'),
+					'last_edit'     : ('time','s.timestamp_edit'),
+					'lang'          : ('lang','s.language'),
+					'creator'       : ('str','m.creator'),
+					'contributor'   : ('str','m.contributor'),
+					'publisher'     : ('str','m.publisher')}
+			query_condition += 'and (%s) ' % search_query( search, allowed )
+		except ValueError as e:
+			return e.message, 400
+		except TypeError:
+			return 'Invalid search query', 400
 
 	db = get_db()
 	cur = db.cursor()
 	query = '''select s.id, s.version, s.parent_version, s.title,
 			s.language, s.description, s.source, s.timestamp_edit,
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
-			s.source_key, s.source_system 
+			s.source_key, s.source_system, s.creator, s.contributor, s.publisher 
 			from lf_published_series s '''
 	count_query = '''select count(s.id) from lf_published_series s '''
 	if series_id:
@@ -451,7 +471,8 @@ def archive_series(series_id=None, version=None, lang=None):
 	# For each media we get
 	for id, version, parent_version, title, language, description, source, \
 			timestamp_edit, timestamp_created, published, owner, editor, \
-			visible, source_key, source_system in cur.fetchall():
+			visible, source_key, source_system, creator, contributor, \
+			publisher in cur.fetchall():
 		series_uuid = uuid.UUID(bytes=id)
 		series = {}
 		series["dc:identifier"]     = str(series_uuid)
@@ -469,6 +490,9 @@ def archive_series(series_id=None, version=None, lang=None):
 		series["lf:visible"]        = visible
 		series["lf:source_key"]     = source_key
 		series["lf:source_system"]  = source_system
+		series["dc:creator"]        = try_parse_json(creator)
+		series["dc:contributor"]    = try_parse_json(contributor)
+		series["dc:publisher"]      = try_parse_json(publisher)
 
 		# Get media
 		if with_media:
@@ -479,24 +503,6 @@ def archive_series(series_id=None, version=None, lang=None):
 			for (media_id,) in cur.fetchall():
 				media.append( media_id )
 			series['lf:media_id'] = media
-
-		# Get creator (user)
-		if with_creator:
-			creator = []
-			cur.execute( '''select user_id from lf_series_creator
-				where series_id = x'%s' ''' % series_uuid.hex )
-			for (user_id,) in cur.fetchall():
-				creator.append( user_id )
-			series['lf:creator'] = creator
-
-		# Get publisher (organization)
-		if with_publisher:
-			cur.execute( '''select organization_id from lf_series_publisher
-				where series_id = x'%s' ''' % series_uuid.hex )
-			publisher = []
-			for (organization_id,) in cur.fetchall():
-				publisher.append( organization_id )
-			series["dc:publisher"] = publisher
 
 		# Get subjects
 		if with_subject:
