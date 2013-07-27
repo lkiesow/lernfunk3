@@ -139,16 +139,19 @@ def view_media(media_id=None, lang=None, series_id=None):
 	if search:
 		try:
 			allowed = {
-					'identifier'  : ('uuid','m.id'),
-					'version'     : ('int','m.version'),
-					'description' : ('str','m.description'),
-					'title'       : ('str','m.title'),
-					'date'        : ('time','m.timestamp_created'),
-					'last_edit'   : ('time','m.timestamp_edit'),
-					'lang'        : ('lang','m.language'),
-					'creator'     : ('str','m.creator'),
-					'contributor' : ('str','m.contributor'),
-					'publisher'   : ('str','m.publisher')}
+					'identifier'    : ('uuid','m.id'),
+					'version'       : ('int','m.version'),
+					'description'   : ('str','m.description'),
+					'title'         : ('str','m.title'),
+					'source'        : ('str','m.source'),
+					'source_key'    : ('str','m.source_key'),
+					'source_system' : ('str','m.source_system'),
+					'date'          : ('time','m.timestamp_created'),
+					'last_edit'     : ('time','m.timestamp_edit'),
+					'lang'          : ('lang','m.language'),
+					'creator'       : ('str','m.creator'),
+					'contributor'   : ('str','m.contributor'),
+					'publisher'     : ('str','m.publisher')}
 			query_condition += 'and (%s) ' % search_query( search, allowed )
 		except ValueError as e:
 			return e.message, 400
