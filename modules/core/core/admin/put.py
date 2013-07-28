@@ -58,7 +58,12 @@ def admin_media_put():
 				"lf:owner": 3, 
 				"lf:last_edit": "2013-01-30 13:58:22", 
 				"lf:parent_version": null, 
-				"lf:source_system": null
+				"lf:source_system": null, 
+
+				"dc:subject":     [ "Mathematik" ], 
+				"lf:publisher":   [ "University of Osnabrück" ], 
+				"lf:creator":     [ "Lars Kiesow" ], 
+				"lf:contributor": [ "John Doe", "Peter Silie" ]
 			}
 			]
 		}
@@ -180,11 +185,11 @@ def admin_media_put():
 				# Additional relations:
 				m['subject']        = [ s.childNodes[0].data \
 						for s in media.getElementsByTagNameNS(XML_NS_DC,'subject') ]
-				m['publisher']      = [ int(p.childNodes[0].data) \
+				m['publisher']      = [ p.childNodes[0].data \
 						for p in media.getElementsByTagNameNS(XML_NS_DC,'publisher') ]
-				m['creator']        = [ int(c.childNodes[0].data) \
+				m['creator']        = [ c.childNodes[0].data \
 						for c in media.getElementsByTagNameNS(XML_NS_LF,'creator') ]
-				m['contributor']    = [ int(c.childNodes[0].data) \
+				m['contributor']    = [ c.childNodes[0].data \
 						for c in media.getElementsByTagNameNS(XML_NS_LF,'contributor') ]
 				sqldata.append( m )
 		except (AttributeError, IndexError):
@@ -258,12 +263,9 @@ def admin_media_put():
 							).strftime("%Y-%m-%d %H:%M:%S")
 			media['owner'] = int(media['owner'])
 			# Check relations:
-			if media.get('publisher'):
-				media['publisher'] = [ int(pub) for pub in media['publisher'] ]
-			if media.get('creator'):
-				media['creator'] = [ int(creator) for creator in media['creator'] ]
-			if media.get('contributor'):
-				media['contributor'] = [ int(contrib) for contrib in media['contributor'] ]
+			media['publisher']   = json_str_list(media.get('publisher'))
+			media['creator']     = json_str_list(media.get('creator'))
+			media['contributor'] = json_str_list(media.get('contributor'))
 		except (KeyError, ValueError):
 			return 'Invalid server data', 400
 
@@ -297,8 +299,9 @@ def admin_media_put():
 				cur.execute('''insert into lf_media
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key, rights, type, coverage, relation) 
-					values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+					source_system, source_key, rights, type, coverage, relation, 
+					creator, contributor, publisher) 
+					values(%s)''' % ','.join(['%s'] * 21),
 					( media['id'].bytes,
 						version,
 						media.get('parent_version'),
@@ -316,28 +319,12 @@ def admin_media_put():
 						media.get('rights'),
 						media.get('type'),
 						media.get('coverage'),
-						media.get('relation') ) )
+						media.get('relation'),
+						media.get('creator'),
+						media.get('contributor'),
+						media.get('publisher') ) )
 
 				# Add relations
-				if media.get('published'):
-					for pub in media['published']:
-						cur.execute('''insert into lf_media_publisher
-							(media_id, organization_id, media_version)
-							values (%s, %s, %s) ''',
-							( media['id'].bytes, pub, version ) )
-				if media.get('creator'):
-					for creator in media['creator']:
-						cur.execute('''insert into lf_media_creator
-							(media_id, user_id, media_version)
-							values (%s, %s, %s) ''',
-							( media['id'].bytes, creator, version ) )
-				if media.get('contributor'):
-					for contrib in media['contributor']:
-						cur.execute('''insert into lf_media_contributor
-							(media_id, user_id, media_version)
-							values (%s, %s, %s) ''',
-							( media['id'].bytes, contrib, version ) )
-
 				if media.get('subject'):
 					for subj in media['subject']:
 						cur.execute('''select id from lf_subject
@@ -394,8 +381,9 @@ def admin_media_put():
 				cur.execute('''insert into lf_media
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key, rights, type, coverage, relation) 
-					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+					source_system, source_key, rights, type, coverage, relation, 
+					creator, contributor, publisher) 
+					values(%s)''' % ','.join(['%s'] * 21),
 					( media['id'].bytes,
 						version,
 						media.get('parent_version'),
@@ -413,28 +401,12 @@ def admin_media_put():
 						media.get('rights'),
 						media.get('type'),
 						media.get('coverage'),
-						media.get('relation') ) )
+						media.get('relation'),
+						media.get('creator'),
+						media.get('contributor'),
+						media.get('publisher') ) )
 
 				# Add relations
-				if media.get('published'):
-					for pub in media['published']:
-						cur.execute('''insert into lf_media_publisher
-							(media_id, organization_id, media_version)
-							values (%s, %s, %s) ''',
-							( media['id'].bytes, pub, version ) )
-				if media.get('creator'):
-					for creator in media['creator']:
-						cur.execute('''insert into lf_media_creator
-							(media_id, user_id, media_version)
-							values (%s, %s, %s) ''',
-							( media['id'].bytes, creator, version ) )
-				if media.get('contributor'):
-					for contrib in media['contributor']:
-						cur.execute('''insert into lf_media_contributor
-							(media_id, user_id, media_version)
-							values (%s, %s, %s) ''',
-							( media['id'].bytes, contrib, version ) )
-
 				if media.get('subject'):
 					for subj in media['subject']:
 						cur.execute('''select id from lf_subject
@@ -499,7 +471,12 @@ def admin_series_put():
 				"lf:source_system": null, 
 				"lf:visible": 1, 
 				"lf:last_edit": "2013-01-30 13:58:22", 
-				"dc:description": "some text\u2026", 
+				"dc:description": "some text\u2026",
+
+				"dc:publisher":   [ "University of Osnabrück" ], 
+				"lf:creator":     [ "Lars Kiesow" ], 
+				"lf:contributor": [ "John Doe" ],
+				"dc:subject":     [ "Informatik" ]
 			}
 			]
 		}
@@ -616,13 +593,15 @@ def admin_series_put():
 				s['date']           = xml_get_text(series, 'dc:date', True)
 
 				# Additional relations:
-				m['subject']        = [ s.childNodes[0].data \
+				s['subject']        = [ s.childNodes[0].data \
 						for s in series.getElementsByTagNameNS(XML_NS_DC,'subject') ]
-				m['publisher']      = [ int(p.childNodes[0].data) \
+				s['publisher']      = [ p.childNodes[0].data \
 						for p in series.getElementsByTagNameNS(XML_NS_DC,'publisher') ]
-				m['creator']        = [ int(c.childNodes[0].data) \
+				s['creator']        = [ c.childNodes[0].data \
 						for c in series.getElementsByTagNameNS(XML_NS_LF,'creator') ]
-				m['media']          = [ c.childNodes[0].data \
+				s['contributor']    = [ c.childNodes[0].data \
+						for c in series.getElementsByTagNameNS(XML_NS_LF,'contributor') ]
+				s['media']          = [ c.childNodes[0].data \
 						for c in series.getElementsByTagNameNS(XML_NS_LF,'media_id') ]
 				sqldata.append( s )
 		except (AttributeError, IndexError):
@@ -663,6 +642,7 @@ def admin_series_put():
 				s['subject']        = series.get('dc:subject')
 				s['publisher']      = series.get('dc:publisher')
 				s['creator']        = series.get('lf:creator')
+				s['contributor']    = series.get('lf:contributor')
 				s['media']          = series.get('lf:media_id')
 
 				sqldata.append( s )
@@ -686,10 +666,9 @@ def admin_series_put():
 							).strftime("%Y-%m-%d %H:%M:%S")
 			series['owner'] = int(series['owner'])
 			# Check relations:
-			if series.get('publisher'):
-				series['publisher'] = [ int(pub) for pub in series['publisher'] ]
-			if series.get('creator'):
-				series['creator'] = [ int(creator) for creator in series['creator'] ]
+			series['publisher']   = json_str_list(series.get('publisher'))
+			series['creator']     = json_str_list(series.get('creator'))
+			series['contributor'] = json_str_list(series.get('contributor'))
 			if series.get('media'):
 				series['media'] = [ uuid.UUID(m) for m in series['media'] ]
 		except (KeyError, ValueError):
@@ -725,8 +704,8 @@ def admin_series_put():
 				cur.execute('''insert into lf_series
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key) 
-					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''',
+					source_system, source_key, creator, contributor, publisher) 
+					values(%s)''' % ','.join(['%s'] * 17),
 					( series['id'].bytes,
 						version,
 						series.get('parent_version'),
@@ -740,24 +719,12 @@ def admin_series_put():
 						series.get('source'),
 						series['visible'],
 						series.get('source_system'),
-						series.get('source_key') ) )
-
-				print(pub, version )
+						series.get('source_key'),
+						series.get('creator'),
+						series.get('contributor'),
+						series.get('publisher') ) )
 
 				# Add relations
-				if series.get('publisher'):
-					for pub in series['publisher']:
-						cur.execute('''insert into lf_series_publisher
-							(series_id, organization_id, series_version)
-							values (%s, %s, %s) ''',
-							( series['id'].bytes, pub, version ) )
-				if series.get('creator'):
-					for creator in series['creator']:
-						cur.execute('''insert into lf_series_creator
-							(series_id, user_id, series_version)
-							values (%s, %s, %s) ''',
-							( series['id'].bytes, creator, version ) )
-
 				if series.get('subject'):
 					for subj in series['subject']:
 						cur.execute('''select id from lf_subject
@@ -819,8 +786,8 @@ def admin_series_put():
 				cur.execute('''insert into lf_series
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key) 
-					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''',
+					source_system, source_key, creator, contributor, publisher) 
+					values(%s)''' % ','.join(['%s'] * 17),
 					( series['id'].bytes,
 						version,
 						series.get('parent_version'),
@@ -834,22 +801,12 @@ def admin_series_put():
 						series.get('source'),
 						series['visible'],
 						series.get('source_system'),
-						series.get('source_key') ) )
+						series.get('source_key'),
+						series.get('creator'),
+						series.get('contributor'),
+						series.get('publisher') ) )
 
 				# Add relations
-				if series.get('published'):
-					for pub in series['published']:
-						cur.execute('''insert into lf_series_publisher
-							(series_id, organization_id, series_version)
-							values (%s, %s, %s) ''',
-							( series['id'].bytes, pub, version ) )
-				if series.get('creator'):
-					for creator in series['creator']:
-						cur.execute('''insert into lf_series_creator
-							(series_id, user_id, series_version)
-							values (%s, %s, %s) ''',
-							( series['id'].bytes, creator, version ) )
-
 				if series.get('subject'):
 					for subj in series['subject']:
 						cur.execute('''select id from lf_subject

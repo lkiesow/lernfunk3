@@ -382,6 +382,35 @@ def try_parse_json(val):
 		return None
 
 
+def json_str_list(l, compact=True):
+	'''Checks if a given list is a flat list (no nested lists, …) and all
+	entries are strings. If these conditions are met, a JSON string,
+	representing this list will be returned. If the value is None, nothing will
+	be done and None will be returned. In all other cases a ValueError is raised.
+
+	=========================================   =====================
+	Input                                       Output
+	=========================================   =====================
+	Value evaluating to False (None, [], ...)   None
+	Flat list containing only strings           JSON list as string
+	Everything else                             ValueError is raised
+	=========================================   =====================
+
+	:param l:       List to convert to JSON.
+	:param compact: Make the JSON as sort as possible (default: True).
+	'''
+	if not l:
+		return None
+	if not isinstance(l, list):
+		raise ValueError('%s is not a list' % l)
+	for i in l:
+		if not isinstance(i, basestring):
+			raise ValueError('%s is not a flat list' % l)
+	if compact:
+		return json.dumps(l, separators=(',',':'))
+	return json.dumps(l)
+
+
 
 def __xmlify( result, dom, parent ):
 	if result is None:
