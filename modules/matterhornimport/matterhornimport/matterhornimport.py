@@ -169,54 +169,6 @@ class MediapackageImporter:
 		u = urllib2.urlopen(req)
 
 
-	def request_people( self, names ):
-		'''This method takes a list of realnames, checks if users with these name
-		exists in the lernfunk system and returns their ids. If a user does not
-		yet exists he will be created.
-
-		:param names: List of realnames
-		'''
-		uids = []
-		for name in names:
-			# First: Check if user exists:
-
-			# Use Base64 encoding if necessary
-			searchq = 'eq:realname:base64:%s' % b64encode(name) \
-					if ( ',' in name or ';' in name ) \
-					else 'eq:realname:%s' % name
-			req = urllib2.Request('%sadmin/user/?%s' % (
-				self.config['lf-url'],
-				urllib.urlencode({'q':searchq})))
-			req.add_header('Cookie', self.session)
-			req.add_header('Accept', 'application/xml')
-			u = urllib2.urlopen(req)
-			data = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
-			u.close()
-			resultcount = int(data.getAttribute('resultcount'))
-			if resultcount == 0:
-				logging.info('No user with realname "%s". Create new.' % name)
-				# Create new user
-				user = {"lf:user":[{'lf:realname':name}]}
-				user = json.dumps(user, separators=(',',':'))
-				req  = urllib2.Request('%sadmin/user/' % self.config['lf-url'])
-				req.add_data(user)
-				req.add_header('Cookie',       self.session)
-				req.add_header('Content-Type', 'application/json')
-				req.add_header('Accept',       'application/xml')
-				u = urllib2.urlopen(req)
-				newuser = u.read()
-				u.close()
-				uid = xml_get_data(parseString(newuser), 'id', type=int)
-				logging.info('User with realname "%s" created with uid=%i' % (name,uid))
-			else:
-				if resultcount > 1:
-					logging.warn('Realname "%s" is ambiguous. Use first match.' % name )
-				uid = xml_get_data(data, 'identifier', type=int)
-			uids.append( uid )
-
-		return uids
-
-
 	def build_search_request( self, op, val, endpoint, mimetype='application/xml' ):
 		'''Build a search request for the Lernfunk Core Webservice.
 
@@ -347,8 +299,8 @@ class MediapackageImporter:
 			return False
 
 		# Import new user or get the ids of existing user
-		creators      = self.request_people( m['creator'] )
-		contributors  = self.request_people( m['contributor'] )
+		creators      = m['creator']
+		contributors  = m['contributor']
 
 		creators     += self.config['defaults']['creator']
 		contributors += self.config['defaults']['contributor']
@@ -545,8 +497,8 @@ class MediapackageImporter:
 				return False
 
 		else:
-			series_creators     = self.request_people( s['creator'] )
-			series_contributors = self.request_people( s['contributor'] )
+			series_creators     = s['creator']
+			series_contributors = s['contributor']
 
 			series = { "lf:series": [ {
 					"lf:source_key":    s['id'],
