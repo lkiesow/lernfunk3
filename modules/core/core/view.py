@@ -691,9 +691,9 @@ def view_series(series_id=None, lang=None):
 					'date'          : ('time','s.timestamp_created'),
 					'last_edit'     : ('time','s.timestamp_edit'),
 					'lang'          : ('lang','s.language'),
-					'creator'       : ('str','m.creator'),
-					'contributor'   : ('str','m.contributor'),
-					'publisher'     : ('str','m.publisher')}
+					'creator'       : ('str','s.creator'),
+					'contributor'   : ('str','s.contributor'),
+					'publisher'     : ('str','s.publisher')}
 			query_condition += 'and (%s) ' % search_query( search, allowed )
 		except ValueError as e:
 			return e.message, 400
