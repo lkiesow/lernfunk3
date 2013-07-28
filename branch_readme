@@ -1,0 +1,4 @@
+While the main branch of Lernfunk3 now uses a JSON encoded list for storeing
+creators, contributors and publishers for media and series, this branch will
+connect the media to users from the lf_user table instead. This makes the
+system more flexible, but also more complex to handle.
