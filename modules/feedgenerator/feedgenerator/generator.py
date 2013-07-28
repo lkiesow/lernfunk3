@@ -69,7 +69,7 @@ def _build_feed(id, lang, url, return_type=None):
 	for cat in s['dc:subject']:
 		fg.category( term=cat.lower(), label=cat )
 	fg.description(s['dc:description'] or s['dc:title'])
-	for uid, name in s['lf:creator'].iteritems():
+	for name in s.get('lf:creator') or []:
 		fg.author( name=name )
 
 	# Get media
@@ -93,10 +93,10 @@ def _build_feed(id, lang, url, return_type=None):
 		fe = fg.add_entry()
 		fe.id('%s/%s/%s' % (url, media['dc:identifier'], media['lf:version']))
 		fe.title(media['dc:title'])
-		for uid, name in media['lf:creator'].iteritems():
+		for name in media.get('lf:creator') or []:
 			fe.author( name=name )
 			fg.contributor( name=name )
-		for uid, name in media['lf:contributor'].iteritems():
+		for name in media.get('lf:contributor') or []:
 			fe.contributor( name=name )
 			fg.contributor( name=name )
 		fe.content(media['dc:description'])
