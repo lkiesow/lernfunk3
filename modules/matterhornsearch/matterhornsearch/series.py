@@ -116,9 +116,14 @@ def prepare_series_xml(dom, lf_series):
 		x.appendChild( dom.createTextNode(subj) )
 		res.appendChild(x)
 
-	for creator in lf_series.get('lf:creator').values() or []:
+	for creator in lf_series.get('lf:creator') or []:
 		x = dom.createElement('dcCreator')
 		x.appendChild( dom.createTextNode(creator) )
+		res.appendChild(x)
+
+	for contributor in lf_series.get('lf:contributor') or []:
+		x = dom.createElement('dcContributor')
+		x.appendChild( dom.createTextNode(contributor) )
 		res.appendChild(x)
 
 	return res

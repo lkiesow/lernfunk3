@@ -141,7 +141,7 @@ def prepare_media_xml(dom, lf_media):
 
 	c = dom.createElement('m:creators')
 	mp.appendChild(c)
-	for creator in lf_media.get('lf:creator').values() or []:
+	for creator in lf_media.get('lf:creator') or []:
 		x = dom.createElement('dcCreator')
 		x.appendChild( dom.createTextNode(creator) )
 		res.appendChild(x)
@@ -151,7 +151,7 @@ def prepare_media_xml(dom, lf_media):
 
 	c = dom.createElement('m:contributors')
 	mp.appendChild(c)
-	for contrib in lf_media.get('lf:contributor').values() or []:
+	for contrib in lf_media.get('lf:contributor') or []:
 		x = dom.createElement('dcContributor')
 		x.appendChild( dom.createTextNode(contrib) )
 		res.appendChild(x)

@@ -62,7 +62,7 @@ def series(format):
 	offset  = to_int(request.args.get('offset',  '0'),  0)
 	
 	if q:
-		q = 'in:description:base64:%(q)s;in:title:base64:%(q)s' % \
+		q = 'in:description:base64:%(q)s;in:title:base64:%(q)s;in:creator:base64:%(q)s;in:contributor:base64:%(q)s' % \
 				{ 'q' : urlsafe_b64encode(q) }
 		try:
 			q += ';eq:identifier:%s' % str(UUID(q))
@@ -126,7 +126,7 @@ def media(format):
 	offset  = to_int(request.args.get('offset',  '0'),  0)
 	
 	if q:
-		q = 'in:description:base64:%(q)s;in:title:base64:%(q)s' % \
+		q = 'in:description:base64:%(q)s;in:title:base64:%(q)s;in:creator:base64:%(q)s;in:contributor:base64:%(q)s' % \
 				{ 'q' : urlsafe_b64encode(q) }
 		try:
 			q += ';eq:identifier:%s' % str(UUID(q))
