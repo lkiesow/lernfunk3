@@ -30,8 +30,9 @@ def build_feed(id, lang, url, return_type=None):
 	You have to pass the request URL since it cannot be retrieved automatically
 	for asynchronous updates.
 	'''
+	feed = None
 	try:
-		_build_feed(id, lang, url, return_type=None)
+		feed = _build_feed(id, lang, url, return_type)
 	except urllib2.HTTPError as e:
 		# Clean up if we get a 404: Not Found
 		if e.code == 404:
@@ -41,6 +42,7 @@ def build_feed(id, lang, url, return_type=None):
 			r_server.delete('%satom_%s'        % (REDIS_NS, id))
 			r_server.delete('%spodcast_%s'     % (REDIS_NS, id))
 		raise
+	return feed
 
 
 ###
@@ -69,7 +71,7 @@ def _build_feed(id, lang, url, return_type=None):
 	for cat in s['dc:subject']:
 		fg.category( term=cat.lower(), label=cat )
 	fg.description(s['dc:description'] or s['dc:title'])
-	for name in s.get('lf:creator') or []:
+	for name in s.get('lf:creator') or ['']:
 		fg.author( name=name )
 
 	# Get media
@@ -93,7 +95,7 @@ def _build_feed(id, lang, url, return_type=None):
 		fe = fg.add_entry()
 		fe.id('%s/%s/%s' % (url, media['dc:identifier'], media['lf:version']))
 		fe.title(media['dc:title'])
-		for name in media.get('lf:creator') or []:
+		for name in media.get('lf:creator') or ['']:
 			fe.author( name=name )
 			fg.contributor( name=name )
 		for name in media.get('lf:contributor') or []:
@@ -117,10 +119,10 @@ def _build_feed(id, lang, url, return_type=None):
 	podcast = fg.rss_str(pretty=False)
 
 	r_server = get_redis()
-	r_server.set('%slast_update_%s' % (REDIS_NS, id), int(time.time()))
-	r_server.set('%srss_%s'     % (REDIS_NS, id), rssfeed)
-	r_server.set('%satom_%s'    % (REDIS_NS, id), atomfeed)
-	r_server.set('%spodcast_%s' % (REDIS_NS, id), podcast)
+	r_server.set('%slast_update_%s_%s' % (REDIS_NS, id, lang), int(time.time()))
+	r_server.set('%srss_%s_%s'     % (REDIS_NS, id, lang), rssfeed)
+	r_server.set('%satom_%s_%s'    % (REDIS_NS, id, lang), atomfeed)
+	r_server.set('%spodcast_%s_%s' % (REDIS_NS, id, lang), podcast)
 
 	if return_type == 'rss':
 		return rssfeed

@@ -33,7 +33,7 @@ def feed(feedtype, id, lang=None):
 
 	update = UPDATE_NONE
 
-	last_update = get_redis().get('%slast_update_%s' % (REDIS_NS, id))
+	last_update = get_redis().get('%slast_update_%s_%s' % (REDIS_NS, id, lang))
 	if last_update is None:
 		update = UPDATE_SYNC
 	elif int(time.time()) - int(last_update) > \
@@ -45,7 +45,7 @@ def feed(feedtype, id, lang=None):
 
 	feed = None
 	if update != UPDATE_SYNC:
-		feed = get_redis().get('%s%s_%s' % (REDIS_NS, feedtype, id))
+		feed = get_redis().get('%s%s_%s_%s' % (REDIS_NS, feedtype, id, lang))
 	if not feed:
 		update = UPDATE_SYNC
 	
