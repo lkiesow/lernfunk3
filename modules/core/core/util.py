@@ -182,7 +182,7 @@ def search_query( query, allowed ):
 
 		letter   = ? characters from "a" to "z" ?
 		keychar  = letter | "_" | "-"
-		valchar  = ? printable characters exept "," and ";" ?
+		valchar  = ? printable characters except "," and ";" ?
 		and      = ","
 		or       = ";"
 
