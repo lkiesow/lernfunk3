@@ -45,7 +45,7 @@ def request_media(username=None, password=None, id=None, sid=None,
 	else:
 		url = '%sview/media/' % url
 	if id:
-		url = '%s%s/?with_name=1&with_file=1' % (url,id)
+		url = '%s%s?with_name=1&with_file=1' % (url,id)
 	else:
 		url = '%s?with_name=1&with_file=1&with_series=1' % url
 	if limit:

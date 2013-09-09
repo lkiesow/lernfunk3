@@ -40,7 +40,7 @@ def request_series(username=None, password=None, id=None, limit=None,
 
 	# Build search query
 	if id:
-		url = '%sview/series/%s/?with_name=1' % (url,id)
+		url = '%sview/series/%s?with_name=1' % (url,id)
 	else:
 		url = '%sview/series/?with_name=1' % url
 	if limit:
