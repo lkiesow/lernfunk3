@@ -18,6 +18,24 @@
 	},
 	"trackrules" : [
 		{
+			"name"          : "import-default",
+			"comment"       : "Import default workflow output",
+			"mimetype"      : "video/x-flv",
+			"tags"          : [ "engage-download" ],
+			"extension"     : ".flv",
+			"protocol"      : "http",
+			"source_system" : "localhost",
+			"lf-source"     : "http://repo.virtuos.uos.de:8080"
+		},{
+			"name"          : "import-default-2",
+			"comment"       : "Import default workflow output",
+			"mimetype"      : "video/avi",
+			"tags"          : [ "atom" ],
+			"extension"     : ".avi",
+			"protocol"      : "http",
+			"source_system" : "localhost",
+			"lf-source"     : "http://repo.virtuos.uos.de:8080"
+		},{
 			"name"          : "import-webm",
 			"comment"       : "Import WebM",
 			"mimetype"      : "video/webm",
@@ -68,6 +86,12 @@
 			"comment"  : "Import player preview image",
 			"mimetype" : "image/jpeg",
 			"tags"     : [ "publish", "engage" ],
+			"type"     : "presenter/player+preview"
+		},{
+			"name"     : "import-preview-image",
+			"comment"  : "Import player preview image",
+			"mimetype" : "image/jpeg",
+			"tags"     : [ "engage-download" ],
 			"type"     : "presenter/player+preview"
 		}
 	]

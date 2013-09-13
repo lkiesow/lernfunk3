@@ -316,9 +316,9 @@ class MediapackageImporter:
 						"lf:visible": self.config['defaults']['visibility'],
 						"dc:source": None, # Put the mediapackage URL
 						"lf:published": self.config['defaults']['published'],
-						"dc:date": m['created'],
-						"dc:description": m['description'],
-						"dc:rights": m['license'],
+						"dc:date": (m.get('created') or m.get('start')),
+						"dc:description": m.get('description'),
+						"dc:rights": m.get('license'),
 						"lf:source_system": source_system,
 
 						"dc:subject": m['subject'],
