@@ -10,12 +10,12 @@ The Idea
 --------
 
 The basic idea is to have a single system which aggregates all types of media
-created and held by other systems and distribute these to the “enduser systems”
+created and held by other systems and distribute these to the “end-user systems”
 (portals, etc.) rather than connecting each “creating” system with every single
 portal directly.
 
-This way it is easy to manage all media, its metadat and the places they should
-appear from a single system.
+This way it is easy to manage all media, its metadata and the places they
+should appear from a single system.
 
 Position of Lernfunk in media management and distribution:
 
@@ -29,9 +29,9 @@ Position of Lernfunk in media management and distribution:
                                 \   /  /
      Image  ------------------ Lernfunk3 ------------------- Stud.IP
     Archive                     /   \  \                      (LMS)
-                               /     \  ------------ Youtube
+                               /     \  ------------ Blogs
         Opencast   ------------       \
-      Matterhorn 2                     --------- Blogs
+      Matterhorn 2                     --------- ...
 </pre>
 
 Features
