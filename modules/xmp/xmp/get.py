@@ -120,7 +120,7 @@ def include_lf_dc(lf_data, xmp):
 		# Add persons
 		# TODO: Add publisher (get name from core)
 		for key in ['contributor', 'creator']: #, 'publisher']:
-			for uid, name in (data.get('dc:' + key) or {}).iteritems():
+			for name in (data.get('dc:' + key) or []):
 				if name != lastdata.get(key):
 					lastdata[key] = name
 					xmp.append_array_item(XMP_NS_DC, key, name, {'prop_array_is_alt':True})
@@ -141,6 +141,15 @@ def get_xmp(type, id, user=None, password=None):
 	# Get necessary data
 	lf_data = request_lf_data(type, id, user, password)
 	xmp     = load_xmp(type, id)
+
+	try:
+		lf_data[0]['dc:contributor'] = [lf_data[0]['dc:contributor'][0].encode('utf-8')]
+	except:
+		pass
+	try:
+		lf_data[0]['dc:publisher'] = [lf_data[0]['dc:publisher'][0].encode('utf-8')]
+	except:
+		pass
 
 	# Enrich XMP
 	include_lf_dc(lf_data, xmp)
