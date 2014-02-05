@@ -4,6 +4,7 @@
 	"password" : "test",
 	"logfile"  : "matterhorn-import.log",
 	"loglovel" : "debug",
+	"mediapackage_archive" : "archive",
 	"defaults" : {
 		"language" : "de",
 		"visibility" : 1,
