@@ -80,7 +80,7 @@ def prepare_series_xml(dom, lf_series):
 	res.setAttribute('id', lf_series['dc:identifier'])
 
 	x = dom.createElement('mediaType')
-	x.appendChild( dom.createTextNode('series') )
+	x.appendChild( dom.createTextNode('Series') )
 	res.appendChild(x)
 
 	if lf_series.get('dc:date'):
