@@ -448,6 +448,8 @@ class MediapackageImporter:
 			req.add_header('Content-Type', 'application/json')
 			req.add_header('Accept',       'application/xml')
 			try:
+				import time
+				time.sleep(0.2)
 				u = urllib2.urlopen(req)
 				u.close()
 			except urllib2.HTTPError as e:
@@ -455,7 +457,6 @@ class MediapackageImporter:
 						if e.getcode() == 409 else ''
 				logging.error('Importing files failed: "%s". Aborting import of media "%s". %s' % \
 						(str(e), m['id'], addinfo ))
-				return False
 
 		logging.info('Successfully added files to media (lf:%s)' % str(mediaid) )
 
@@ -497,21 +498,21 @@ class MediapackageImporter:
 				return False
 
 		else:
-			series_creators     = s['creator']
-			series_contributors = s['contributor']
+			series_creators     = s.get('creator')
+			series_contributors = s.get('contributor')
 
 			series = { "lf:series": [ {
 					"lf:source_key":    s['id'],
-					"dc:title":         s['title'],
-					"dc:language":      s['language'] or self.config['defaults']['language'],
+					"dc:title":         s.get('title'),
+					"dc:language":      s.get('language') or self.config['defaults']['language'],
 					"lf:published":     self.config['defaults']['published'],
 					"lf:source_system": source_system,
 					"lf:visible":       self.config['defaults']['visibility'],
-					"dc:description":   s['description'],
+					"dc:description":   s.get('description'),
 
 					"dc:publisher":     self.config['defaults']['publisher'],
 					"lf:creator":       series_creators,
-					"dc:subject":       s['subject'],
+					"dc:subject":       s.get('subject'),
 
 					'lf:media_id':      [ str(mediaid) ]
 				} ] }
@@ -610,16 +611,13 @@ def service():
 
 	# Check if we want to save the mediapackages we get
 	if config.get('mediapackage_archive'):
-		try:
-			f = open('%s/%s.xml' % (config['mediapackage_archive'], time.time()), 'w')
+		import time
+		with open('%s/%s.xml' % (config['mediapackage_archive'], time.time()), 'w') as f:
 			f.write( mpkg )
-		except StandardError:
-			return 'Could not write mediapackage\n', 500
-		finally:
-			f.close()
 
 	# Import media
-	importer = service_get_mediapackage_importer( config )
+	#importer = service_get_mediapackage_importer( config )
+	importer = MediapackageImporter( config )
 	if importer.import_media( mpkg, source_system ):
 		return 'Mediapackage received\n', 201
 	return 'Import failed. See importer logs for more details', 500
