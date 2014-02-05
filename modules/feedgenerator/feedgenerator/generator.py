@@ -93,6 +93,7 @@ def _build_feed(id, lang, url, return_type=None):
 	# Add media to feed
 	for media in media['result']['lf:media']:
 		fe = fg.add_entry()
+		fe.content(' ')
 		fe.id('%s/%s/%s' % (url, media['dc:identifier'], media['lf:version']))
 		fe.title(media['dc:title'])
 		for name in media.get('lf:creator') or ['']:
