@@ -12,7 +12,10 @@
 from core.db   import get_db
 from core      import app
 from flask     import _app_ctx_stack
-import pylibmc
+try:
+	import pylibmc
+except ImportError:
+	import memcache
 
 
 def get_mc():
@@ -21,10 +24,14 @@ def get_mc():
 	'''
 	top = _app_ctx_stack.top
 	if not hasattr(top, 'memcached_cli'):
-		top.memcached_cli = pylibmc.Client(
-				[app.config['MEMCACHED_HOST']],
-				binary = True,
-				behaviors = {'tcp_nodelay': True, 'ketama': True})
+		try:
+			top.memcached_cli = pylibmc.Client(
+					[app.config['MEMCACHED_HOST']],
+					binary = True,
+					behaviors = {'tcp_nodelay': True, 'ketama': True})
+		except NameError:
+			top.memcached_cli = memcache.Client(
+					[app.config['MEMCACHED_HOST']], debug=0)
 	return top.memcached_cli
 
 
