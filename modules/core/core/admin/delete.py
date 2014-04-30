@@ -825,7 +825,7 @@ def admin_user_group_delete(user_id=None, group_id=None):
 @app.route('/admin/user/<int:user_id>/organization/<int:organization_id>', methods=['DELETE'])
 @app.route('/admin/organization/<int:organization_id>/user/',              methods=['DELETE'])
 @app.route('/admin/organization/<int:organization_id>/user/<int:user_id>', methods=['DELETE'])
-def admin_series_subject_delete(user_id=None, organization_id=None):
+def admin_series_organization_delete(user_id=None, organization_id=None):
 	'''This method provides the functionality to delete user from organizations.
 	Only administrators are allowed to delete data.
 
