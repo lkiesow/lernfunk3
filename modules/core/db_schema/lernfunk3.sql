@@ -138,7 +138,7 @@ CREATE  TABLE IF NOT EXISTS `lf_series` (
   `version` INT UNSIGNED NOT NULL DEFAULT 0 ,
   `parent_version` INT UNSIGNED NULL DEFAULT NULL ,
   `title` VARCHAR(255) NULL ,
-  `language` VARCHAR(255) NOT NULL COMMENT 'ietf language tag\nSpec: http://tools.ietf.org/rfc/bcp/bcp47.txt\nLanguage Subtag Lookup: http://rishida.net/utils/subtags/' ,
+  `language` VARCHAR(255) NOT NULL COMMENT 'ietf language tag' ,
   `description` TEXT NULL ,
   `source` VARCHAR(255) NULL DEFAULT NULL ,
   `timestamp_edit` TIMESTAMP NOT NULL ,
