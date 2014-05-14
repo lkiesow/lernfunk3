@@ -259,7 +259,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system, flavor, tags from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
 			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
@@ -538,7 +538,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system, flavor, tags from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
 			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
@@ -1027,8 +1027,8 @@ def view_file(file_id=None):
 	cur = db.cursor()
 	query = '''select f.id, f.format, f.type, f.quality, f.uri, bin2uuid(f.media_id),
 				f.source, f.source_key, f.source_system, f.flavor, f.tags from
-				lf_prepared_file f '''
-	count_query = '''select count(f.id) from lf_prepared_file f '''
+				lf_file f '''
+	count_query = '''select count(f.id) from lf_file f '''
 	if file_id:
 		query_condition += ('and ' if query_condition else 'where ') + \
 				"f.id = x'%s' " % file_id.hex

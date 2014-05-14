@@ -145,67 +145,6 @@ def admin_series_delete(series_id=None, version=None, lang=None):
 
 
 
-@app.route('/admin/server/',                     methods=['DELETE'])
-@app.route('/admin/server/<server_id>',          methods=['DELETE'])
-@app.route('/admin/server/<server_id>/<format>', methods=['DELETE'])
-def admin_server_delete(server_id=None, format=None):
-	'''This method provides you with the functionality to delete server.
-	Only administrators are allowed to delete data.
-
-	:param server_id: Id of a specific server.
-	:param format:    Format for a specific URI pattern.
-	'''
-
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
-	# to hide data but they can never delete data.
-	try:
-		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to delete data', 401
-	except KeyError as e:
-		return str(e), 401
-	
-	# Request data
-	db = get_db()
-	cur = db.cursor()
-
-	query = '''delete from lf_server '''
-	if server_id:
-		# Abort with 400 Bad Request if id may be harmful (SQL injection):
-		for c in server_id:
-			if not c in servername_chars:
-				return 'Invalid server_id', 400
-		query += 'where id = "%s" ' % server_id
-
-		# Check for format
-		if format:
-			# Check for harmful (SQL injection) characters in 
-			# format (delimeter, quotation marks
-			for c in ';"\'`':
-				if c in format:
-					return 'Invalid format', 400
-			query += 'and format = "%s" ' % format
-
-	if app.debug:
-		print('### Query ######################')
-		print( query )
-		print('################################')
-
-	# Get data
-	affected_rows = 0
-	try:
-		affected_rows = cur.execute( query )
-	except IntegrityError as e:
-		return str(e), 409
-	db.commit()
-
-	if not affected_rows:
-		return '', 410
-
-	return '', 204
-
-
-
 @app.route('/admin/subject/',                             methods=['DELETE'])
 @app.route('/admin/subject/<int:subject_id>',             methods=['DELETE'])
 @app.route('/admin/subject/<lang:lang>',                  methods=['DELETE'])

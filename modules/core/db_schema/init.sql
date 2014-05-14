@@ -10,7 +10,6 @@ delete from lf_latest_published_media;
 DELETE from lf_user;
 DELETE from lf_group;
 DELETE from lf_user_group;
-delete from lf_server;
 delete from lf_media_subject;
 delete from lf_series_subject;
 delete from lf_subject;

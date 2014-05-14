@@ -8,7 +8,6 @@ delete from lf_media;
 DELETE from lf_user_group;
 DELETE from lf_user;
 DELETE from lf_group;
-delete from lf_server;
 delete from lf_media_subject;
 delete from lf_series_subject;
 delete from lf_subject;
@@ -271,29 +270,12 @@ insert into lf_media_series set
 	media_id       = @media_id,
 	series_version = @series_version_bb;
 
-select '### Create server';
-
-insert into lf_server set
-	id          = 'video2uos',
-	format      = 'application/matterhorn13',
-	uri_pattern = 'http://video2.virtuos.uos.de/watch/{media_source_key}/{source_key}/';
-
-insert into lf_server set
-	id          = 'video2uos',
-	format      = 'video/mp4',
-	uri_pattern = 'http://video2.virtuos.uni-osnabrueck.de/static/{media_source_key}/{source_key}/{type}.mp4';
-
-insert into lf_server set
-	id          = 'video2uos',
-	format      = 'audio/mp3',
-	uri_pattern = 'http://video2.virtuos.uni-osnabrueck.de/static/{media_source_key}/{source_key}/{type}.mp3';
-
-select '### Create file (on server)';
+select '### Create file';
 
 insert into lf_file set
 	media_id   = @media_id,
 	format     = 'application/matterhorn13',
-	server_id  = 'video2uos',
+	uri        = 'http://example.com/',
 	source_key = UUID();
 
 select '### Create some subjects';

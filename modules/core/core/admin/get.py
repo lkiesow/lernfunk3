@@ -263,7 +263,7 @@ def admin_media(media_id=None, version=None, lang=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system, flavor, tags from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
 			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
@@ -544,124 +544,6 @@ def admin_series(series_id=None, lang=None):
 
 
 
-@app.route('/admin/server/')
-@app.route('/admin/server/<server_id>')
-def admin_server(server_id=None):
-	'''This method provides access to all server in the Lernfunk database.
-	
-	:param server_id: Id of a specific server
-
-	GET parameter:
-
-		================  =======================================  ========
-		Parameter         Description                              Default
-		================  =======================================  ========
-		limit             Maximum amount of results to return      10
-		offset            Offset of results to return              0
-		order             Order results by field (ascending)
-		rorder            Order results by field (descending)
-		q                 Search/filter query
-		================  =======================================  ========
-
-	Search arguments:
-
-		=============  ====  =================
-		id             str   id
-		format         str   format
-		uri_pattern    str   uri_pattern
-		=============  ====  =================
-	
-	Search example::
-
-		...?q=eq:id:video2.example.com
-	
-	Order options:
-
-		* id
-		* format
-		* uri_pattern
-
-	Order example:
-
-		...?order=id
-
-	'''
-	limit            = to_int(request.args.get('limit',  '10'), 10)
-	offset           = to_int(request.args.get('offset',  '0'),  0)
-	order            = request.args.get( 'order', None)
-	rorder           = request.args.get('rorder', None)
-	search           = request.args.get('q', None)
-
-	# Check for authentication as admin.
-	# Neither normal user nor editors have access to server.
-	try:
-		if not get_authorization( request.authorization ).is_admin():
-			return 'Authentication as admin failed', 403
-	except KeyError as e:
-		return str(e), 401
-
-	db = get_db()
-	cur = db.cursor()
-	query = '''select id, format, uri_pattern from lf_server '''
-	count_query = '''select count(id) from lf_server '''
-	query_condition = ''
-	if not server_id is None:
-		query_condition += 'where id = "%s" ' % db.escape_string(server_id)
-
-	if search:
-		try:
-			allowed = {
-					'id'            : ('str','id'),
-					'format'        : ('str','format'),
-					'uri_pattern'   : ('str','uri_pattern')}
-			query_condition += ( 'and ' if query_condition else 'where ' ) + \
-					'(%s) ' % search_query( search, allowed )
-		except ValueError as e:
-			return e.message, 400
-		except TypeError:
-			return 'Invalid search query', 400
-
-	query += query_condition
-	count_query += query_condition
-
-	# Sort by column
-	order_opts = ['id', 'format', 'uri_pattern']
-	if order:
-		if not order in order_opts:
-			return 'Cannot order by %s' % order, 400
-		query += 'order by %s asc ' % order
-	elif rorder:
-		if not rorder in order_opts:
-			return 'Cannot order by %s' % rorder, 400
-		query += 'order by %s desc ' % rorder
-
-	# Add limit and offset
-	query += 'limit %s, %s ' % ( offset, limit )
-
-	# Get amount of results
-	cur.execute( count_query )
-	result_count = cur.fetchone()[0]
-
-	# Get data
-	cur.execute( query )
-	result = []
-
-	# For each media we get
-	for id, format, uri_pattern in cur.fetchall():
-		server = {}
-		server["lf:id"]          = id
-		server["lf:format"]      = format
-		server["lf:uri_pattern"] = uri_pattern
-		result.append( server )
-
-	result = { 'lf:server' : result }
-	if request.accept_mimetypes.best_match(
-			['application/xml', 'application/json']) == 'application/json':
-		return jsonify(result=result, resultcount=result_count)
-	return xmlify(result=result, resultcount=result_count)
-
-
-
 @app.route('/admin/subject/')
 @app.route('/admin/subject/<int:subject_id>')
 @app.route('/admin/subject/<lang:lang>')
@@ -888,8 +770,8 @@ def admin_file(file_id=None):
 	cur = db.cursor()
 	query = '''select f.id, f.format, f.type, f.quality, f.uri, bin2uuid(f.media_id),
 				f.source, f.source_key, f.source_system, f.flavor, f.tags 
-				from lf_prepared_file f '''
-	count_query = '''select count(f.id) from lf_prepared_file f '''
+				from lf_file f '''
+	count_query = '''select count(f.id) from lf_file f '''
 	if file_id:
 		query += "where f.id = x'%s' " % file_id.hex
 	

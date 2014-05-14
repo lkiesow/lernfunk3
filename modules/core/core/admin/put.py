@@ -851,146 +851,6 @@ def admin_series_put():
 
 
 
-@app.route('/admin/server/', methods=['PUT'])
-def admin_server_put():
-	'''This method provides you with the functionality to set server data. It
-	will create a new dataset or replace an old one if one with the given
-	identifier/format already exists.
-	Only administrators are allowed to add/modify server data.
-
-	The data can either be JSON or XML. 
-
-	JSON example::
-
-		{
-			"lf:server": [
-				{
-					"lf:format": "video/mpeg", 
-					"lf:id": "myserver", 
-					"lf:uri_pattern": "http://myserver.com/{source_key}.mpg"
-				}, 
-				{ ... }
-			]
-		}
-
-	XML example::
-
-		<?xml version="1.0" ?>
-		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
-				xmlns:lf="http://lernfunk.de/terms">
-			<lf:server>
-				<lf:format>video/mpeg</lf:format>
-				<lf:id>myserver</lf:id>
-				<lf:uri_pattern>http://myserver.com/{source_key}.mpg</lf:uri_pattern>
-			</lf:server>
-			...
-		</data>
-
-
-	**URI PATTERN**: You can use the following placeholders in the URI pattern:
-	  =================== ========================
-	  {file_id}           Fill in file identifier
-	  {format}            Fill in file format
-	  {media_id}          Fill in media identifier
-	  {source_key}        Fill in file source key
-	  {media_source_key}  Fill in media source key
-	  =================== ========================
-
-	This data should fill the whole body and the content type should be set
-	accordingly (“application/json” or “application/xml”). You can however also
-	send data with the mimetypes “application/x-www-form-urlencoded” or
-	“multipart/form-data” (For example if you want to use HTML forms). In this
-	case the data is expected to be in a field called data and the correct
-	content type of the data is expected to be in the field type of the request.
-
-	'''
-
-	# Check authentication. 
-	# Only admins are allowed to modify server.
-	try:
-		if not get_authorization( request.authorization ).is_admin():
-			return 'Only admins are allowed to modify server', 401
-	except KeyError as e:
-		return str(e), 401
-
-	# Check content length and reject lange chunks of data 
-	# which would block the server.
-	if request.content_length > app.config['PUT_LIMIT']:
-		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
-				(request.content_length, app.config['PUT_LIMIT']), 400
-
-	# Determine content type
-	if request.content_type in _formdata:
-		data = request.form['data']
-		type = request.form['type']
-	else:
-		data = request.data
-		type = request.content_type
-	if not type in ['application/xml', 'application/json']:
-		return 'Invalid data type: %s' % type, 400
-
-	# RegExp to check data with:
-	idcheck  = re.compile('^[\w\-_\.:]+$')
-	fmtcheck = re.compile('^[\w\-\.\/]+$')
-
-	sqldata = []
-	if type == 'application/xml':
-		data = parseString(data)
-		try:
-			for server in data.getElementsByTagName( 'lf:server' ):
-				id = xml_get_text(server, 'lf:id')
-				if not idcheck.match(id):
-					return 'Bad identifier for server: %s' % id, 400
-				fmt = xml_get_text(server,'lf:format',True)
-				if not fmtcheck.match(fmt):
-					return 'Bad format for server: %s' % fmt, 400
-				uri_pattern = xml_get_text(server,'lf:uri_pattern',True)
-				sqldata.append( ( id, fmt, uri_pattern ) )
-		except (AttributeError, IndexError):
-			return 'Invalid server data', 400
-	elif type == 'application/json':
-		# Parse JSON
-		try:
-			data = json.loads(data)
-		except ValueError as e:
-			return e.message, 400
-		# Get array of new server data
-		try:
-			data = data['lf:server']
-		except KeyError:
-			# Assume that there is only one server
-			data = [data]
-		for server in data:
-			try:
-				id = server['lf:id']
-				if not idcheck.match(id):
-					return 'Bad identifier for server: %s' % id, 400
-				fmt = server['lf:format']
-				if not fmtcheck.match(fmt):
-					return 'Bad format for server: %s' % fmt, 400
-				sqldata.append( ( id, fmt, server['lf:uri_pattern'] ) )
-			except KeyError:
-				return 'Invalid server data', 400
-	
-	# Request data
-	db = get_db()
-	cur = db.cursor()
-
-	affected_rows = 0
-	try:
-		affected_rows = cur.executemany('''insert into lf_server 
-			(id, format, uri_pattern) values (%s, %s, %s) 
-			on duplicate key update uri_pattern=values(uri_pattern)''', sqldata )
-	except IntegrityError as e:
-		return str(e), 409
-	db.commit()
-
-	if affected_rows:
-		return '', 201
-	return '', 200
-
-
-
 @app.route('/admin/subject/', methods=['PUT'])
 def admin_subject_put():
 	'''This method provides you with the functionality to set subject data. It
@@ -1151,7 +1011,6 @@ def admin_file_put():
 				"lf:type": "vga", 
 				"lf:media_id": "BA8488D1-6ADC-11E2-8B4E-047D7B0F869A", 
 				"lf:uri": "http://video.example.com/watch/ba8b331d-6adc-11e2-8b4e-047d7b0f869a/",
-				"lf:server_id": "exampleserver",
 				"lf:flavor": "presentation/source",
 				"lf:tags": ["a","b","c"]
 			}]
@@ -1167,16 +1026,10 @@ def admin_file_put():
 				<dc:identifier>bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb</dc:identifier>
 				<dc:format>video/mpeg</dc:format>
 				<lf:media_id>BA8488D1-6ADC-11E2-8B4E-047D7B0F869A</lf:media_id>
-				<lf:server_id>exampleserver<lf:server_id>
+				<lf:uri>http://example.com/<lf:uri>
 			</lf:file>
 		</data>
 	
-	IMPORTANT NOTICE:
-	 | There should be either a uri or a server, not both. If both fields are
-	 | set the server is simply ignored. If no uri is set the uri will be
-	 | generated dynamically (have a look at the server uri_pattern for more
-	 | information). If none of them is set the insert will fail.
-
 	Optional fields are source, source_system, source_key, quality and type.
 
 	INTERNAL NOTICE:
@@ -1243,12 +1096,10 @@ def admin_file_put():
 				d['tags']          = [ t.childNodes[0].data 
 						for t in file.getElementsByTagNameNS(XML_NS_LF, 'tags') ]
 				d['tags'] = json.dumps(d['tags'], separators=(',',':'))
-				if not d.get('uri'):
-					d['server_id'] = xml_get_text(file,'lf:server_id',True)
-				sqldata.append( ( d.get('id'), d['media_id'], 
-					d['format'], d.get('type'), d.get('quality'), d.get('server_id'),
-					d.get('uri'), d.get('source'), d.get('source_system'), 
-					d.get('source_key'), d.get('flavor'), d.get('tags') ) )
+				sqldata.append( ( d.get('id'), d['media_id'], d['format'],
+					d.get('type'), d.get('quality'), d.get('uri'), d.get('source'),
+					d.get('source_key'), d.get('source_system'), d.get('flavor'),
+					d.get('tags') ) )
 		except (AttributeError, IndexError):
 			return 'Invalid subject data', 400
 	elif type == 'application/json':
@@ -1286,15 +1137,11 @@ def admin_file_put():
 				d['tags']          = file.get('lf:tags')
 				if not d['tags'] is None:
 					d['tags'] = json.dumps(d['tags'], separators=(',',':'))
-				if file.get('lf:uri'):
-					d['uri'] = file['lf:uri']
-				else:
-					d['server_id'] = file['lf:server_id']
+				d['uri'] = file['lf:uri']
 
-				sqldata.append( ( d.get('id'), d['media_id'], 
-					d['format'], d['type'], d['quality'], d.get('server_id'),
-					d.get('uri'), d['source'], d['source_system'], 
-					d['source_key'], d['flavor'], d['tags'] ) )
+				sqldata.append( ( d.get('id'), d['media_id'], d['format'],
+					d['type'], d['quality'], d.get('uri'), d['source'], 
+					d['source_key', d['source_system']], d['flavor'], d['tags'] ) )
 			except KeyError:
 				return 'Invalid subject data', 400
 	
@@ -1305,12 +1152,12 @@ def admin_file_put():
 	affected_rows = 0
 	try:
 		affected_rows = cur.executemany('''insert into lf_file
-			(id, media_id, format, type, quality, server_id, uri, source,
-				source_system, source_key, flavor, tags) 
-			values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-			on duplicate key update 
+			(id, media_id, format, type, quality, uri, source,
+				source_system, source_key, flavor, tags)
+			values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+			on duplicate key update
 			media_id=values(media_id), format=values(format) , type=values(type),
-			quality=values(quality), server_id=values(server_id), uri=values(uri),
+			quality=values(quality), uri=values(uri),
 			source=values(source), source_system=values(source_system),
 			source_key=values(source_key)''', sqldata )
 	except MySQLdbError as e:

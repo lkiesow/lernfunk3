@@ -254,7 +254,7 @@ def archive_media(media_id=None, version=None, lang=None):
 		# Get files
 		if with_file:
 			cur.execute( '''select bin2uuid(id), format, uri,
-				source, source_key, source_system, flavor, tags from lf_prepared_file
+				source, source_key, source_system, flavor, tags from lf_file
 				where media_id = x'%s' ''' % media_uuid.hex )
 			files = []
 			for id, format, uri, src, src_key, src_sys, flavor, tags in cur.fetchall():
