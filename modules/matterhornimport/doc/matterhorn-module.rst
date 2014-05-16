@@ -16,7 +16,7 @@ The module can be integrated into any Matterhorn Workflows to send a mediapacke
 to a foreign webservice.  The configuration for the workflow operation should
 look like this::
 
-   <!-- 
+   <!--
       This operation will send a POST request containing the Mediapackage to an
       external webservice.
    -->
@@ -26,23 +26,23 @@ look like this::
       exception-handler-workflow="error"
       description="Sending MediaPackage to Lernfunk3">
       <configurations>
-         <!-- target url --> 
+         <!-- target url -->
          <configuration key="url">http://example.com:5000/</configuration>
-         <!-- Use xml as export format --> 
+         <!-- Use xml as export format -->
          <configuration key="format">xml</configuration>
-         <!-- 
+         <!--
             Disable this on a productive system. if enabled, request bodies
             etc. will be written to log. Is disabled, only errors will be
             logged.
-         --> 
+         -->
          <configuration key="debug">no</configuration>
-         <!-- enable authentication (simple/digest will be detected automatically) --> 
+         <!-- enable authentication (simple/digest will be detected automatically) -->
          <configuration key="auth.enabled">yes</configuration>
-          <!-- username for authentication --> 
+          <!-- username for authentication -->
          <configuration key="auth.username">exportuser</configuration>
-         <!-- password for authentication --> 
+         <!-- password for authentication -->
          <configuration key="auth.password">secret</configuration>
-         <!-- fields with keys beginning with + will be added to the message body --> 
-         <configuration key="+source_system">video.example.com</configuration>  
+         <!-- fields with keys beginning with + will be added to the message body -->
+         <configuration key="+source_system">video.example.com</configuration>
       </configurations>
    </operation>

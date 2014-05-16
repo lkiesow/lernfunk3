@@ -105,8 +105,8 @@ def _build_feed(id, lang, url, return_type=None):
 		fe.content(media['dc:description'])
 		is_av = lambda x: x.startswith('video') or x.startswith('audio')
 		for file in media['lf:file']:
-			fe.link( 
-					href=file['lf:uri'], 
+			fe.link(
+					href=file['lf:uri'],
 					rel=( 'enclosure' if is_av(file['dc:format']) else 'alternate' ),
 					type=file['dc:format'] )
 		fe.published(media['dc:date'] + ' +0')

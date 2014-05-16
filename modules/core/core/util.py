@@ -45,7 +45,7 @@ XML_NS_LF = "http://lernfunk.de/terms"
 def result_dom( count=0 ):
 	'''Return an empty DOM tree for results
 	'''
-	return parseString('''<result 
+	return parseString('''<result
 			xmlns:dc="http://purl.org/dc/elements/1.1/"
 			xmlns:lf="http://lernfunk.de/terms"
 			resultcount="%s"></result>''' % int(count) )
@@ -127,7 +127,7 @@ def is_true( val ):
 
 
 def xml_get_text(node, name, raiseError=False, namespace=None):
-	'''Get text from first selected elements. 
+	'''Get text from first selected elements.
 	Return None if there is no text.
 
 	Keyword arguments:
@@ -191,7 +191,7 @@ def search_query( query, allowed ):
 		value    = { valchars } ;
 
 		search   = operator, ":", key, ":", value
-		query    = search 
+		query    = search
 		         | search, and, search
 		         | search, or, search ;
 	
@@ -200,7 +200,7 @@ def search_query( query, allowed ):
 		>>> search_query('eq:identifier:example', {'identifier':('str','id')})
 		'id = "example" '
 
-		>>> search_query('eq:identifier:example,gt:version:5', 
+		>>> search_query('eq:identifier:example,gt:version:5',
 				{'identifier':('str','id'),'version':('int':'version'})
 		'id = "example" and version > 5 '
 	
@@ -279,7 +279,7 @@ def search_query( query, allowed ):
 		==========  =====================================
 
 	'''
-	return 'or '.join([ 
+	return 'or '.join([
 		'and '.join([ search_op(allowed, *y.split(':',2)) \
 				for y in x.split(',')]) \
 				for x in query.split(';') ])

@@ -39,32 +39,32 @@ def admin_media_post():
 	create a new dataset or a new version if one with the given identifier
 	already exists.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
 		{
 			"lf:media": [
 			{
-				"lf:source_key": "123456789", 
-				"dc:type": "Image", 
-				"dc:title": "test", 
-				"dc:language": "de", 
-				"lf:visible": 1, 
-				"dc:source": null, 
-				"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a", 
-				"lf:published": 0, 
-				"dc:date": "2013-01-30 13:58:22", 
-				"dc:description": "some text\u2026", 
-				"dc:rights": "cc-by", 
-				"lf:owner": 3, 
-				"lf:last_edit": "2013-01-30 13:58:22", 
-				"lf:parent_version": null, 
+				"lf:source_key": "123456789",
+				"dc:type": "Image",
+				"dc:title": "test",
+				"dc:language": "de",
+				"lf:visible": 1,
+				"dc:source": null,
+				"dc:identifier": "ba8488d1-6adc-11e2-8b4e-047d7b0f869a",
+				"lf:published": 0,
+				"dc:date": "2013-01-30 13:58:22",
+				"dc:description": "some text\u2026",
+				"dc:rights": "cc-by",
+				"lf:owner": 3,
+				"lf:last_edit": "2013-01-30 13:58:22",
+				"lf:parent_version": null,
 				"lf:source_system": null,
 
-				"dc:subject":     [ "Mathematik" ], 
-				"lf:publisher":   [ "University of Osnabrück" ], 
-				"lf:creator":     [ "Lars Kiesow" ], 
+				"dc:subject":     [ "Mathematik" ],
+				"lf:publisher":   [ "University of Osnabrück" ],
+				"lf:creator":     [ "Lars Kiesow" ],
 				"lf:contributor": [ "John Doe", "Peter Silie" ]
 			}
 			]
@@ -73,7 +73,7 @@ def admin_media_post():
 	XML example::
 
 		<?xml version="1.0" ?>
-		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 				xmlns:lf="http://lernfunk.de/terms">
 			<!-- TODO -->
 		</data>
@@ -96,7 +96,7 @@ def admin_media_post():
 		staff.
 
 	*Versioning*:
-	 
+	
 		You cannot modify a specific version. Instead a new version is created
 		automatically. If you really want to get rid of a specific version: Be
 		admin, delete the old one and create a new version. If you are no admin:
@@ -118,7 +118,7 @@ def admin_media_post():
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -145,8 +145,8 @@ def admin_media_post():
 	if not user.is_editor():
 		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
 				if user.groups else ''
-		q ='''select media_id, series_id from lf_access 
-				where ( user_id = %i %s) 
+		q ='''select media_id, series_id from lf_access
+				where ( user_id = %i %s)
 				and write_access ''' % ( user.id, groups )
 		cur.execute( q )
 		for ( media_id, series_id ) in cur.fetchall():
@@ -286,15 +286,15 @@ def admin_media_post():
 			try:
 				# Get next version for this media. Since this happens in a
 				# transaction the value will not change between transactions.
-				cur.execute('''select max(version) from lf_media 
+				cur.execute('''select max(version) from lf_media
 					where id = x'%s' ''' % media['id'].hex )
 				(version,) = cur.fetchone()
 				version = 0 if ( version is None ) else version + 1
 				cur.execute('''insert into lf_media
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key, rights, type, coverage, relation, 
-					creator, contributor, publisher) 
+					source_system, source_key, rights, type, coverage, relation,
+					creator, contributor, publisher)
 					values(%s)''' % ','.join(['%s'] * 21),
 					( media['id'].bytes,
 						version,
@@ -358,7 +358,7 @@ def admin_media_post():
 	else:
 		try:
 			# Get owner
-			cur.execute('''select owner from lf_latest_media 
+			cur.execute('''select owner from lf_latest_media
 				where id = x'%s' ''' % media['id'])
 			owner = int( cur.fetchone() )
 			if not ( media['id'].bytes in access_to_media or user.id == owner ):
@@ -368,15 +368,15 @@ def admin_media_post():
 			try:
 				# Get next version for this media. Since this happens in a
 				# transaction the value will not change between transactions.
-				cur.execute('''select max(version) from lf_media 
+				cur.execute('''select max(version) from lf_media
 					where id = x'%s' ''' % media['id'].hex )
 				(version,) = cur.fetchone()
 				version = 0 if ( version is None ) else version + 1
 				cur.execute('''insert into lf_media
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key, rights, type, coverage, relation, 
-					creator, contributor, publisher) 
+					source_system, source_key, rights, type, coverage, relation,
+					creator, contributor, publisher)
 					values(%s)''' % ','.join(['%s'] * 21),
 					( media['id'].bytes,
 						version,
@@ -444,28 +444,28 @@ def admin_series_post():
 	will create a new dataset or a new version if one with the given
 	identifier already exists.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
 		{
 			"lf:series": [
 			{
-				"lf:parent_version": null, 
-				"dc:source": null, 
-				"lf:version": 0, 
-				"lf:source_key": null, 
-				"lf:editor": 3, 
-				"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a", 
-				"lf:owner": 3, 
-				"dc:title": "testseries", 
-				"dc:language": "de", 
-				"lf:published": 1, 
-				"dc:date": "2013-01-30 13:58:22", 
-				"lf:source_system": null, 
-				"lf:visible": 1, 
-				"lf:last_edit": "2013-01-30 13:58:22", 
-				"dc:description": "some text\u2026", 
+				"lf:parent_version": null,
+				"dc:source": null,
+				"lf:version": 0,
+				"lf:source_key": null,
+				"lf:editor": 3,
+				"dc:identifier": "ba88024f-6adc-11e2-8b4e-047d7b0f869a",
+				"lf:owner": 3,
+				"dc:title": "testseries",
+				"dc:language": "de",
+				"lf:published": 1,
+				"dc:date": "2013-01-30 13:58:22",
+				"lf:source_system": null,
+				"lf:visible": 1,
+				"lf:last_edit": "2013-01-30 13:58:22",
+				"dc:description": "some text\u2026",
 
 				"dc:subject" : [ ... ],
 				"dc:publisher" : [ ... ],
@@ -478,7 +478,7 @@ def admin_series_post():
 	XML example::
 
 		<?xml version="1.0" ?>
-		<data xmlns:dc="http://purl.org/dc/elements/1.1/" 
+		<data xmlns:dc="http://purl.org/dc/elements/1.1/"
 				xmlns:lf="http://lernfunk.de/terms">
 			<!-- TODO -->
 		</data>
@@ -501,7 +501,7 @@ def admin_series_post():
 		staff.
 
 	*Versioning*:
-	 
+	
 		You cannot modify a specific version. Instead a new version is created
 		automatically. If you really want to get rid of a specific version: Be
 		admin, delete the old one and create a new version. If you are no admin:
@@ -523,7 +523,7 @@ def admin_series_post():
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -550,8 +550,8 @@ def admin_series_post():
 	if not user.is_editor():
 		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
 				if user.groups else ''
-		q ='''select media_id, series_id from lf_access 
-				where ( user_id = %i %s) 
+		q ='''select media_id, series_id from lf_access
+				where ( user_id = %i %s)
 				and write_access ''' % ( user.id, groups )
 		cur.execute( q )
 		for ( media_id, series_id ) in cur.fetchall():
@@ -684,14 +684,14 @@ def admin_series_post():
 			try:
 				# Get next version for this series. Since this happens in a
 				# transaction the value will not change between transactions.
-				cur.execute('''select max(version) from lf_series 
+				cur.execute('''select max(version) from lf_series
 					where id = x'%s' ''' % series['id'].hex )
 				(version,) = cur.fetchone()
 				version = 0 if ( version is None ) else version + 1
 				cur.execute('''insert into lf_series
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key, creator, contributor, publisher) 
+					source_system, source_key, creator, contributor, publisher)
 					values(%s)''' % ','.join(['%s'] * 17),
 					( series['id'].bytes,
 						version,
@@ -755,7 +755,7 @@ def admin_series_post():
 	else:
 		try:
 			# Get owner
-			cur.execute('''select owner from lf_latest_series 
+			cur.execute('''select owner from lf_latest_series
 				where id = x'%s' ''' % series['id'])
 			owner = int( cur.fetchone() )
 			if not ( series['id'].bytes in access_to_series or user.id == owner ):
@@ -765,14 +765,14 @@ def admin_series_post():
 			try:
 				# Get next version for this series. Since this happens in a
 				# transaction the value will not change between transactions.
-				cur.execute('''select max(version) from lf_series 
+				cur.execute('''select max(version) from lf_series
 					where id = x'%s' ''' % series['id'].hex )
 				(version,) = cur.fetchone()
 				version = 0 if ( version is None ) else version + 1
 				cur.execute('''insert into lf_series
 					(id, version, parent_version, language, title, description,
 					owner, editor, timestamp_created, published, source, visible,
-					source_system, source_key, creator, contributor, publisher) 
+					source_system, source_key, creator, contributor, publisher)
 					values(%s)''' % ','.join(['%s'] * 17),
 					( series['id'].bytes,
 						version,
@@ -845,15 +845,15 @@ def admin_subject_post():
 	Only administrators and editors are allowed to add/modify subject data
 	directly.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
 		{
 			"lf:subject": [
 			{
-				"lf:name": "Computer Science", 
-				"dc:language": "en", 
+				"lf:name": "Computer Science",
+				"dc:language": "en",
 				"lf:id": 1
 			}]
 		}
@@ -882,7 +882,7 @@ def admin_subject_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	# _Only_ admins and editors are allowed to create/modify subjects.
 	try:
 		if not get_authorization( request.authorization ).is_editor():
@@ -890,7 +890,7 @@ def admin_subject_post():
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -976,21 +976,21 @@ def admin_file_post():
 	exists.
 	Only administrators and editors are allowed to add/modify file data.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
 		{
 			"lf:file": [
 				{
-					"lf:source_system": "matterhorn13@uos", 
-					"lf:source_key": "ba8b331d-6adc-11e2-8b4e-047d7b0f869a", 
-					"dc:identifier": "ba8b380b-6adc-11e2-8b4e-047d7b0f869a", 
+					"lf:source_system": "matterhorn13@uos",
+					"lf:source_key": "ba8b331d-6adc-11e2-8b4e-047d7b0f869a",
+					"dc:identifier": "ba8b380b-6adc-11e2-8b4e-047d7b0f869a",
 					"lf:quality": "high-quality",
-					"dc:format": "application/matterhorn13", 
+					"dc:format": "application/matterhorn13",
 					"lf:source": "http://video.example.com/",
-					"lf:type": "vga", 
-					"lf:media_id": "BA8488D1-6ADC-11E2-8B4E-047D7B0F869A", 
+					"lf:type": "vga",
+					"lf:media_id": "BA8488D1-6ADC-11E2-8B4E-047D7B0F869A",
 					"lf:uri": "http://video.example.com/watch/ba8b331d-6adc-11e2-8b4e-047d7b0f869a/",
 					"lf:flavor": "presentation/source",
 					"lf:tags": ["a","b","c"]
@@ -1028,7 +1028,7 @@ def admin_file_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	# _Only_ admins and editors are allowed to create/modify files.
 	try:
 		if not get_authorization( request.authorization ).is_editor():
@@ -1036,14 +1036,14 @@ def admin_file_post():
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject large chunks of data 
+	# Check content length and reject large chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
 				(request.content_length, app.config['PUT_LIMIT']), 400
 
 	# Determine content type
-	if request.content_type in ['application/x-www-form-urlencoded', 
+	if request.content_type in ['application/x-www-form-urlencoded',
 			'multipart/form-data']:
 		data = request.form['data']
 		type = request.form['type']
@@ -1075,12 +1075,12 @@ def admin_file_post():
 				d['type']          = xml_get_text(file,'lf:type')
 				d['uri']           = xml_get_text(file,'lf:uri')
 				d['flavor']        = xml_get_text(file,'lf:flavor')
-				d['tags']          = [ t.childNodes[0].data 
+				d['tags']          = [ t.childNodes[0].data
 						for t in file.getElementsByTagNameNS(XML_NS_LF, 'tags') ]
 				d['tags'] = json.dumps(d['tags'], separators=(',',':'))
-				sqldata.append( ( d.get('id'), d['media_id'], 
+				sqldata.append( ( d.get('id'), d['media_id'],
 					d['format'], d.get('type'), d.get('quality'),
-					d.get('uri'), d.get('source'), d.get('source_system'), 
+					d.get('uri'), d.get('source'), d.get('source_system'),
 					d.get('source_key'), d.get('flavor'), d.get('tags') ) )
 		except (AttributeError, IndexError):
 			return 'Invalid subject data', 400
@@ -1156,16 +1156,16 @@ def admin_organization_post():
 	exists.
 	Only administrators and editors are allowed to add/modify organizations.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
 		{
 			"lf:organization": [
 			{
-				"lf:name": "Universit\u00e4t Osnabr\u00fcck", 
-				"lf:parent_organization_id": null, 
-				"vcard_uri": null, 
+				"lf:name": "Universit\u00e4t Osnabr\u00fcck",
+				"lf:parent_organization_id": null,
+				"vcard_uri": null,
 				"dc:identifier": 1
 			}
 			]
@@ -1195,14 +1195,14 @@ def admin_organization_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_editor():
 			return 'Only admins and editors are allowed to create/modify organization', 401
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject large chunks of data 
+	# Check content length and reject large chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -1286,14 +1286,14 @@ def admin_group_post():
 	exists.
 	Only administrators are allowed to add/modify groups.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
 		{
 			"lf:group": [
 			{
-				"lf:name": "test", 
+				"lf:name": "test",
 			}
 			]
 		}
@@ -1320,14 +1320,14 @@ def admin_group_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to create/modify groups', 401
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -1347,7 +1347,7 @@ def admin_group_post():
 	db = get_db()
 	cur = db.cursor()
 
-	cur.execute( '''select id, name from lf_group 
+	cur.execute( '''select id, name from lf_group
 			where name in ("admin", "editor", "public") ''' )
 	restricted_ids = {}
 	for id, name in cur.fetchall():
@@ -1628,7 +1628,7 @@ def admin_user_post():
 				username = username.split(' ')
 				username_hd = username[0]
 				username_tl = ''.join(username[1:])
-				cur.execute('''select name from lf_user 
+				cur.execute('''select name from lf_user
 						where name like '%%%s%%' ''' % username_tl )
 				existing_user = [ n for (n,) in cur.fetchall() ]
 				# Generate username from realname
@@ -1815,7 +1815,7 @@ def admin_user_passwd_post():
 
 ''' ----------------------------------------------------------------------------
 	End of method which effect entities. The following methods are for
-	relations. 
+	relations.
 ---------------------------------------------------------------------------- '''
 
 
@@ -1826,7 +1826,7 @@ def admin_access_post():
 	identifier already exists.
 	Only administrators are allowed to add/modify access rights.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
@@ -1863,14 +1863,14 @@ def admin_access_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to create access data', 401
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -1971,7 +1971,7 @@ def admin_series_media_post():
 	The new series version will inherit all media from its parent version. Use
 	the PUT method to specify exactly the media you want in the new version.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
@@ -2020,7 +2020,7 @@ def admin_series_media_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	user = None
 	try:
 		user = get_authorization( request.authorization )
@@ -2031,7 +2031,7 @@ def admin_series_media_post():
 	if not user or user.name == 'public':
 		return 'You have to authenticate yourself to modify a series', 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -2057,8 +2057,8 @@ def admin_series_media_post():
 	if not user.is_editor():
 		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
 				if user.groups else ''
-		q ='''select series_id from lf_access 
-				where ( user_id = %i %s) and series_id 
+		q ='''select series_id from lf_access
+				where ( user_id = %i %s) and series_id
 				and write_access ''' % ( user.id, groups )
 		cur.execute( q )
 		for (series_id,) in cur.fetchall():
@@ -2104,7 +2104,7 @@ def admin_series_media_post():
 			# First: Create new version of series
 			cur.execute('''select id, version, parent_version, title, language,
 				description, source, timestamp_edit, timestamp_created, published,
-				owner, editor, visible, source_key, source_system from %s 
+				owner, editor, visible, source_key, source_system from %s
 				where id = x'%s' %s''' % (
 						('lf_series', series_id.hex, 'and version = %i ' % int(version)) \
 						if not version is None else \
@@ -2112,21 +2112,21 @@ def admin_series_media_post():
 			( id, version, parent_version, title, language, description, source,
 					timestamp_edit, timestamp_created, published, owner, editor,
 					visible, source_key, source_system ) = cur.fetchone()
-			cur.execute('''select max(version) from lf_series 
+			cur.execute('''select max(version) from lf_series
 					where id = x'%s' ''' % series_id.hex )
 			(new_version,) = cur.fetchone()
 			new_version += 1
 			cur.execute('''insert into lf_series (id, version, parent_version, title,
 					language, description, source, timestamp_created, published, owner,
 					editor, visible, source_key, source_system)
-					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', 
+					values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ''',
 					( id, new_version, version, title, language, description,
 						source, timestamp_created, published, owner, editor, visible,
 						source_key, source_system ))
 			
 			# Second: Get the media of the parent version
-			cur.execute('''select media_id from lf_media_series 
-					where series_id = %s and series_version = %s ''', 
+			cur.execute('''select media_id from lf_media_series
+					where series_id = %s and series_version = %s ''',
 					(series_id.bytes, version) )
 
 			insertdata = []
@@ -2138,7 +2138,7 @@ def admin_series_media_post():
 				insertdata.append(( series_id.bytes, media_id.bytes, new_version ))
 
 			affected_rows += cur.executemany('''insert into lf_media_series
-				(series_id, media_id, series_version) values (%s,%s,%s) ''', 
+				(series_id, media_id, series_version) values (%s,%s,%s) ''',
 				insertdata )
 	except (IntegrityError, MySQLdbError) as e:
 		db.rollback()
@@ -2156,7 +2156,7 @@ def admin_user_group_post():
 	'''This method provides you with the functionality to connect user and
 	groups. Only administrators are allowed to do this.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
@@ -2189,14 +2189,14 @@ def admin_user_group_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to add user to a group', 401
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -2258,7 +2258,7 @@ def admin_user_organization_post():
 	'''This method provides you with the functionality to assign user to
 	organizations. Only administrators are allowed to do this.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
@@ -2289,14 +2289,14 @@ def admin_user_organization_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to add user to a group', 401
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -2341,7 +2341,7 @@ def admin_user_organization_post():
 
 	affected_rows = 0
 	try:
-		affected_rows = cur.executemany('''insert into 
+		affected_rows = cur.executemany('''insert into
 			lf_user_organization (user_id, organization_id)
 			values (%s,%s) ''', sqldata )
 	except IntegrityError as e:
@@ -2359,7 +2359,7 @@ def admin_media_subject_post():
 	'''This method provides you with the functionality to assign subjects to
 	media.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
@@ -2397,13 +2397,13 @@ def admin_media_subject_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -2429,7 +2429,7 @@ def admin_media_subject_post():
 	if not user.is_editor():
 		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
 				if user.groups else ''
-		q = '''select media_id from lf_access 
+		q = '''select media_id from lf_access
 				where ( user_id = %i %s) and media_id
 				and write_access ''' % ( user.id, groups )
 		cur.execute( q )
@@ -2455,7 +2455,7 @@ def admin_media_subject_post():
 			return e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ ( 
+			sqldata = [ (
 					uuid.UUID(ms['lf:media_id']),
 					ms.get('lf:subject_id'),
 					ms.get('lf:subject'),
@@ -2494,7 +2494,7 @@ def admin_media_subject_post():
 			sqldata_ready.append( (subject_id, media_id.bytes) )
 
 		affected_rows = 0
-		affected_rows = cur.executemany('''insert into 
+		affected_rows = cur.executemany('''insert into
 			lf_media_subject (subject_id, media_id)
 			values (%s,%s) ''', sqldata_ready )
 	except MySQLdbError as e:
@@ -2513,7 +2513,7 @@ def admin_media_subject_post():
 def admin_series_subject_post():
 	'''This method allows you to assign subjects to series.
 
-	The data can either be JSON or XML. 
+	The data can either be JSON or XML.
 
 	JSON example::
 
@@ -2552,13 +2552,13 @@ def admin_series_subject_post():
 
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		user = get_authorization( request.authorization )
 	except KeyError as e:
 		return str(e), 401
 
-	# Check content length and reject lange chunks of data 
+	# Check content length and reject lange chunks of data
 	# which would block the server.
 	if request.content_length > app.config['PUT_LIMIT']:
 		return 'Amount of data exeeds maximum (%i bytes > %i bytes)' % \
@@ -2584,7 +2584,7 @@ def admin_series_subject_post():
 	if not user.is_editor():
 		groups = 'or group_id in (' + ','.join( user.groups ) + ') ' \
 				if user.groups else ''
-		q = '''select series_id from lf_access 
+		q = '''select series_id from lf_access
 				where ( user_id = %i %s) and series_id
 				and write_access ''' % ( user.id, groups )
 		cur.execute( q )
@@ -2610,7 +2610,7 @@ def admin_series_subject_post():
 			return e.message, 400
 		# Get array of new data
 		try:
-			sqldata = [ ( 
+			sqldata = [ (
 					uuid.UUID(ms['lf:series_id']),
 					ms.get('lf:subject_id'),
 					ms.get('lf:subject'),
@@ -2649,7 +2649,7 @@ def admin_series_subject_post():
 			sqldata_ready.append( (subject_id, series_id.bytes) )
 
 		affected_rows = 0
-		affected_rows = cur.executemany('''insert into 
+		affected_rows = cur.executemany('''insert into
 			lf_series_subject (subject_id, series_id)
 			values (%s,%s) ''', sqldata_ready )
 	except MySQLdbError as e:

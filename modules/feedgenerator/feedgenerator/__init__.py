@@ -27,7 +27,7 @@ import feedgenerator.rest
 if not app.debug:
 	import logging
 	from logging.handlers import RotatingFileHandler
-	file_handler = RotatingFileHandler(app.config['LOGFILE'], 
+	file_handler = RotatingFileHandler(app.config['LOGFILE'],
 			'a', 10 * 1024 * 1024, 10)
 	file_handler.setFormatter(logging.Formatter(
 		'%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))

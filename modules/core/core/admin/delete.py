@@ -34,8 +34,8 @@ def admin_media_delete(media_id=None, version=None, lang=None):
 	:param lang:     Language filter for the mediaobjects.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -97,8 +97,8 @@ def admin_series_delete(series_id=None, version=None, lang=None):
 	:param lang:      Language filter for the series.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -157,8 +157,8 @@ def admin_subject_delete(subject_id=None, lang=None):
 	:param lang:       Language filter for the subjects.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -216,8 +216,8 @@ def admin_file_delete(file_id=None):
 	:param file_id: UUID of a specific file object.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -262,8 +262,8 @@ def admin_organization_delete(organization_id=None):
 	:param organization_id: Identifier of a specific organization.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -312,8 +312,8 @@ def admin_group_delete(group_id=None):
 	:param group_id: Identifier of a specific group.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -326,7 +326,7 @@ def admin_group_delete(group_id=None):
 	cur = db.cursor()
 
 	# admin and public are special. You cannot delete them.
-	query = '''delete from lf_group 
+	query = '''delete from lf_group
 		where name != 'admin' and name != 'public' '''
 	if group_id != None:
 		try:
@@ -366,8 +366,8 @@ def admin_user_delete(user_id=None, name=None):
 	:param name:    Name of a specific user.
 	'''
 
-	# Check authentication. 
-	# _Only_ admins are allowed to delete data. Other users may be able 
+	# Check authentication.
+	# _Only_ admins are allowed to delete data. Other users may be able
 	# to hide data but they can never delete data.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
@@ -455,7 +455,7 @@ def admin_access_delete(media_id=None, series_id=None, user_id=None, group_id=No
 	media_access  = '/media/'  in request.path
 	series_access = '/series/' in request.path
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to delete data', 401
@@ -528,7 +528,7 @@ def admin_media_subject_delete(media_id=None, subject_id=None):
 	:param subject_id: Identifies a specific subject.
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to delete data', 401
@@ -594,7 +594,7 @@ def admin_media_series_delete(media_id=None, series_id=None, series_version=None
 	:param series_version: Identifies a specific version of a series.
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to delete data', 401
@@ -651,7 +651,7 @@ def admin_series_subject_delete(series_id=None, subject_id=None):
 	:param subject_id: Identifies a specific subject.
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to delete data', 401
@@ -706,7 +706,7 @@ def admin_user_group_delete(user_id=None, group_id=None):
 	:param group_id: Identifies a specific group.
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to delete data', 401
@@ -772,7 +772,7 @@ def admin_series_organization_delete(user_id=None, organization_id=None):
 	:param organization_id: Identifies a specific organization.
 	'''
 
-	# Check authentication. 
+	# Check authentication.
 	try:
 		if not get_authorization( request.authorization ).is_admin():
 			return 'Only admins are allowed to delete data', 401

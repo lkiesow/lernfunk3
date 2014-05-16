@@ -38,7 +38,7 @@ def load_html():
 	:returns: HTML page
 	'''
 	feeds = request_series()
-	html  = render_template('feeds.html', feeds=feeds, 
+	html  = render_template('feeds.html', feeds=feeds,
 			title=app.config['FEED_HTML_TITLE'])
 	get_redis().set('%shtml' % REDIS_NS, html)
 	return html

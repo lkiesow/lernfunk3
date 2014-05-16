@@ -29,7 +29,7 @@ class UUIDConverter(BaseConverter):
 
 	def __init__(self, url_map):
 		super(UUIDConverter, self).__init__(url_map)
-		# UUID may be either 
+		# UUID may be either
 		# 0d1a2dff-a062-4c39-a776-96034bc44ff0 or
 		# 0d1a2dffa0624c39a77696034bc44ff0
 		p = '[a-fA-F0-9]{%i}'

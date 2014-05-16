@@ -41,7 +41,7 @@ def get_dc_prop( xmp, dc_prop, name ):
 
 def get_dc_lang_prop( xmp, dc_prop, name, lang_generic=None, lang_specific=None ):
 	if xmp.does_property_exist(XMP_NS_DC, name):
-		dc_prop[name] = xmp.get_localized_text( XMP_NS_DC, name, 
+		dc_prop[name] = xmp.get_localized_text( XMP_NS_DC, name,
 				lang_generic, lang_specific)
 		return dc_prop[name]
 
@@ -120,7 +120,7 @@ def update_media( media_id, dc ):
 	auth = 'Basic ' + urlsafe_b64encode("%s:%s" % \
 			( config.LERNFUNK_CORE_USERNAME, config.LERNFUNK_CORE_PASSWORD ))
 
-	# TODO: 
+	# TODO:
 	# - check if m['id'] is UUID.
 	# - Check if media with UUID does exist.
 	# - Query creator
@@ -246,7 +246,7 @@ if __name__ == '__main__':
 
 '''
 xmp2.set_property( libxmp.consts.XMP_NS_DC, 'creator', 'Lars Kiesow')
-xmp2.serialize_to_str( 
+xmp2.serialize_to_str(
 	padding=0,
 	omit_packet_wrapper=True,
 	use_compact_format=True)

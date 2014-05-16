@@ -48,7 +48,7 @@ def execute_cached_query( key, cursor, query, query_args=None, time=600 ):
 	Example::
 
 		>>> cur = get_db().cursor()
-		>>> execute_cached_query( 'person_5', cur, 
+		>>> execute_cached_query( 'person_5', cur,
 				'select username from lf_user where id=5 ' )
 		('jdoe')
 

@@ -46,7 +46,7 @@ def get_authorization( auth ):
 		username = auth.username
 		password = auth.password
 		
-	# Check if the username might be valid as protection 
+	# Check if the username might be valid as protection
 	# against SQL injection
 	for c in username:
 		if not c in username_chars:
@@ -77,12 +77,12 @@ def get_authorization( auth ):
 	# At this point we are shure that we got a valid user with a valid password.
 	# So lets get the userdata.
 	# First set, what we already know:
-	user = User( id=id, name=username, vcard_uri=vcard_uri, groups={}, 
+	user = User( id=id, name=username, vcard_uri=vcard_uri, groups={},
 			realname=realname, email=email, access=access, password_hash=passwd )
 	
 	# Then get additional data:
-	query = '''select g.id, g.name from lf_user_group ug 
-			left outer join lf_group g on ug.group_id = g.id 
+	query = '''select g.id, g.name from lf_user_group ug
+			left outer join lf_group g on ug.group_id = g.id
 			where ug.user_id = %s ''' % id
 	cur.execute(query)
 	for id, name in cur.fetchall():

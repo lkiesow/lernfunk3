@@ -84,7 +84,7 @@ def html():
 @app.route('/style.css')
 def style():
 	'''Return CSS stylesheet for information page'''
-	return Response( 
+	return Response(
 			get_redis().get('%sstyle' % REDIS_NS) or load_style(),
 			mimetype='text/css' )
 

@@ -155,7 +155,7 @@ def get_xmp(type, id, user=None, password=None):
 	include_lf_dc(lf_data, xmp)
 
 	# Generate string
-	return xmp.serialize_to_str( 
+	return xmp.serialize_to_str(
 		padding=0,
 		omit_packet_wrapper=True,
 		use_compact_format=True)

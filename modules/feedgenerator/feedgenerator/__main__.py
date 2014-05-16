@@ -17,9 +17,9 @@ def usage():
 if __name__ == '__main__':
 	port = 5001
 	debug=False
-	try:                                
-		opts, args = getopt.getopt(sys.argv[1:], "hp:d:", 
-				["help", "port=", 'deug=']) 
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "hp:d:",
+				["help", "port=", 'deug='])
 
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):

@@ -106,7 +106,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
 		# Add user as conditions
-		query_condition = '''left outer join lf_access a on a.media_id = m.id 
+		query_condition = '''left outer join lf_access a on a.media_id = m.id
 			where ( a.user_id = %s ''' % user.id
 		# Add groups as condition (if necessary)
 		if not len(user.groups):
@@ -165,7 +165,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
-			m.relation, m.creator, m.contributor, m.publisher 
+			m.relation, m.creator, m.contributor, m.publisher
 			from lf_latest_published_media m '''
 	count_query = '''select count(m.id) from lf_latest_published_media m '''
 	if media_id:
@@ -180,7 +180,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 	count_query += query_condition
 
 	# Sort by column
-	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+	order_opts = ['id', 'language', 'title', 'timestamp_edit',
 			'timestamp_created', 'source_key']
 	if order:
 		if not order in order_opts:
@@ -281,9 +281,9 @@ def view_media(media_id=None, lang=None, series_id=None):
 
 		# Get subjects
 		if with_subject:
-			cur.execute( '''select s.name from lf_media_subject ms 
-					join lf_subject s on s.id = ms.subject_id 
-					where s.language = "%s" 
+			cur.execute( '''select s.name from lf_media_subject ms
+					join lf_subject s on s.id = ms.subject_id
+					where s.language = "%s"
 					and ms.media_id = x'%s' ''' % (language, media_uuid.hex) )
 			subject = []
 			for (subject_name,) in cur.fetchall():
@@ -383,7 +383,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
 		# Add user as conditions
-		query_condition = '''left outer join lf_access a on a.media_id = m.id 
+		query_condition = '''left outer join lf_access a on a.media_id = m.id
 			where ( a.user_id = %s ''' % user.id
 		# Add groups as condition (if necessary)
 		if not len(user.groups):
@@ -443,7 +443,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
 			m.relation, m.creator, m.contributor, m.publisher
 			from lf_media_series ms
-			join lf_latest_published_media m 
+			join lf_latest_published_media m
 			on ms.media_id = m.id '''
 	count_query = '''select count(m.id) from lf_media_series ms
 			join lf_latest_published_media m on ms.media_id = m.id '''
@@ -460,7 +460,7 @@ def view_series_media(series_id, media_id=None, lang=None):
 	count_query += query_condition
 
 	# Sort by column
-	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+	order_opts = ['id', 'language', 'title', 'timestamp_edit',
 			'timestamp_created', 'source_key']
 	if order:
 		if not order in order_opts:
@@ -560,9 +560,9 @@ def view_series_media(series_id, media_id=None, lang=None):
 
 		# Get subjects
 		if with_subject:
-			cur.execute( '''select s.name from lf_media_subject ms 
-					join lf_subject s on s.id = ms.subject_id 
-					where s.language = "%s" 
+			cur.execute( '''select s.name from lf_media_subject ms
+					join lf_subject s on s.id = ms.subject_id
+					where s.language = "%s"
 					and ms.media_id = x'%s' ''' % (language, media_uuid.hex) )
 			subject = []
 			for (subject_name,) in cur.fetchall():
@@ -651,7 +651,7 @@ def view_series(series_id=None, lang=None):
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
 		# Add user as conditions
-		query_condition = '''left outer join lf_access a on a.series_id = s.id 
+		query_condition = '''left outer join lf_access a on a.series_id = s.id
 			where ( a.user_id = %s ''' % user.id
 		# Add groups as condition (if necessary)
 		if not len(user.groups):
@@ -720,7 +720,7 @@ def view_series(series_id=None, lang=None):
 	count_query += query_condition
 
 	# Sort by column
-	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+	order_opts = ['id', 'language', 'title', 'timestamp_edit',
 			'timestamp_created', 'source_key']
 	if order:
 		if not order in order_opts:
@@ -783,7 +783,7 @@ def view_series(series_id=None, lang=None):
 
 		# Get media
 		if with_media:
-			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
+			cur.execute( '''select bin2uuid(media_id) from lf_media_series
 				where series_id = x'%s'
 				and series_version = %s''' % ( series_uuid.hex, version ) )
 			media = []
@@ -793,9 +793,9 @@ def view_series(series_id=None, lang=None):
 
 		# Get subjects
 		if with_subject:
-			cur.execute( '''select s.name from lf_series_subject ms 
-					join lf_subject s on s.id = ms.subject_id 
-					where s.language = "%s" 
+			cur.execute( '''select s.name from lf_series_subject ms
+					join lf_subject s on s.id = ms.subject_id
+					where s.language = "%s"
 					and ms.series_id = x'%s' ''' % (language, series_uuid.hex) )
 			subject = []
 			for (subject_name,) in cur.fetchall():
@@ -1004,7 +1004,7 @@ def view_file(file_id=None):
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
 		# Add user as conditions
-		query_condition = '''inner join lf_access a on a.media_id = f.media_id 
+		query_condition = '''inner join lf_access a on a.media_id = f.media_id
 			where ( a.user_id = %s ''' % user.id
 		# Add groups as condition (if necessary)
 		if not len(user.groups):
@@ -1165,7 +1165,7 @@ def view_organization(organization_id=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select id, name, vcard_uri, parent_organization 
+	query = '''select id, name, vcard_uri, parent_organization
 			from lf_organization '''
 	count_query = '''select count(id) from lf_organization '''
 	query_condition = ''
@@ -1445,7 +1445,7 @@ def view_user(user_id=None):
 
 	db = get_db()
 	cur = db.cursor()
-	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access 
+	query = '''select u.id, u.name, u.vcard_uri, u.realname, u.email, u.access
 			from lf_user u '''
 	count_query = 'select count(u.id) from lf_user u '
 	if user_id != None:

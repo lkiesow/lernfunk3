@@ -16,7 +16,7 @@ Search query form (EBNF)::
    value    = { valchars } ;
 
    search   = operator, ":", key, ":", value
-   query    = search 
+   query    = search
             | search, and, search
             | search, or, search ;
 

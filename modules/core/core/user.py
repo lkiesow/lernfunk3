@@ -60,7 +60,7 @@ class User:
 	'''Hashed version of the users password'''
 
 
-	def __init__(self, id=None, name=None, groups={}, vcard_uri=None, 
+	def __init__(self, id=None, name=None, groups={}, vcard_uri=None,
 			realname=None, email=None, access=4, password_hash=''):
 		'''Set initial values of user object.'''
 		self.id            = id
@@ -104,7 +104,7 @@ class User:
 				'email="%s", access="%s", is_admin=%s, is_editor=%s, ' \
 				'password_hash="%s")' \
 				% ( self.id, self.name, self.groups, self.vcard_uri, self.realname,
-						self.email, self.access, self.is_admin(), self.is_editor(), 
+						self.email, self.access, self.is_admin(), self.is_editor(),
 						self.password_hash_b64() )
 
 

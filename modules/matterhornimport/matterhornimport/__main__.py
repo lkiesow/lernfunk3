@@ -42,9 +42,9 @@ def main():
 	host  = '0.0.0.0'
 	debug = False
 
-	try:                                
-		opts, args = getopt.getopt(sys.argv[1:], "h", 
-				["--help", "port=", 'host=', 'server', 'debug']) 
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "h",
+				["--help", "port=", 'host=', 'server', 'debug'])
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):
 				usage()

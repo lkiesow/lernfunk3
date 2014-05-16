@@ -33,8 +33,8 @@ def series(format):
 		==============  ===========================================  ========
 		Parameter       Description                                  Default
 		==============  ===========================================  ========
-		id              Specify an object by its id                         
-		q               Free-text search query                              
+		id              Specify an object by its id
+		q               Free-text search query
 		series          Include series information in the results    true
 		episode         Include episode information n the results    false
 		limit           Maximum amount of results to return          10
@@ -169,8 +169,8 @@ def search_xml(series, episode, id, sid, q, limit, offset, user, passwd, cookie)
 
 	dom = parseString(
 			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
-			+ '''<search-results 
-				xmlns="http://search.opencastproject.org" 
+			+ '''<search-results
+				xmlns="http://search.opencastproject.org"
 				xmlns:m="http://mediapackage.opencastproject.org">''' \
 			+ '</search-results>')
 

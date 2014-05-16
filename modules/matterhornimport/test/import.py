@@ -89,7 +89,7 @@ def getUserId( cur, username=None, realname=None ):
 
 
 def addSeriesCreator(series, username=None, realname=None):
-	query = '''select count(id) from lf_user 
+	query = '''select count(id) from lf_user
 			where realname = "%s" ''' % str(creator_realname).translate(None, '";')
 	cur.execute( query )
 	usercount = cur.fetchone()[0]
@@ -97,7 +97,7 @@ def addSeriesCreator(series, username=None, realname=None):
 		usercount = 1
 		# Get a unique username
 		while usercount:
-			query = '''select count(id) from lf_user 
+			query = '''select count(id) from lf_user
 					where name = "%s" ''' % creator_username
 			cur.execute( query )
 			usercount = cur.fetchone()[0]
@@ -143,7 +143,7 @@ def new_series( service, result, user ):
 	identifier  = mysql_escape(result.getAttribute('id'))
 
 	# Return if series exists
-	cur.execute('''select count(id) from lf_series 
+	cur.execute('''select count(id) from lf_series
 			where source_key = %s ''' % mysql_quote(identifier) )
 	if cur.fetchone()[0]:
 		return
@@ -161,12 +161,12 @@ def new_series( service, result, user ):
 		print( 'series: %s' % e )
 		series_id = uuid.uuid4()
 
-	query = '''insert into lf_series 
-			( id, title, language, description, published, 
-				owner, editor, source_system, source_key) 
+	query = '''insert into lf_series
+			( id, title, language, description, published,
+				owner, editor, source_system, source_key)
 			values ( x'%s', %s, %s, %s, %s, %s, %s, %s, %s) ''' % \
 				( series_id.hex, mysql_quote(title), mysql_quote(language),
-						mysql_quote(description), 1, user, user, 
+						mysql_quote(description), 1, user, user,
 						'"video2.virtuos.uos.de"', mysql_quote(identifier) )
 	cur.execute( query )
 	lf3db.commit()
@@ -226,17 +226,17 @@ def new_media( service, result, user, series_id ):
 		# Insert in lf_series_creator
 		pass
 
-	query = '''insert into lf_media 
+	query = '''insert into lf_media
 			( id, title, language, description, published, timestamp_created,
-				owner, editor, source_system, source_key, type) 
+				owner, editor, source_system, source_key, type)
 			values ( x'%s', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s ) ''' % \
 				( media_id.hex, mysql_quote(title), mysql_quote(language),
 						mysql_quote(description), 1, mysql_quote(created),
-						user, user, '"matterhorn13@video2.virtuos.uos.de"', 
+						user, user, '"matterhorn13@video2.virtuos.uos.de"',
 						mysql_quote(identifier), '"MovingImage"' )
 	cur.execute( query )
 
-	query = '''insert into lf_media_series 
+	query = '''insert into lf_media_series
 			( series_id, media_id, series_version, media_version )
 			values ( x'%s', x'%s', %i, %i ) ''' % \
 					( series_id.hex, media_id.hex, 0, 0 )
@@ -301,12 +301,12 @@ def new_file( trackxml, media_id ):
 		track_id = uuid.uuid4()
 
 	query = '''insert into lf_file
-			( id, media_id, format, type, quality, server_id, uri, 
+			( id, media_id, format, type, quality, server_id, uri,
 				source, source_system, source_key )
 			values ( x'%s', x'%s', %s, %s, %s, %s, %s, %s, %s, %s ) ''' % \
 					( track_id.hex, media_id.hex, mysql_quote(mysql_escape(mimetype)),
-							mysql_quote(type), mysql_quote(quality), 
-							mysql_quote('video2uos'), 'NULL', 'NULL', 
+							mysql_quote(type), mysql_quote(quality),
+							mysql_quote('video2uos'), 'NULL', 'NULL',
 							mysql_quote('Matterhorn13'),
 							mysql_quote(mysql_escape(identifier)) )
 	
@@ -319,7 +319,7 @@ def new_file( trackxml, media_id ):
 
 
 
-cur.execute('''select id from lf_user 
+cur.execute('''select id from lf_user
 		where name = "%s" ''' % __INSERT_AS['user'])
 user = cur.fetchone()[0]
 

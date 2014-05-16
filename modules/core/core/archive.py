@@ -107,7 +107,7 @@ def archive_media(media_id=None, version=None, lang=None):
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
 		# Add user as conditions
-		query_condition = '''left outer join lf_access a on a.media_id = m.id 
+		query_condition = '''left outer join lf_access a on a.media_id = m.id
 			where ( a.user_id = %s ''' % user.id
 		# Add groups as condition (if necessary)
 		if not len(user.groups):
@@ -161,7 +161,7 @@ def archive_media(media_id=None, version=None, lang=None):
 			m.title, m.description, m.owner, m.editor, m.timestamp_edit,
 			m.timestamp_created, m.published, m.source, m.visible,
 			m.source_system, m.source_key, m.rights, m.type, m.coverage,
-			m.relation, m.creator, m.contributor, m.publisher 
+			m.relation, m.creator, m.contributor, m.publisher
 			from lf_published_media m '''
 	count_query = '''select count(m.id) from lf_published_media m '''
 	if media_id:
@@ -184,7 +184,7 @@ def archive_media(media_id=None, version=None, lang=None):
 	count_query += query_condition
 
 	# Sort by column
-	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+	order_opts = ['id', 'language', 'title', 'timestamp_edit',
 			'timestamp_created', 'source_key']
 	if order:
 		if not order in order_opts:
@@ -276,9 +276,9 @@ def archive_media(media_id=None, version=None, lang=None):
 
 		# Get subjects
 		if with_subject:
-			cur.execute( '''select s.name from lf_media_subject ms 
-					join lf_subject s on s.id = ms.subject_id 
-					where s.language = "%s" 
+			cur.execute( '''select s.name from lf_media_subject ms
+					join lf_subject s on s.id = ms.subject_id
+					where s.language = "%s"
 					and ms.media_id = x'%s' ''' % (language, media_uuid.hex) )
 			subject = []
 			for (subject_name,) in cur.fetchall():
@@ -368,7 +368,7 @@ def archive_series(series_id=None, version=None, lang=None):
 	# Admins and editors can see everything. So there is no need for conditions.
 	if not ( user.is_admin() or user.is_editor() ):
 		# Add user as conditions
-		query_condition = '''left outer join lf_access a on a.series_id = s.id 
+		query_condition = '''left outer join lf_access a on a.series_id = s.id
 			where ( a.user_id = %s ''' % user.id
 		# Add groups as condition (if necessary)
 		if not len(user.groups):
@@ -421,7 +421,7 @@ def archive_series(series_id=None, version=None, lang=None):
 	query = '''select s.id, s.version, s.parent_version, s.title,
 			s.language, s.description, s.source, s.timestamp_edit,
 			s.timestamp_created, s.published, s.owner, s.editor, s.visible,
-			s.source_key, s.source_system, s.creator, s.contributor, s.publisher 
+			s.source_key, s.source_system, s.creator, s.contributor, s.publisher
 			from lf_published_series s '''
 	count_query = '''select count(s.id) from lf_published_series s '''
 	if series_id:
@@ -441,7 +441,7 @@ def archive_series(series_id=None, version=None, lang=None):
 	count_query += query_condition
 
 	# Sort by column
-	order_opts = ['id', 'language', 'title', 'timestamp_edit', 
+	order_opts = ['id', 'language', 'title', 'timestamp_edit',
 			'timestamp_created', 'source_key']
 	if order:
 		if not order in order_opts:
@@ -496,7 +496,7 @@ def archive_series(series_id=None, version=None, lang=None):
 
 		# Get media
 		if with_media:
-			cur.execute( '''select bin2uuid(media_id) from lf_media_series 
+			cur.execute( '''select bin2uuid(media_id) from lf_media_series
 				where series_id = x'%s'
 				and series_version = %s''' % ( series_uuid.hex, version ) )
 			media = []
@@ -506,9 +506,9 @@ def archive_series(series_id=None, version=None, lang=None):
 
 		# Get subjects
 		if with_subject:
-			cur.execute( '''select s.name from lf_series_subject ms 
-					join lf_subject s on s.id = ms.subject_id 
-					where s.language = "%s" 
+			cur.execute( '''select s.name from lf_series_subject ms
+					join lf_subject s on s.id = ms.subject_id
+					where s.language = "%s"
 					and ms.series_id = x'%s' ''' % (language, series_uuid.hex) )
 			subject = []
 			for (subject_name,) in cur.fetchall():

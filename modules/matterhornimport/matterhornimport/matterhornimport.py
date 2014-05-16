@@ -230,11 +230,11 @@ class MediapackageImporter:
 		m['duration'] = mpNode.getAttribute('duration')
 
 		# Split values if necessary
-		m['subject']     = split_vals( m['subject'], 
+		m['subject']     = split_vals( m['subject'],
 				self.config['delimeter']['subject'] or [] )
-		m['creator']     = split_vals( m['creator'], 
+		m['creator']     = split_vals( m['creator'],
 				self.config['delimeter']['creator'] or [] )
-		m['contributor'] = split_vals( m['contributor'], 
+		m['contributor'] = split_vals( m['contributor'],
 				self.config['delimeter']['contributor'] or [] )
 
 		# Get additional metadata
@@ -268,25 +268,25 @@ class MediapackageImporter:
 						s['language']    = xml_get_data(dcdata, 'language',    namespace=ns)
 
 						# Split values if necessary
-						s['subject']     = split_vals( s['subject'], 
+						s['subject']     = split_vals( s['subject'],
 								self.config['delimeter']['subject'] or [] )
-						s['creator']     = split_vals( s['creator'], 
+						s['creator']     = split_vals( s['creator'],
 								self.config['delimeter']['creator'] or [] )
-						s['contributor'] = split_vals( s['contributor'], 
+						s['contributor'] = split_vals( s['contributor'],
 								self.config['delimeter']['contributor'] or [] )
 				except urllib2.URLError:
 					pass
 		
-		# TODO: 
+		# TODO:
 		# - check if m['id'] is UUID.
 		# - Check if media with UUID does exist.
 		# - Query creator
 		# - Query contributor
 
 		# Check if mediapackage with source_key exists
-		u = urllib2.urlopen( self.build_search_request( 
-				op='eq:source_key', 
-				val=m['id'], 
+		u = urllib2.urlopen( self.build_search_request(
+				op='eq:source_key',
+				val=m['id'],
 				endpoint='admin/media/' ) )
 		mdata = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
 		u.close()
@@ -466,9 +466,9 @@ class MediapackageImporter:
 			return True
 
 		# Check if series with source_key exists
-		u = urllib2.urlopen( self.build_search_request( 
-				op='eq:source_key', 
-				val=s['id'], 
+		u = urllib2.urlopen( self.build_search_request(
+				op='eq:source_key',
+				val=s['id'],
 				endpoint='admin/series/' ) )
 		sdata = parseString(u.read()).getElementsByTagNameNS('*', 'result')[0]
 		u.close()
