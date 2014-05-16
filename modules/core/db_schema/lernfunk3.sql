@@ -521,13 +521,8 @@ DELIMITER $$
 CREATE TRIGGER file_default_values BEFORE INSERT ON lf_file
     FOR EACH ROW
     BEGIN
-		/* Check if URL is valid */
-      IF not isnull(NEW.uri) and NEW.uri not like '%://%' THEN
-            SIGNAL SQLSTATE '45000'
-                SET MESSAGE_TEXT = 'Not a valid URI!';
-
-        /* Create new UUID */
-		ELSEIF NEW.id = x'00000000000000000000000000000000' then
+      /* Create new UUID */
+		IF NEW.id = x'00000000000000000000000000000000' then
             SET NEW.id = binuuid();
 
         END IF;
