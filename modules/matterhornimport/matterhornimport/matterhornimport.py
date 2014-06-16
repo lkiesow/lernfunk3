@@ -276,7 +276,7 @@ class MediapackageImporter:
 								self.config['delimeter']['contributor'] or [] )
 				except urllib2.URLError:
 					pass
-		
+
 		# TODO:
 		# - check if m['id'] is UUID.
 		# - Check if media with UUID does exist.
@@ -597,7 +597,7 @@ def service():
 		mediapackage   An Opencast Matterhorn mediapackage as XML
 		source_system  System identifier of the Matterhorn server
 		=============  ==========================================
-	
+
 	'''
 	mpkg = request.form.get('mediapackage')
 	if not mpkg:
@@ -612,6 +612,8 @@ def service():
 	# Check if we want to save the mediapackages we get
 	if config.get('mediapackage_archive'):
 		import time
+		if not os.path.exists(config['mediapackage_archive']):
+			os.mkdir(config['mediapackage_archive'])
 		with open('%s/%s.xml' % (config['mediapackage_archive'], time.time()), 'w') as f:
 			f.write( mpkg )
 
