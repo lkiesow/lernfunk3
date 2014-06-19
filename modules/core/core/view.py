@@ -16,6 +16,7 @@ from core.authenticate import get_authorization
 import uuid
 import json
 from core.user import user_by_id
+import urllib2
 
 from flask import request, session, g, redirect, url_for, make_response, jsonify
 
@@ -121,7 +122,22 @@ def view_media(media_id=None, lang=None, series_id=None):
 
 	# Hide invisible ones
 	query_condition += 'and visible ' if query_condition else 'where visible '
-	
+
+	# Query Document Search Engine for search
+	dse = request.args.get('dse')
+	if dse:
+		query = {"jsonrpc": "2.0", "params": [dse], "id": "gasdmj4f", "method": "query"}
+		req  = urllib2.Request('http://localhost:8004/')
+		req.add_data(json.dumps(query))
+		req.add_header('Content-Type', 'application/json')
+		req.add_header('Accept',       'application/json')
+		u = urllib2.urlopen(req)
+		documents = u.read()
+		u.close()
+		documents = json.loads(json.loads(documents).get('result'))
+		documents = [ x[2].split('.')[0] for x in documents.get('searchResult') ]
+		query_condition += 'and (%s) ' % ' or '.join([ ' id = uuid2bin("%s") ' % d for d in documents ])
+		print query_condition
 
 
 	# Check flags for additional data
