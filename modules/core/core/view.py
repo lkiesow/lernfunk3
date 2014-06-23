@@ -136,7 +136,7 @@ def view_media(media_id=None, lang=None, series_id=None):
 		u.close()
 		documents = json.loads(json.loads(documents).get('result'))
 		documents = [ x[2].split('.')[0] for x in documents.get('searchResult') ]
-		query_condition += 'and (%s) ' % ' or '.join([ ' id = uuid2bin("%s") ' % d for d in documents ])
+		query_condition += 'and (%s) ' % ' or '.join([ ' m.id = uuid2bin("%s") ' % d for d in documents ])
 		print query_condition
 
 
